@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "services": [],
+  "tasks": [
+    {
+      "key": "expiry",
+      "name": "支付宝云端过期订单检查",
+      "method": "checkExpiry",
+      "interval_seconds": 3,
+      "timeout_seconds": 90,
+      "idempotency": "manual_review"
+    }
+  ]
+}

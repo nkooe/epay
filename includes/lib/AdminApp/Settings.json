@@ -1,0 +1,2833 @@
+{
+  "site": [
+    {
+      "key": "sitename",
+      "label": "网站名称",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "title",
+      "label": "首页标题",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "keywords",
+      "label": "关键字",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    },
+    {
+      "key": "description",
+      "label": "网站描述",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "orgname",
+      "label": "公司/组织名称",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "localurl",
+      "label": "回调专用网址",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "apiurl",
+      "label": "用户对接网址",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "email",
+      "label": "联系邮箱",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "kfqq",
+      "label": "客服ＱＱ",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "qqqun",
+      "label": "加群链接",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "appurl",
+      "label": "APP下载链接",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "verifytype",
+      "label": "用户验证方式",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "邮箱验证",
+        "1": "手机验证"
+      }
+    },
+    {
+      "key": "reg_open",
+      "label": "开放注册",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "1": "开启",
+        "0": "关闭",
+        "2": "仅邀请注册"
+      }
+    },
+    {
+      "key": "reg_input_settle",
+      "label": "注册后可不填结算账户",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "否",
+        "1": "是"
+      }
+    },
+    {
+      "key": "user_review",
+      "label": "开启注册审核",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "reg_pay",
+      "label": "注册付费",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "1": "开启",
+        "0": "关闭"
+      }
+    },
+    {
+      "key": "reg_pay_price",
+      "label": "注册付费金额",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "user_settings_edit",
+      "label": "用户编辑自定义接口信息",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "test_open",
+      "label": "测试支付",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "1": "开启",
+        "0": "关闭"
+      }
+    },
+    {
+      "key": "test_pay_uid",
+      "label": "测试支付收款商户ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "captcha_open_test",
+      "label": "测试支付开启验证码",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "captcha_id",
+      "label": "极验滑动验证码ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "captcha_key",
+      "label": "极验滑动验证码密钥",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    },
+    {
+      "key": "captcha_version",
+      "label": "极验版本",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "V3.0",
+        "1": "V4.0"
+      }
+    },
+    {
+      "key": "captcha_open_login",
+      "label": "登录开启验证码",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "close_keylogin",
+      "label": "密钥登录",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": true,
+      "options": {
+        "1": "关闭",
+        "0": "开启"
+      }
+    },
+    {
+      "key": "user_style",
+      "label": "用户中心风格",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "黑色（1）",
+        "1": "黑色（2）",
+        "2": "棕色（1）",
+        "3": "棕色（2）",
+        "4": "蓝色（1）",
+        "5": "蓝色（2）",
+        "6": "紫色（1）",
+        "7": "紫色（2）"
+      }
+    },
+    {
+      "key": "cdnpublic",
+      "label": "公共静态资源CDN",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "2": "ZstaticCDN",
+        "4": "未闻花名CDN",
+        "1": "360CDN",
+        "0": "本地"
+      }
+    },
+    {
+      "key": "homepage",
+      "label": "首页显示模式",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "默认显示首页",
+        "1": "直接跳转登录页面",
+        "2": "显示其它指定网址"
+      }
+    },
+    {
+      "key": "homepage_url",
+      "label": "显示网址URL",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    }
+  ],
+  "iptype": [
+    {
+      "key": "ip_type",
+      "label": "用户IP地址获取方式",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "0_X_FORWARDED_FOR",
+        "1": "1_X_REAL_IP",
+        "2": "2_REMOTE_ADDR"
+      }
+    }
+  ],
+  "pay": [
+    {
+      "key": "pay_maxmoney",
+      "label": "最大支付金额",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "pay_minmoney",
+      "label": "最小支付金额",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "blockname",
+      "label": "商品屏蔽关键词",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "blockalert",
+      "label": "商品屏蔽显示内容",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "ordername",
+      "label": "商品名称自定义",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "pageordername",
+      "label": "扫码页面隐藏商品名称",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "否",
+        "1": "是"
+      }
+    },
+    {
+      "key": "notifyordername",
+      "label": "回调参数去除商品名称",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "否",
+        "1": "是"
+      }
+    },
+    {
+      "key": "forceqq",
+      "label": "未填联系QQ禁止支付",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "否",
+        "1": "是"
+      }
+    },
+    {
+      "key": "localurl_alipay",
+      "label": "本站网址(支付宝专用)",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "localurl_wxpay",
+      "label": "本站网址(微信专用)",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxminipay_path",
+      "label": "微信小程序支付跳转小程序页面路径",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "pay_payaddstart",
+      "label": "满多少随机增减金额",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "pay_payaddmin",
+      "label": "随机增减金额范围",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "pay_payaddmax",
+      "label": "随机增减金额范围",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "alipay_paymode",
+      "label": "支付宝电脑网站支付使用扫码模式",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "direct_settle_time",
+      "label": "支付宝直付通&微信收付通结算时间",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "支付后立即结算",
+        "1": "支付后延迟24小时结算"
+      }
+    },
+    {
+      "key": "alipay_qrcode_url",
+      "label": "支付宝扫码链接替换地址",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxpay_qrcode_url",
+      "label": "微信扫码链接替换地址",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "black_payact",
+      "label": "黑名单支付订单后操作",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "无",
+        "1": "订单不回调"
+      }
+    },
+    {
+      "key": "profits_desc",
+      "label": "支付宝&微信分账描述",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "profits_failretry",
+      "label": "分账失败的24小时后重试",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "否",
+        "1": "是"
+      }
+    },
+    {
+      "key": "check_pay_regoin",
+      "label": "校验扫码IP所在地与下单IP所在地是否一致",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "否",
+        "1": "是（不一致时禁止支付）",
+        "2": "是（不一致时弹出提示）"
+      }
+    },
+    {
+      "key": "alipay_web_login",
+      "label": "网页快捷登录通道",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭"
+      }
+    },
+    {
+      "key": "alipay_web_login_all",
+      "label": "支付宝官方插件也用上述通道登录",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "alipay_mini_login",
+      "label": "支付宝小程序通道",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭"
+      }
+    },
+    {
+      "key": "alipay_wappaylogin",
+      "label": "支付宝手机网站支付前快捷登录",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "alipay_qrpaylogin",
+      "label": "支付宝当面付支付前快捷登录",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "alipay_getmobile",
+      "label": "支付宝快捷登录获取用户手机号",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "alipay_aes_key",
+      "label": "支付宝加密AES密钥",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    },
+    {
+      "key": "wxpay_qrpaylogin",
+      "label": "微信扫码支付前快捷登录",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "wxpay_web_login",
+      "label": "微信快捷登录公众号",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭"
+      }
+    },
+    {
+      "key": "recharge",
+      "label": "开启余额充值",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "1": "开启",
+        "0": "关闭"
+      }
+    },
+    {
+      "key": "reg_pay_uid",
+      "label": "注册/充值/购买会员收款商户ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "onecode",
+      "label": "开启聚合收款码",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "1": "开启",
+        "0": "关闭"
+      }
+    },
+    {
+      "key": "pay_domain_open",
+      "label": "开启授权支付域名添加",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "pay_domain_forbid",
+      "label": "未授权支付域名禁止支付",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "user_refund",
+      "label": "开启商户后台自助退款",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "refund_fee_type",
+      "label": "订单退款手续费承担方",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "平台（默认）",
+        "1": "商户"
+      }
+    },
+    {
+      "key": "payfee_lessthan",
+      "label": "手续费最低扣除设置",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "payfee_mincost",
+      "label": "手续费最低扣除设置",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "applyments_open",
+      "label": "开启商户后台进件功能",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "user_profitsharing",
+      "label": "开启商户后台添加分账规则（仅进件商户）",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "invite_open",
+      "label": "邀请返现功能",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "invite_order_type",
+      "label": "邀请分成比例计算类型",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "按订单金额（默认）",
+        "1": "按手续费金额",
+        "2": "按手续费利润"
+      }
+    },
+    {
+      "key": "invite_rate",
+      "label": "邀请分成比例",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "invite_order_fee",
+      "label": "邀请返现不能超过订单手续费",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "是（默认）",
+        "1": "否"
+      }
+    },
+    {
+      "key": "invite_mode",
+      "label": "邀请返现分成时机",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "每笔订单立即返现（默认）",
+        "1": "每日0点定时返现"
+      }
+    },
+    {
+      "key": "invite_groupbuy_rate",
+      "label": "购买会员邀请分成比例",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "invite_apply_rate",
+      "label": "进件邀请分成比例",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "mchrisk_open",
+      "label": "用户中心开启渠道商户违规记录",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "user_deposit",
+      "label": "开启商户保证金功能",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "user_deposit_min",
+      "label": "商户保证金最低充值金额",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "user_deposit_day",
+      "label": "商户保证金最少冻结天数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "complain_range",
+      "label": "投诉记录获取范围",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "仅本站订单相关投诉",
+        "1": "全部投诉记录"
+      }
+    },
+    {
+      "key": "complain_open",
+      "label": "用户中心开启交易投诉处理功能",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "complain_freeze_order",
+      "label": "自动冻结与解冻被投诉订单",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "否",
+        "1": "是"
+      }
+    },
+    {
+      "key": "complain_auto_reply",
+      "label": "投诉自动回复并处理",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "否",
+        "1": "自动回复并处理",
+        "2": "微信自动回复+支付宝自动处理",
+        "3": "微信自动回复+支付宝不处理"
+      }
+    },
+    {
+      "key": "complain_auto_reply_repeat",
+      "label": "微信重复投诉后仍然自动回复并处理",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "否",
+        "1": "是"
+      }
+    },
+    {
+      "key": "complain_auto_reply_con",
+      "label": "投诉自动回复内容",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "complain_auto_black",
+      "label": "投诉自动拉黑支付账号",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "否",
+        "1": "是"
+      }
+    },
+    {
+      "key": "complain_auto_ipblack",
+      "label": "投诉自动拉黑支付IP",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "否",
+        "1": "拉黑3天",
+        "2": "拉黑5天",
+        "3": "拉黑7天"
+      }
+    },
+    {
+      "key": "complain_auto_refund",
+      "label": "投诉订单自动退款",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "否",
+        "1": "是"
+      }
+    },
+    {
+      "key": "complain_auto_refund_money",
+      "label": "金额低于多少自动退款",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxcombine_open",
+      "label": "微信开启合单支付",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "alicombine_open",
+      "label": "支付宝开启合单支付",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "wxcombine_minmoney",
+      "label": "合单支付最小金额",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxcombine_submoney",
+      "label": "合单支付子单最大金额",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "pre_maxmoney",
+      "label": "预创建订单最大金额",
+      "type": "decimal",
+      "options": {},
+      "default": "0",
+      "max": 20
+    }
+  ],
+  "risk": [
+    {
+      "key": "pay_iplimit",
+      "label": "限制每IP每天支付笔数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "pay_iplimit_white",
+      "label": "IP白名单",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "pay_userlimit",
+      "label": "限制每支付账号每天支付笔数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "pay_daymoney",
+      "label": "限制每支付账号每天支付总额",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "pay_region_block",
+      "label": "禁止支付的省或市",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "pay_verify",
+      "label": "创建订单人机验证",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "按规则开启",
+        "2": "指定商户开启",
+        "3": "全部商户开启"
+      }
+    },
+    {
+      "key": "pay_verify_check_second",
+      "label": "人机验证开启规则1",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "pay_verify_check_count",
+      "label": "人机验证开启规则1",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "pay_verify_check_rate",
+      "label": "人机验证开启规则1",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "pay_verify_check_ip",
+      "label": "人机验证开启规则2",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "pay_verify_check_uid",
+      "label": "开启人机验证的商户",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "pay_verify_type",
+      "label": "人机验证类型",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "JS跳转验证（速度快）",
+        "1": "极验无感验证（速度慢）",
+        "2": "极验滑动验证（速度慢且体验差）",
+        "3": "禁止支付"
+      }
+    },
+    {
+      "key": "auto_check_channel",
+      "label": "功能开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "check_channel_second",
+      "label": "参数设置",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "check_channel_failcount",
+      "label": "参数设置",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "check_channel_ids",
+      "label": "参数设置",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "check_channel_notice",
+      "label": "发送提醒",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "auto_check_sucrate",
+      "label": "功能开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "check_sucrate_second",
+      "label": "参数设置",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "check_sucrate_count",
+      "label": "参数设置",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "check_sucrate_value",
+      "label": "参数设置",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "check_sucrate_notice",
+      "label": "发送提醒",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "auto_check_notify",
+      "label": "功能开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "check_notify_count",
+      "label": "参数设置",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "check_notify_notice",
+      "label": "发送提醒",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "auto_check_complain",
+      "label": "功能开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "check_complain_rate",
+      "label": "参数设置",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "check_complain_notice",
+      "label": "发送提醒",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "auto_check_payip",
+      "label": "功能开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "check_payip_second",
+      "label": "参数设置",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "check_payip_count",
+      "label": "参数设置",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "auto_check_payspeed",
+      "label": "功能开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "check_payspeed_second",
+      "label": "参数设置",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "check_payspeed_count",
+      "label": "参数设置",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "check_payspeed_days",
+      "label": "参数设置",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "check_paymsg",
+      "label": "下单异常提示关键词",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "check_paymsg_notice",
+      "label": "发送提醒",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "check_paymsg_retry",
+      "label": "关闭后自动重新下单",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "alipay_settle_check",
+      "label": "功能开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "alipay_settle_notice",
+      "label": "发送提醒",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    }
+  ],
+  "settle": [
+    {
+      "key": "settle_open",
+      "label": "结算总开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭结算功能",
+        "1": "只开启每日自动结算",
+        "2": "只开启手动申请结算",
+        "3": "开启自动+手动结算"
+      }
+    },
+    {
+      "key": "settle_type",
+      "label": "结算周期",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "D+0（可结算全部余额）",
+        "1": "D+1（可结算前1天的余额）"
+      }
+    },
+    {
+      "key": "settle_transfer",
+      "label": "手动结算自动转账",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "settle_transfermax",
+      "label": "超出多少元不自动转账",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "settle_maxlimit",
+      "label": "每日手动申请次数限制",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "settle_money",
+      "label": "最低结算金额",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "settle_rate",
+      "label": "结算手续费",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "settle_fee_min",
+      "label": "结算手续费最小",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "settle_fee_max",
+      "label": "结算手续费最大",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "settle_alipay",
+      "label": "支付宝结算开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "settle_wxpay",
+      "label": "微信结算开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "settle_qqpay",
+      "label": "QQ钱包结算开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "settle_bank",
+      "label": "银行卡结算开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "auto_settle_money",
+      "label": "商户满多少金额自动转账",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    }
+  ],
+  "gonggao": [
+    {
+      "key": "modal",
+      "label": "用户中心弹出公告",
+      "type": "textarea",
+      "default": "",
+      "max": 16000,
+      "secret": false
+    },
+    {
+      "key": "zhuce",
+      "label": "注册页面弹出公告",
+      "type": "textarea",
+      "default": "",
+      "max": 16000,
+      "secret": false
+    },
+    {
+      "key": "footer",
+      "label": "首页底部排版",
+      "type": "textarea",
+      "default": "",
+      "max": 16000,
+      "secret": false
+    }
+  ],
+  "transfer": [
+    {
+      "key": "transfer_name",
+      "label": "付款方显示名称",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "transfer_desc",
+      "label": "付款默认备注",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "transfer_alipay",
+      "label": "支付宝转账接口通道",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "-1": "手动转账"
+      },
+      "reference": "channels"
+    },
+    {
+      "key": "transfer_alipay_scene_name",
+      "label": "支付宝-转账场景名称",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "transfer_alipay_info_type",
+      "label": "支付宝-转账场景信息类型",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "transfer_alipay_info_content",
+      "label": "支付宝-转账场景信息描述",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "alipay_satf",
+      "label": "支付宝安全发",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "alipay_satf_fee_type",
+      "label": "支付宝安全发手续费",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "从商户余额扣除手续费（默认）",
+        "1": "手续费转账到指定支付宝账户"
+      }
+    },
+    {
+      "key": "alipay_satf_fee_account",
+      "label": "手续费接收支付宝UID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "transfer_wxpay",
+      "label": "微信转账接口通道",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "-1": "手动转账"
+      },
+      "reference": "channels"
+    },
+    {
+      "key": "transfer_wxpay_type",
+      "label": "微信V3转账产品类型",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "商家转账到零钱（旧）",
+        "1": "商家转账（新）"
+      }
+    },
+    {
+      "key": "transfer_wxpay_scene_id",
+      "label": "微信商家转账-场景ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "transfer_wxpay_info_type",
+      "label": "微信商家转账-报备信息类型",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "transfer_wxpay_info_content",
+      "label": "微信商家转账-报备信息内容",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "transfer_qqpay",
+      "label": "QQ钱包转账接口通道",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "-1": "手动转账"
+      },
+      "reference": "channels"
+    },
+    {
+      "key": "transfer_bank",
+      "label": "银行卡转账接口通道",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "-1": "手动转账"
+      },
+      "reference": "channels"
+    },
+    {
+      "key": "user_transfer",
+      "label": "用户中心代付功能",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "user_transfer_red",
+      "label": "用户中心创建红包功能",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "transfer_minmoney",
+      "label": "最小代付金额限制",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "transfer_maxmoney",
+      "label": "最大代付金额限制",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "transfer_maxlimit",
+      "label": "每日对单人最大代付笔数限制",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "transfer_rate",
+      "label": "代付手续费",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    }
+  ],
+  "certificate": [
+    {
+      "key": "cert_open",
+      "label": "是否开启实名认证",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "支付宝身份验证",
+        "3": "支付宝实名信息验证",
+        "5": "阿里云金融级实人认证",
+        "6": "蚂蚁数科实人认证",
+        "4": "微信扫码实名认证",
+        "2": "手机号三要素实名认证"
+      }
+    },
+    {
+      "key": "cert_channel",
+      "label": "支付宝通道选择",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭"
+      }
+    },
+    {
+      "key": "cert_appcode",
+      "label": "APPCODE",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "cert_qcloudid",
+      "label": "腾讯云SecretId",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "cert_qcloudkey",
+      "label": "腾讯云SecretKey",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    },
+    {
+      "key": "cert_aliyunid",
+      "label": "阿里云AccessKeyId",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "cert_aliyunkey",
+      "label": "阿里云AccessKeySecret",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    },
+    {
+      "key": "cert_aliyunsceneid",
+      "label": "阿里云认证场景ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "cert_antiid",
+      "label": "蚂蚁数科AccessId",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "cert_antikey",
+      "label": "蚂蚁数科AccessSecret",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    },
+    {
+      "key": "cert_antisceneid",
+      "label": "蚂蚁数科认证场景ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "cert_corpopen",
+      "label": "开启企业认证方式",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "cert_appcode2",
+      "label": "企业信息校验接口APPCODE",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "cert_force",
+      "label": "商户强制认证",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "cert_money",
+      "label": "实名认证费用",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "ocr_type",
+      "label": "文字识别接口",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "aliyun": "阿里云",
+        "baidu": "百度云"
+      }
+    },
+    {
+      "key": "ocr_aliyunid",
+      "label": "阿里云AccessKeyId",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "ocr_aliyunkey",
+      "label": "阿里云AccessKeySecret",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    },
+    {
+      "key": "ocr_baiduid",
+      "label": "百度云API Key",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "ocr_baidukey",
+      "label": "百度云Secret Key",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    }
+  ],
+  "oauth": [
+    {
+      "key": "login_qq",
+      "label": "QQ快捷登录",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "QQ互联官方快捷登录",
+        "2": "手机QQ扫码登录",
+        "3": "彩虹聚合登录"
+      }
+    },
+    {
+      "key": "login_qq_appid",
+      "label": "QQ快捷登录Appid",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "login_qq_appkey",
+      "label": "QQ快捷登录Appkey",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    },
+    {
+      "key": "login_alipay",
+      "label": "支付宝快捷登录",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "-1": "彩虹聚合登录"
+      }
+    },
+    {
+      "key": "login_wx",
+      "label": "微信快捷登录",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "-1": "彩虹聚合登录"
+      }
+    },
+    {
+      "key": "wx_open_url",
+      "label": "微信多域名回调系统URL",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "login_wxa",
+      "label": "微信小程序快捷登录",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭"
+      }
+    },
+    {
+      "key": "login_apiurl",
+      "label": "聚合登录API接口地址",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "login_appid",
+      "label": "聚合登录应用APPID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "login_appkey",
+      "label": "聚合登录应用APPKEY",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    }
+  ],
+  "mail": [
+    {
+      "key": "mail_cloud",
+      "label": "发信模式",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "SMTP发信",
+        "1": "搜狐Sendcloud",
+        "2": "阿里云邮件推送"
+      }
+    },
+    {
+      "key": "mail_smtp",
+      "label": "SMTP服务器",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "mail_port",
+      "label": "SMTP端口",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "mail_name",
+      "label": "邮箱账号",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "mail_pwd",
+      "label": "邮箱密码",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    },
+    {
+      "key": "mail_apiuser",
+      "label": "API_USER",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "mail_apikey",
+      "label": "API_KEY",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    },
+    {
+      "key": "mail_name2",
+      "label": "发信邮箱",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "mail_recv",
+      "label": "收信邮箱",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "sms_api",
+      "label": "接口选择",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "企信通短信接口",
+        "1": "腾讯云短信接口",
+        "2": "阿里云短信接口",
+        "3": "ThinkAPI短信接口",
+        "4": "短信宝短信接口"
+      }
+    },
+    {
+      "key": "sms_appid",
+      "label": "AppId",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "sms_appkey",
+      "label": "AppKey",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    },
+    {
+      "key": "sms_sign",
+      "label": "短信签名内容",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "sms_tpl_reg",
+      "label": "商户注册模板ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "sms_tpl_find",
+      "label": "找回密码模板ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "sms_tpl_edit",
+      "label": "修改结算账号模板ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "sms_tpl_balance",
+      "label": "余额不足通知模板ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "sms_tpl_group",
+      "label": "用户组到期通知模板ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "sms_tpl_complain",
+      "label": "订单投诉通知模板ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    }
+  ],
+  "notice": [
+    {
+      "key": "wxnotice",
+      "label": "公众号消息开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "wxnotice_tpl_order",
+      "label": "新订单通知模板ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_order_no",
+      "label": "新订单通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_order_name",
+      "label": "新订单通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_order_money",
+      "label": "新订单通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_order_time",
+      "label": "新订单通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_order_outno",
+      "label": "新订单通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_settle",
+      "label": "结算通知模板ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_settle_type",
+      "label": "结算通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_settle_account",
+      "label": "结算通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_settle_money",
+      "label": "结算通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_settle_realmoney",
+      "label": "结算通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_settle_time",
+      "label": "结算通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_login",
+      "label": "登录通知模板ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_login_user",
+      "label": "登录通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_login_time",
+      "label": "登录通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_login_name",
+      "label": "登录通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_login_ip",
+      "label": "登录通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_login_iploc",
+      "label": "登录通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_complain",
+      "label": "交易投诉通知模板ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_complain_order_no",
+      "label": "交易投诉通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_complain_time",
+      "label": "交易投诉通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_complain_reason",
+      "label": "交易投诉通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_complain_type",
+      "label": "交易投诉通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_complain_name",
+      "label": "交易投诉通知模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_balance",
+      "label": "余额不足提醒模板ID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_balance_user",
+      "label": "余额不足提醒模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_balance_time",
+      "label": "余额不足提醒模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_balance_money",
+      "label": "余额不足提醒模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "wxnotice_tpl_balance_msg",
+      "label": "余额不足提醒模板参数",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "msgconfig_regaudit",
+      "label": "新注册商户待审核提醒",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启 - 邮件",
+        "2": "开启 - 群机器人"
+      }
+    },
+    {
+      "key": "msgconfig_apply",
+      "label": "商户手动提现提醒",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启 - 邮件",
+        "2": "开启 - 群机器人"
+      }
+    },
+    {
+      "key": "msgconfig_domain",
+      "label": "授权域名待审核提醒",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启 - 邮件",
+        "2": "开启 - 群机器人"
+      }
+    },
+    {
+      "key": "msgconfig_complain_all",
+      "label": "全部交易投诉通知",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启 - 邮件",
+        "2": "开启 - 群机器人",
+        "3": "开启 - 短信"
+      }
+    },
+    {
+      "key": "msgconfig_mchrisk_all",
+      "label": "渠道商户违规通知",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启 - 邮件",
+        "2": "开启 - 群机器人"
+      }
+    },
+    {
+      "key": "msgconfig_risk",
+      "label": "风控检测提醒",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "邮件",
+        "1": "群机器人"
+      }
+    },
+    {
+      "key": "msgrobot_url",
+      "label": "群机器人Webhook地址",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "msgrobot_phone",
+      "label": "管理员手机号码",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "mailnotice",
+      "label": "邮件消息开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "robotnotice",
+      "label": "企业微信/钉钉/飞书群机器人开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "msgconfig_order",
+      "label": "新订单通知",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "msgconfig_settle",
+      "label": "结算通知",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "msgconfig_complain",
+      "label": "交易投诉通知",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "msgconfig_mchrisk",
+      "label": "渠道商户违规通知",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "msgconfig_balance",
+      "label": "余额不足提醒",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "msgconfig_group",
+      "label": "用户组到期提醒",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "voicenotice",
+      "label": "云喇叭收款提醒开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "voice_username",
+      "label": "云喇叭agent_id",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "voice_apikey",
+      "label": "云喇叭agent_secret",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    },
+    {
+      "key": "orderprint",
+      "label": "订单小票打印开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      }
+    },
+    {
+      "key": "print_appid",
+      "label": "APPID",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "print_appsecret",
+      "label": "APPSECRET",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    }
+  ],
+  "proxy": [
+    {
+      "key": "proxy",
+      "label": "中转代理开关",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "0": "关闭",
+        "1": "代理服务器",
+        "2": "代理API"
+      }
+    },
+    {
+      "key": "proxy_server",
+      "label": "代理IP",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "proxy_port",
+      "label": "代理端口",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "proxy_user",
+      "label": "代理账号",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "proxy_pwd",
+      "label": "代理密码",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    },
+    {
+      "key": "proxy_type",
+      "label": "代理协议",
+      "type": "select",
+      "default": "",
+      "max": 4000,
+      "secret": false,
+      "options": {
+        "http": "HTTP",
+        "https": "HTTPS",
+        "sock4": "SOCK4",
+        "sock5": "SOCK5",
+        "sock5h": "SOCK5H"
+      }
+    },
+    {
+      "key": "proxy_apiurl",
+      "label": "API接口地址",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": false
+    },
+    {
+      "key": "proxy_apikey",
+      "label": "API接口密钥",
+      "type": "text",
+      "default": "",
+      "max": 4000,
+      "secret": true
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "tasks": [],
+  "services": [
+    {
+      "key": "payments",
+      "name": "收钱吧开单收款监控",
+      "on_start": "monitorStart",
+      "run": "monitorRun",
+      "on_stop": "monitorStop",
+      "scope": "plugin",
+      "resource_field": "",
+      "ready_seconds": 120,
+      "heartbeat_seconds": 120,
+      "stop_seconds": 10,
+      "affects_payment": false
+    }
+  ]
+}

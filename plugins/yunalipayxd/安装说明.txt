@@ -1,0 +1,30 @@
+支付宝-云端XD安装说明
+
+1. 插件目录放置位置：
+   epay/plugins/yunalipayxd/
+
+2. 本目录中的 api.php 是系统接口入口文件的配套副本，不是插件公开访问页面。
+   请将本文件复制到网站根目录并覆盖对应的 api.php：
+   <站点根目录>/api.php
+
+3. Windows 本地目录示例：
+   <站点根目录>\api.php
+
+4. api.php 必须与 plugins/yunalipayxd/yunalipayxd_plugin.php 配套使用，
+   用于把 /api.php?s=report/{插件上报标识}/pc 交给支付宝插件处理。
+   不要直接通过浏览器访问 plugins/yunalipayxd/api.php，也不要把它放到
+   plugins/yunalipayxd/ 目录后当作独立 Web 接口访问。
+
+5. 更新插件时请同时更新：
+   plugins/yunalipayxd/yunalipayxd_plugin.php
+   plugins/yunalipayxd/server.php
+   plugins/yunalipayxd/inc/qrcode.page.php
+   网站根目录 api.php
+
+6. 受管任务：
+   本插件到账由收款上报接口 reportEndpoint 处理，不启动收款常驻进程。
+   后台“进程管理”同步插件能力后，在“插件任务”中配置“支付宝云端过期订单检查”。
+   默认间隔 60 秒，执行超时 90 秒，新任务默认关闭；周期可在后台设置。
+   仅为本通道及启用子通道的未支付超时订单写入私有标记，不改为已支付、不发送支付回调。
+   迁移前停止旧的独立守护进程，旧独立启动方式已经停用。
+   系统进程管理安装器自动识别站点路径，要求 PHP CLI 8.1 以上。

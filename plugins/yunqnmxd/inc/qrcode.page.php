@@ -1,0 +1,94 @@
+<?php
+if (!defined('IN_PLUGIN')) exit();
+$title = isset($title) && $title !== '' ? $title : '在线收银台';
+$browserTitle = isset($browserTitle) && $browserTitle !== '' ? $browserTitle : '收银台';
+$paymentIcon = isset($paymentIcon) ? (string)$paymentIcon : '';
+$code_image = !empty($code_image);
+$code_url_json = json_encode($code_url, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+$error_msg_json = json_encode($error_msg, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+?>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title><?php echo htmlspecialchars($browserTitle, ENT_QUOTES, 'UTF-8'); ?></title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #f5f7fa; color: #20242a; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif; }
+        .wrap { width: 92%; max-width: 420px; margin: 32px auto; padding: 26px 22px 30px; background: #fff; border-radius: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.08); text-align: center; }
+        h1 { margin: 0 0 12px; font-size: 22px; font-weight: 600; }
+        .payment-icon { width: 20px; height: 20px; margin-right: 6px; vertical-align: -3px; }
+        .amount { margin-bottom: 14px; color: #e64340; font-size: 30px; font-weight: 700; }
+        .qr-box { position: relative; width: 250px; height: 250px; margin: 16px auto; padding: 10px; border: 1px solid #e7eaee; background: #fff; }
+        #qrcode { width: 230px; height: 230px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        #qrcode img, #qrcode canvas { max-width: 230px; max-height: 230px; }
+        .overlay { display: none; position: absolute; inset: 0; z-index: 2; align-items: center; justify-content: center; flex-direction: column; background: rgba(20,24,30,.82); color: #fff; font-size: 18px; font-weight: 600; }
+        .overlay small { margin-top: 8px; font-size: 13px; font-weight: 400; }
+        .countdown { margin: 12px 0; color: #e64340; font-size: 16px; }
+        .order-meta { margin: 8px 0 14px; color: #8a919b; font-size: 13px; line-height: 1.8; }
+        .hint { color: #8a919b; font-size: 14px; line-height: 1.7; }
+        .error { margin: 26px 0; color: #d93025; line-height: 1.7; }
+    </style>
+</head>
+<body>
+<main class="wrap">
+    <h1><?php if ($paymentIcon !== ''): ?><img class="payment-icon" src="<?php echo htmlspecialchars($paymentIcon, ENT_QUOTES, 'UTF-8'); ?>" alt=""><?php endif; ?><?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?></h1>
+    <div class="amount">￥<?php echo htmlspecialchars($order['realmoney'], ENT_QUOTES, 'UTF-8'); ?></div>
+    <?php if ($error_msg !== ''): ?>
+        <div class="error"><?php echo htmlspecialchars($error_msg, ENT_QUOTES, 'UTF-8'); ?></div>
+    <?php else: ?>
+        <div class="qr-box">
+            <div id="qrcode"></div>
+            <div class="overlay" id="expired"><span>二维码已失效</span><small>订单已超时，请重新发起支付</small></div>
+        </div>
+        <div class="countdown">支付剩余时间：<b id="timer">--:--</b></div>
+        <div class="order-meta">
+            <div>订单号：<?php echo htmlspecialchars((string)$order['trade_no'], ENT_QUOTES, 'UTF-8'); ?></div>
+            <div>订单创建时间：<?php echo htmlspecialchars((string)$order['addtime'], ENT_QUOTES, 'UTF-8'); ?></div>
+        </div>
+        <div class="hint">请使用微信扫一扫完成支付<br>支付完成后页面会自动跳转</div>
+    <?php endif; ?>
+</main>
+<script src="/assets/vendor/jquery/1.12.4/jquery.min.js"></script>
+<script src="/assets/vendor/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
+<?php if ($error_msg === ''): ?>
+<script>
+(function () {
+    var code = <?php echo $code_url_json; ?>;
+    var remain = <?php echo (int)$paytime; ?>;
+    var timer = document.getElementById('timer');
+    var expired = document.getElementById('expired');
+    if (<?php echo $code_image ? 'true' : 'false'; ?> || code.indexOf('data:image/') === 0) {
+        document.getElementById('qrcode').innerHTML = '<img alt="支付二维码" src="' + code.replace(/"/g, '&quot;') + '">';
+    } else {
+        $('#qrcode').qrcode({text: code, width: 230, height: 230, typeNumber: -1});
+    }
+    function timeout() {
+        expired.style.display = 'flex';
+        timer.textContent = '00:00';
+    }
+    function tick() {
+        if (remain <= 0) { timeout(); return; }
+        var m = Math.floor(remain / 60), s = remain % 60;
+        timer.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+        remain -= 1;
+        if (remain < 0) timeout();
+    }
+    tick();
+    setInterval(tick, 1000);
+    function check() {
+        $.getJSON('/getshop.php', {trade_no: <?php echo json_encode($order['trade_no']); ?>}, function (data) {
+            if (data && data.code === 1) {
+                window.location.href = data.backurl;
+            } else if (remain > 0) {
+                setTimeout(check, 2000);
+            }
+        }).fail(function () { if (remain > 0) setTimeout(check, 3000); });
+    }
+    setTimeout(check, 1800);
+}());
+</script>
+<?php endif; ?>
+</body>
+</html>
