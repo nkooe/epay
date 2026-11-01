@@ -1,0 +1,125 @@
+:root{--checkout-bg:#f3f4f4;--checkout-surface:#fff;--checkout-text:#191919;--checkout-muted:#717574;--checkout-border:#e9edeb;--checkout-green:#078b46;--checkout-green-dark:#00773b;--checkout-tint:#edf9f1;--checkout-danger:#c24f23;--checkout-radius:14px}
+*{box-sizing:border-box}
+html{font-size:16px;-webkit-text-size-adjust:100%;background:var(--checkout-bg)}
+body.checkout-page{margin:0;color:var(--checkout-text);background:var(--checkout-bg);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;min-height:100dvh}
+.checkout-page button,.checkout-page input,.checkout-page textarea{font:inherit}
+.checkout-page [hidden]{display:none!important}
+.checkout-page button,.checkout-page summary,.checkout-page a{touch-action:manipulation}
+.checkout-page button{cursor:pointer}
+.checkout-page a{color:var(--checkout-green-dark);text-decoration:none}
+.checkout-page button:focus-visible,.checkout-page a:focus-visible,.checkout-page summary:focus-visible,.checkout-page textarea:focus-visible{outline:3px solid #158f59;outline-offset:3px}
+.checkout-shell{width:min(100% - 32px,760px);margin:0 auto;padding:40px 0 20px;padding-top:max(28px,env(safe-area-inset-top))}
+.checkout-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;min-height:40px}
+.checkout-brand{display:flex;align-items:center;gap:10px;min-width:0;font-size:16px;font-weight:600}
+.checkout-brand>span:last-child{overflow-wrap:anywhere}
+.checkout-mark{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:10px;background:var(--checkout-green);color:white}
+.checkout-mark svg{width:23px;height:23px;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.checkout-header-label{flex-shrink:0;font-size:13px;color:var(--checkout-muted)}
+.checkout-card{background:var(--checkout-surface);border:1px solid var(--checkout-border);border-radius:var(--checkout-radius);overflow:hidden;box-shadow:0 5px 24px #163d2510}
+.checkout-payment{display:grid;grid-template-columns:minmax(0,0.95fr) minmax(0,1.05fr)}
+.checkout-summary{padding:30px 24px;text-align:center;background:linear-gradient(150deg,#f7fcf9,#fff 75%);border-right:1px solid var(--checkout-border);min-width:0}
+.checkout-eyebrow{font-size:13px;color:var(--checkout-muted);margin:0 0 8px}
+.checkout-amount{margin:0;font-size:40px;font-weight:600;line-height:1.3;letter-spacing:-1px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.checkout-amount>span{font-size:23px;font-weight:500;letter-spacing:0;margin-right:5px}
+.checkout-product{margin:12px 0 0;font-size:15px;overflow-wrap:anywhere}
+.checkout-muted{color:var(--checkout-muted)}
+.checkout-fee{font-size:12px;margin:6px 0 0}
+.checkout-details{margin-top:23px;text-align:left;border-top:1px solid var(--checkout-border)}
+.checkout-details summary{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;font-size:13px;color:var(--checkout-muted);list-style:none;cursor:pointer}
+.checkout-details summary::-webkit-details-marker{display:none}
+.checkout-details summary svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5;transition:transform .18s}
+.checkout-details[open] summary svg{transform:rotate(180deg)}
+.checkout-facts{margin:2px 0 0;font-size:12px}
+.checkout-facts>div{display:flex;align-items:flex-start;gap:12px;padding:7px 0}
+.checkout-facts dt{flex:0 0 60px;color:var(--checkout-muted)}
+.checkout-facts dd{margin:0;min-width:0;flex:1;text-align:right;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.checkout-methods{padding:26px 24px 22px;min-width:0}
+.checkout-methods fieldset{border:0;margin:0 0 20px;padding:0;min-width:0}
+.checkout-methods legend{font-size:14px;font-weight:600;padding:0;margin-bottom:12px}
+.checkout-method{position:relative;display:flex;align-items:center;gap:11px;min-height:58px;margin-top:8px;padding:12px;border:1px solid var(--checkout-border);border-radius:9px;cursor:pointer;transition:background .15s,border-color .15s}
+.checkout-method input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;z-index:1}
+.checkout-method:has(input:checked){background:var(--checkout-tint);border-color:#81cf9e}
+.checkout-method:has(input:focus-visible){outline:3px solid #158f59;outline-offset:3px}
+.checkout-method-icon{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px}
+.checkout-method-icon img{max-width:100%;object-fit:contain}
+.checkout-method-name{flex:1;min-width:0;overflow-wrap:anywhere}
+.checkout-radio{flex:0 0 18px;width:18px;height:18px;border:1.5px solid #c8ceca;border-radius:50%;position:relative}
+.checkout-method input:checked~.checkout-radio{background:var(--checkout-green);border-color:var(--checkout-green)}
+.checkout-method input:checked~.checkout-radio:after{content:"";position:absolute;width:8px;height:4px;border:solid white;border-width:0 0 2px 2px;transform:rotate(-45deg);left:4px;top:4px}
+.checkout-button{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:46px;padding:11px 16px;border:0;border-radius:9px;background:var(--checkout-green);color:#fff;font-weight:600;line-height:1.5;transition:background .15s,transform .15s}
+.checkout-button>span{font-variant-numeric:tabular-nums}
+.checkout-button:active{background:var(--checkout-green-dark);transform:translateY(1px)}
+.checkout-button:disabled{cursor:default;background:#c5d6ca;color:#fff;transform:none}
+.checkout-hint{margin:10px 0 0;text-align:center;font-size:12px;color:var(--checkout-muted)}
+.checkout-empty{padding:18px 10px;margin:0;background:#f7f8f7;border-radius:9px;text-align:center;color:var(--checkout-muted);line-height:1.9}
+.checkout-empty span{font-size:12px}
+.checkout-notice{margin:0 0 14px;padding:11px 14px;border:1px solid #f1dfc9;border-radius:9px;color:#855421;background:#fff8ee;font-size:13px}
+.checkout-footer{margin:18px 0 0;text-align:center;font-size:12px;color:var(--checkout-muted);overflow-wrap:anywhere}
+/* Merchant amount entry. Scoped styles do not affect transfer or red-packet pages. */
+.merchant-shell{max-width:420px}
+.merchant-card{padding:22px}
+.merchant-heading{display:flex;align-items:center;gap:12px;padding-bottom:20px;border-bottom:1px solid var(--checkout-border)}
+.merchant-avatar{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;background:var(--checkout-tint);color:var(--checkout-green-dark);border-radius:12px}
+.merchant-avatar svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.merchant-heading h1{margin:1px 0 0;font-size:17px;font-weight:600;overflow-wrap:anywhere}
+.merchant-heading p{margin:0;font-size:12px;color:var(--checkout-muted)}
+.merchant-amount-section{margin-top:22px}
+.merchant-amount-label{font-size:13px;color:var(--checkout-muted)}
+.merchant-amount-line{display:flex;align-items:center;gap:7px;min-height:68px;border-bottom:1px solid var(--checkout-border);padding:6px 0 10px}
+.merchant-currency{font-size:28px;align-self:center}
+.merchant-amount-line output{flex:1;min-width:0;font-size:38px;font-weight:500;line-height:1.3;letter-spacing:-1px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.merchant-amount-line output:empty:before{content:"0.00";color:#c2c8c4}
+.merchant-clear{display:grid;place-items:center;width:36px;height:44px;flex:0 0 36px;padding:0;border:0;background:none;color:var(--checkout-muted)}
+.merchant-clear svg{width:19px;height:19px;pointer-events:none;fill:none;stroke:currentColor;stroke-width:1.7}
+.none{display:none!important}
+.merchant-remark{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;min-height:48px;padding:8px 0 0}
+.merchant-remark-copy{color:var(--checkout-muted);font-size:13px;padding-top:10px;overflow-wrap:anywhere;min-width:0;flex:1}
+.merchant-remark-copy #remark-content:not(:empty):before{content:"："}
+.merchant-remark-actions{display:flex;flex:0 0 auto;gap:8px}
+.merchant-remark-actions a{display:flex;align-items:center;min-height:44px;font-size:13px}
+.merchant-remark-actions .remark_edit,.merchant-remark-actions .remark_clear_away{display:none}
+.merchant-remark-actions.yes .remark_add{display:none}
+.merchant-remark-actions.yes .remark_edit,.merchant-remark-actions.yes .remark_clear_away{display:flex}
+.merchant-keyboard{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 16px}
+.merchant-keyboard button{height:54px;min-width:0;border:0;border-radius:8px;background:#f5f6f5;color:var(--checkout-text);font-size:25px;font-weight:400;transition:background .15s}
+.merchant-keyboard button:active{background:#e0e8e2}
+.merchant-keyboard .key-delete{font-size:17px}
+.merchant-keyboard button svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.5;pointer-events:none;vertical-align:middle}
+.merchant-pay.disable{background:#c5d6ca;cursor:default}
+.merchant-status{color:var(--checkout-muted);font-size:12px;margin:12px 0 0;text-align:center}
+.merchant-fixed{margin:16px 0;color:var(--checkout-muted);font-size:13px}
+.merchant-modal{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px;background:#0007}
+.merchant-modal[hidden]{display:none}
+.merchant-dialog{width:100%;max-width:360px;background:white;border-radius:14px;padding:20px;box-shadow:0 12px 48px #0002}
+.merchant-dialog-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.merchant-dialog-header h2{margin:0;font-size:16px;font-weight:600}
+.merchant-dialog-header button{width:44px;height:44px;padding:0;margin:-10px -10px -10px 0;border:0;background:transparent;color:var(--checkout-muted);font-size:24px}
+.merchant-dialog textarea{width:100%;resize:vertical;min-height:92px;max-height:40vh;padding:10px;border:1px solid #d7ded9;border-radius:8px;font-size:16px}
+.merchant-dialog-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.merchant-dialog-actions .checkout-button{width:auto;min-width:84px;min-height:42px;padding:8px 18px}
+.merchant-dialog-count{font-size:12px;color:var(--checkout-muted)}
+.checkout-result{max-width:420px;text-align:center}
+.checkout-result .checkout-card{padding:28px 22px 22px}
+.checkout-result-icon{width:52px;height:52px;color:var(--checkout-green);margin:0 auto 14px}
+.checkout-result-icon svg{display:block;width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.checkout-result-icon.is-error{color:var(--checkout-danger)}
+.checkout-result h1{font-size:19px;margin:0 0 12px;font-weight:600}
+.checkout-result .checkout-amount{margin-bottom:18px}
+.checkout-result .checkout-facts{border-top:1px solid var(--checkout-border);padding-top:10px;margin-bottom:20px;text-align:left;font-size:13px}
+.checkout-result-message{margin:0 0 20px;color:var(--checkout-muted);overflow-wrap:anywhere}
+.checkout-result-message p{margin:10px 0}
+.checkout-result-message a{display:inline-block;padding:8px 0}
+/* Existing request loading and error dialogs used by the payment bridge. */
+.checkout-page .circle-box,.checkout-page .pop_wrapper{position:fixed;inset:0;z-index:30;background:#0006;display:flex;align-items:center;justify-content:center;padding:20px}
+.checkout-page .circle_animate{max-width:240px;background:#242b28;color:white;border-radius:12px;padding:18px 24px;text-align:center}
+.checkout-page .circle_animate p{margin:8px 0 0;font-size:14px}
+.checkout-page .circle{width:25px;height:25px;margin:auto;border:3px solid #ffffff50;border-top-color:white;border-radius:50%;animation:checkout-spin .8s linear infinite}
+.checkout-page .pop_outer{width:100%;max-width:340px}
+.checkout-page .pop_cont{background:white;border-radius:14px;overflow:hidden}
+.checkout-page .pop_tip{padding:22px 20px;text-align:center;overflow-wrap:anywhere}
+.checkout-page .b_top{margin:0;padding:12px;text-align:center;border-top:1px solid var(--checkout-border);color:var(--checkout-green-dark);cursor:pointer}
+@keyframes checkout-spin{to{transform:rotate(360deg)}}
+@media(hover:hover){.checkout-button:hover:not(:disabled){background:var(--checkout-green-dark)}.checkout-method:hover{border-color:#91c9a5}.merchant-keyboard button:hover{background:#e9efea}}
+@media(max-width:600px){.checkout-shell{padding-top:max(20px,env(safe-area-inset-top))}.checkout-header{margin-bottom:14px}.checkout-payment{display:block}.checkout-summary{padding:24px 22px 0;text-align:center;border-right:0;background:linear-gradient(180deg,#f7fcf9,#fff 80%)}.checkout-amount{font-size:38px}.checkout-details{margin-top:14px;text-align:left}.checkout-methods{padding:16px 22px 22px}.checkout-methods fieldset{margin-bottom:18px}.checkout-method{min-height:56px;margin-top:8px}.checkout-footer{margin-top:14px}.merchant-shell{padding-bottom:max(18px,env(safe-area-inset-bottom))}.merchant-card{padding:20px}.merchant-amount-section{margin-top:20px}.merchant-amount-line output{font-size:36px}}
+@media(max-width:350px){.checkout-shell{width:calc(100% - 24px)}.merchant-card,.checkout-methods{padding-left:16px;padding-right:16px}.merchant-amount-line output{font-size:30px}.merchant-keyboard button{height:48px}.merchant-heading h1{font-size:16px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}

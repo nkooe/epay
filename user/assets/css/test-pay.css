@@ -1,0 +1,80 @@
+:root{--test-green:#078b46;--test-green-dark:#00773b;--test-ink:#191919;--test-muted:#68716d;--test-line:#e9edeb;--test-bg:#f3f4f4;--test-tint:#edf9f1;--test-danger:#b43838}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;background:var(--test-bg)}
+body.test-pay-page{margin:0;min-height:100vh;min-height:100dvh;background:var(--test-bg);color:var(--test-ink);font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;letter-spacing:0}
+.test-pay-page [hidden]{display:none!important}
+.test-pay-page a{color:var(--test-green-dark);text-decoration:none}
+.test-pay-page button,.test-pay-page input{font:inherit}
+.test-pay-page button,.test-pay-page a,.test-pay-page summary,.test-pay-method{touch-action:manipulation}
+.test-pay-page button{cursor:pointer}
+.test-pay-page :is(a,button,input,summary):focus-visible{outline:2px solid var(--test-green);outline-offset:3px}
+.test-pay-shell{width:min(760px,calc(100% - 32px));margin:0 auto;padding:max(28px,env(safe-area-inset-top)) 0 max(20px,env(safe-area-inset-bottom))}
+.test-pay-shell--result{max-width:440px}
+.test-pay-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px;margin-bottom:18px}
+.test-pay-brand{display:flex;align-items:center;gap:10px;min-width:0;color:var(--test-ink)!important;font-size:16px;font-weight:600}
+.test-pay-brand>span:last-child{min-width:0;overflow-wrap:anywhere}
+.test-pay-mark{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:10px;background:var(--test-green);color:#fff}
+.test-pay-mark svg{width:23px;height:23px;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.test-pay-topbar nav{display:flex;gap:16px;flex-shrink:0;font-size:12px}
+.test-pay-topbar nav a{display:flex;align-items:center;min-height:40px;color:var(--test-muted)}
+.test-pay-card{padding:24px;background:#fff;border:1px solid var(--test-line);border-radius:14px;box-shadow:0 5px 24px #163d2510}
+.test-pay-card--payment{padding:0;overflow:hidden}
+.test-pay-form{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)}
+.test-pay-summary{min-width:0;padding:30px 24px;text-align:center;background:#fbfdfb;border-right:1px solid var(--test-line)}
+.test-pay-selection{min-width:0;padding:26px 24px 22px}
+.test-pay-heading{margin:0 0 12px}
+.test-pay-heading h1{margin:0;font-size:14px;font-weight:600;line-height:1.55}
+.test-pay-label{display:block;margin:0 0 8px;font-size:13px;font-weight:400;color:var(--test-muted)}
+.test-pay-amount{display:inline-flex;align-items:center;justify-content:center;gap:5px;max-width:100%;min-height:60px;padding:2px 8px;border:1px solid transparent;border-radius:6px}
+.test-pay-amount:focus-within{border-color:#81cf9e;background:#fff;box-shadow:0 0 0 3px #0787440b}
+.test-pay-amount>span:first-child{flex:0 0 auto;font-size:23px;font-weight:500;line-height:1.5}
+.test-pay-amount input{display:block;width:4ch;max-width:100%;min-width:0;border:0;padding:0;background:transparent;color:var(--test-ink);font-size:40px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.3;outline:0!important;box-shadow:none}
+.test-pay-amount:has(input[aria-invalid="true"]){border-color:var(--test-danger)}
+.test-pay-product{margin:12px 0 0;font-size:15px;overflow-wrap:anywhere}
+.test-pay-amount-hint{margin:4px 0 0;font-size:12px;color:var(--test-muted)}
+.test-pay-details{margin-top:23px;text-align:left;border-top:1px solid var(--test-line)}
+.test-pay-details summary{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;font-size:13px;color:var(--test-muted);list-style:none;cursor:pointer}
+.test-pay-details summary::-webkit-details-marker{display:none}
+.test-pay-details summary svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5;transition:transform .18s}
+.test-pay-details[open] summary svg{transform:rotate(180deg)}
+.test-pay-details .test-pay-facts{margin:2px 0 0;padding:0;border:0}
+.test-pay-details .test-pay-facts>div{margin:0;padding:7px 0}
+.test-pay-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.test-pay-facts{margin:14px 0 20px;padding-bottom:14px;border-bottom:1px solid var(--test-line)}
+.test-pay-facts>div{display:flex;align-items:flex-start;gap:12px;margin:6px 0;font-size:12px}
+.test-pay-facts dt{flex:0 0 64px;color:var(--test-muted)}
+.test-pay-facts dd{flex:1;min-width:0;margin:0;text-align:right;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.test-pay-methods{min-width:0;border:0;padding:0;margin:0 0 20px}
+.test-pay-method{position:relative;display:flex;align-items:center;gap:11px;min-height:58px;padding:12px;margin:8px 0 0;border:1px solid var(--test-line);border-radius:9px;cursor:pointer;transition:background .15s,border-color .15s}
+.test-pay-method>input{position:absolute;inset:0;z-index:1;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.test-pay-method>img{flex:0 0 28px;object-fit:contain}
+.test-pay-method>span:not(.test-pay-radio){flex:1;min-width:0;overflow-wrap:anywhere;font-size:14px}
+.test-pay-method:has(input:checked){background:var(--test-tint);border-color:#81cf9e}
+.test-pay-method:has(input:focus-visible){outline:2px solid var(--test-green);outline-offset:2px}
+.test-pay-radio{position:relative;flex:0 0 18px;width:18px;height:18px;border:1.5px solid #c8ceca;border-radius:50%;background:#fff}
+.test-pay-method input:checked~.test-pay-radio{border-color:var(--test-green);background:var(--test-green)}
+.test-pay-method input:checked~.test-pay-radio:after{content:"";position:absolute;left:4px;top:3px;width:7px;height:4px;border:solid #fff;border-width:0 0 2px 2px;transform:rotate(-45deg)}
+.test-pay-method:has(input:disabled){cursor:default;opacity:.65}
+.test-pay-submit{display:flex;align-items:center;justify-content:center;width:100%;min-height:46px;padding:11px 16px;border:0;border-radius:9px;background:var(--test-green);color:#fff!important;font-size:14px;font-weight:600;line-height:1.5;font-variant-numeric:tabular-nums;text-align:center;transition:background .15s,border-color .15s}
+.test-pay-submit:disabled{cursor:default;border-color:#d4dfd7;background:#d4dfd7;color:#516c5a!important}
+.test-pay-submit[aria-busy="true"]:before{content:"";display:block;width:14px;height:14px;flex:0 0 14px;margin-right:8px;border:2px solid #7c9383;border-top-color:transparent;border-radius:50%;animation:test-pay-spin .8s linear infinite}
+.test-pay-notice{margin:10px 0 0;text-align:center;color:var(--test-muted);font-size:12px;line-height:1.7}
+.test-pay-field-error{margin:6px 0 0;color:var(--test-danger);font-size:12px}
+.test-pay-message{margin:0 0 12px;padding:9px 11px;border:1px solid #edd4d4;border-radius:5px;background:#fff7f7;color:var(--test-danger);font-size:12px;overflow-wrap:anywhere}
+.test-pay-empty{padding:14px 10px;margin:0;border-radius:6px;background:#f6f8f6;color:var(--test-muted);font-size:13px;text-align:center}
+.test-pay-captcha{margin:0 0 14px;min-width:0}
+.test-pay-captcha #captcha{min-height:44px}
+.test-pay-captcha #captcha_text{margin:0;padding:11px 8px;border-radius:5px;background:#f6f8f6;text-align:center;color:var(--test-muted);font-size:12px}
+.test-pay-retry{min-height:36px;padding:6px 0;border:0;background:none;color:var(--test-green-dark);font-size:12px!important}
+.test-pay-footer{display:flex;justify-content:center;gap:12px;margin-top:18px;color:var(--test-muted);font-size:12px;overflow-wrap:anywhere}
+.test-pay-result{text-align:center;padding:4px 0 0}
+.test-pay-success-icon{display:block;width:44px;height:44px;margin:0 auto 12px;color:var(--test-green)}
+.test-pay-success-icon svg{display:block;width:100%;height:100%;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.test-pay-result h1{font-size:18px;margin:0;font-weight:600}
+.test-pay-result-amount{margin:12px 0 20px;font-size:32px;line-height:1.4;font-weight:600;font-variant-numeric:tabular-nums}
+.test-pay-result-amount span{margin-right:4px;font-size:20px;font-weight:500}
+@keyframes test-pay-spin{to{transform:rotate(360deg)}}
+@media(hover:hover){.test-pay-submit:hover:not(:disabled){background:var(--test-green-dark);border-color:var(--test-green-dark)}.test-pay-method:hover{border-color:#95c7a6}.test-pay-topbar a:hover{color:var(--test-green-dark)}}
+@media(max-width:600px){.test-pay-shell{padding-top:max(20px,env(safe-area-inset-top))}.test-pay-topbar{margin-bottom:14px}.test-pay-form{display:block}.test-pay-summary{padding:24px 22px 0;border-right:0}.test-pay-selection{padding:16px 22px 22px}.test-pay-amount input{font-size:38px}.test-pay-details{margin-top:14px}.test-pay-methods{margin-bottom:18px}.test-pay-method{min-height:56px}.test-pay-topbar nav{gap:12px}.test-pay-topbar nav a{min-height:44px}.test-pay-footer{margin-top:14px}.test-pay-shell--result .test-pay-card{padding:20px}}
+@media(max-width:350px){.test-pay-shell{width:calc(100% - 24px)}.test-pay-summary,.test-pay-selection{padding-left:16px;padding-right:16px}.test-pay-shell--result .test-pay-card{padding:18px 16px}.test-pay-brand{font-size:15px}.test-pay-topbar{gap:10px}.test-pay-topbar nav{gap:10px;font-size:11px}}
+@media(prefers-reduced-motion:reduce){.test-pay-page *{animation:none!important;transition:none!important}}
