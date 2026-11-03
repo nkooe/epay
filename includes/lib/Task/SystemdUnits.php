@@ -70,6 +70,7 @@ case "$action" in
  *) exit 64 ;;
 esac
 SH;
+        $script=str_replace("\r\n","\n",$script);
         return strtr($script,['#!/bin/sh'=>'#!'.$c['sh'],'@CTL@'=>$q($c['systemctl']),
             '@WORKER@'=>$q($c['service']),'@TARGET@'=>$q($n['target']),
             '@SLICE@'=>$q($n['slice']),'@JOB@'=>$q($base.'-job@'),'@PLUGIN@'=>$q($base.'-plugin@')])."\n";
