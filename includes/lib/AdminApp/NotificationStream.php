@@ -34,6 +34,7 @@ final class NotificationStream
     private function authorize()
     {
         $config=$this->db->config();
+        Store::assertSchemaVersion($config['version'] ?? '');
         if(($config['app_api_enabled'] ?? '1')==='0')throw new ApiError('管理员 App 接口已关闭',503);
         $session=(new Auth($this->db,$config,$this->ip))->authenticate($this->bearer);
         if($this->username!==null&&$this->username!==$session['username'])throw new ApiError('登录已变化，请重新连接',401);

@@ -24,7 +24,7 @@ final class CliRuntime
         if (stripos((string)$pdo->query('SELECT VERSION()')->fetchColumn(), 'MariaDB') === false) throw new \RuntimeException('任务服务要求支持 max_statement_time 的 MariaDB');
         $pdo->exec('SET SESSION max_statement_time='.($scheduler ? '5' : '30').', innodb_lock_wait_timeout=3, lock_wait_timeout=3');
         $db = new Store($pdo, $dbconfig['dbqz']);
-        if ((int)$db->value("SELECT v FROM pre_config WHERE k='version'") < 2063) throw new \RuntimeException('请先完成数据库升级至 2063');
+        Store::assertSchemaVersion($db->value("SELECT v FROM pre_config WHERE k='version'"));
         return $db;
     }
     public static function business(Store $db)

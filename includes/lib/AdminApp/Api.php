@@ -30,6 +30,7 @@ final class Api
     public function handle($method, $route, array $data=[], $bearer='', $requestKey='')
     {
         if (($this->conf['app_api_enabled'] ?? '1')==='0') throw new ApiError('管理员 App 接口已关闭',503);
+        Store::assertSchemaVersion($this->conf['version'] ?? '');
         if (!$this->db->installed()) throw new ApiError('管理员应用数据表缺失，请核对本站完整安装结果',503);
         $route=trim($route,'/');
         $expected=['v1/site'=>'GET','v1/auth/captcha'=>'GET','v1/auth/login'=>'POST','v1/auth/totp'=>'POST','v1/auth/refresh'=>'POST'];
