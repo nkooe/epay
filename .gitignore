@@ -1,0 +1,9 @@
+/config.php
+/install/install.lock
+/install/.installing
+/includes/task-service.php
+.env
+*.jks
+*.keystore
+*.apk
+*.aab
