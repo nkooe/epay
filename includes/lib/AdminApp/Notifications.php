@@ -1,7 +1,7 @@
 <?php
 namespace lib\AdminApp;
 
-/** Small, best-effort payment event writer used by the legacy payment path. */
+
 final class Notifications
 {
     public static function paymentReceived($legacyDb, array $order)
@@ -9,7 +9,7 @@ final class Notifications
         $trade=(string)($order['trade_no'] ?? '');
         $uid=(int)($order['uid'] ?? 0);
         if($trade===''||$uid<=0)return false;
-        // Do not add a write for every payment when no administrator device is subscribed.
+
         if(!$legacyDb->getColumn('SELECT device_id FROM pre_app_notification_device WHERE enabled=1 AND last_seen>=:cutoff LIMIT 1',[':cutoff'=>time()-30*86400]))return false;
         $details=$legacyDb->getRow('SELECT U.username,T.showname,C.name channel_name FROM pre_user U LEFT JOIN pre_type T ON T.id=:type LEFT JOIN pre_channel C ON C.id=:channel WHERE U.uid=:uid',[':type'=>(int)($order['type'] ?? 0),':channel'=>(int)($order['channel'] ?? 0),':uid'=>$uid]) ?: [];
         $type=trim((string)($details['showname'] ?? '')) ?: '支付';

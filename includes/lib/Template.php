@@ -22,7 +22,7 @@ class Template {
 	static public function load($name = 'index'){
 		global $conf;
 		$template = $conf['template']?$conf['template']:'default';
-		if(!preg_match('/^[a-zA-Z0-9\_]+$/',$name))exit('error');
+		if(!preg_match('/^[a-zA-Z0-9\_]+$/',$name))exit('页面参数不正确');
 		$filename = TEMPLATE_ROOT.$template.'/'.$name.'.php';
 		$filename_default = TEMPLATE_ROOT.'default/'.$name.'.php';
 		if(file_exists($filename)){
@@ -34,17 +34,17 @@ class Template {
 			define("STATIC_ROOT",'/template/default/assets/');
 			return $filename_default;
 		}else{
-			exit('Template file not found');
+			exit('模板文件不存在');
 		}
 	}
 
 	static public function loadDoc($name = 'index'){
-		if(!preg_match('/^[a-zA-Z0-9\_]+$/',$name))exit('error');
+		if(!preg_match('/^[a-zA-Z0-9\_]+$/',$name))exit('页面参数不正确');
 		$filename = TEMPLATE_ROOT.'default/doc/'.$name.'.php';
 		if(file_exists($filename)){
 			return $filename;
 		}else{
-			exit('Document file not found');
+			exit('文档页面文件不存在');
 		}
 	}
 

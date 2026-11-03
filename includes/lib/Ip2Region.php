@@ -35,10 +35,10 @@ class Ip2Region
         return $this->searcher->search($ip);
     }
 
-    /**
-     * destruct method
-     * resource destroy
-     */
+
+
+
+
     public function __destruct()
     {
         $this->searcher->close();

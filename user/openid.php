@@ -9,12 +9,12 @@ if (!empty($_GET['state'])) {
 
 if(isset($_GET['sid'])){
 	$sid = trim(daddslashes($_GET['sid']));
-	if(!preg_match('/^(.[a-zA-Z0-9]+)$/',$sid))exit("Access Denied");
+	if(!preg_match('/^(.[a-zA-Z0-9]+)$/',$sid))exit("访问被拒绝");
 	session_id($sid);
 	session_start();
 }elseif(is_array($douyin_state) && !empty($douyin_state['sid'])){
 	$sid = trim(daddslashes($douyin_state['sid']));
-	if(!preg_match('/^(.[a-zA-Z0-9]+)$/',$sid))exit("Access Denied");
+	if(!preg_match('/^(.[a-zA-Z0-9]+)$/',$sid))exit("访问被拒绝");
 	session_id($sid);
 	session_start();
 }
@@ -113,9 +113,9 @@ if($is_douyin){
 	}catch(Exception $e){
 		sysmsg($e->getMessage());
 	}
-	
+
 	$_SESSION['openid'] = $openId;
-	
+
 	$openid_name = 'OpenId';
 	$openid_content = $openId;
 }

@@ -3,7 +3,7 @@ namespace lib\Complaint;
 
 use lib\AdminApp\ApiError;
 
-/** Resolve credentials at use time so a channel update also updates complaints. */
+
 final class ChannelCredentials
 {
     public static function supported(array $channel)

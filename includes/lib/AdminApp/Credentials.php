@@ -1,7 +1,7 @@
 <?php
 namespace lib\AdminApp;
 
-/** Edits only variables declared by installed plugins; never accepts paths or SQL from clients. */
+
 final class Credentials
 {
     private $db; private $ip;

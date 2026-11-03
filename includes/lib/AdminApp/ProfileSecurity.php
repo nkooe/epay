@@ -1,7 +1,7 @@
 <?php
 namespace lib\AdminApp;
 
-/** Pending bindings never change the active secret until a fresh code is verified. */
+
 final class ProfileSecurity
 {
     private $db;
@@ -35,7 +35,7 @@ final class ProfileSecurity
                 if(!$pending||$pending['proof']!==$this->session['id']||(int)$pending['expires']<=time()||!hash_equals($auth->stamp(),$setup['stamp'] ?? '')||(int)$pending['attempts']>=5)throw new ApiError('绑定已过期，请重新生成',409);
                 $this->db->query('UPDATE pre_app_challenge SET attempts=attempts+1 WHERE id=?',[$id]);
                 if(!\lib\TOTP::create($setup['secret'])->verify($code,time(),1)) {
-                    // Commit only the attempt counter; keep the old binding untouched.
+
                     $this->db->pdo->commit();throw new ApiError('动态口令错误，请核对认证软件中的新口令');
                 }
                 $this->db->setting('totp_secret',$setup['secret']);$this->db->setting('totp_open','1');

@@ -621,9 +621,7 @@
   function channelHint() {
     const channel = state.channels.find((c) => Number(c.id) === Number($("cp-config-channel").value));
     const account = state.accounts.find((a) => Number(a.id) === Number($("cp-config-id").value));
-    $("cp-channel-hint").textContent = account?.credential_source === "legacy"
-      ? "此接口保留原有凭证配置。"
-      : channel?.config_message || (channel ? "首次绑定后在后台同步，之后默认每天北京时间 03:00 自动同步。" : "请选择支持官方投诉接口的支付宝或微信通道。");
+    $("cp-channel-hint").textContent = channel?.config_message || (channel ? "首次绑定后在后台同步，之后默认每天北京时间 03:00 自动同步。" : "请选择支持官方投诉接口的支付宝或微信通道。");
     $("cp-channel-check").disabled = !channel?.bindable;
     $("cp-channel-config").hidden = !channel;
     if (channel) $("cp-channel-config").href = "pay_channel.php?complaint_channel=" + encodeURIComponent(channel.id);

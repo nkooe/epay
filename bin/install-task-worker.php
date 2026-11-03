@@ -16,6 +16,6 @@ try{
     if(in_array('--install',$argv,true)){
         $result=\lib\Task\Installer::install($config);
         echo json_encode($result,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n";
-        echo "安装完成；尚未启动或启用开机自启。请先停用站点旧 cron，然后在后台启动。\n";
+        echo "安装完成；尚未启动或启用开机自启。请在后台启动服务，并按需启用开机自启。\n";
     }else foreach(\lib\Task\SystemdUnits::files($config) as $name=>$text)echo "\n# ".$name."\n".$text;
 }catch(Throwable $e){fwrite(STDERR,$e->getMessage()."\n");exit(1);}

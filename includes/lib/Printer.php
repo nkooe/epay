@@ -1,9 +1,9 @@
 <?php
 namespace lib;
 
-/**
- * https://iot-doc.excelsecu.com/
- */
+
+
+
 class Printer
 {
     private $gateway_url = 'https://saas.excelsecu.com';
@@ -61,7 +61,7 @@ class Printer
         if(isset($result['code']) && $result['code'] == 0){
             return $result['data'];
         }else{
-            throw new \Exception($result['message'] ?? 'Unknown error');
+            throw new \Exception($result['message'] ?? '未知错误');
         }
     }
 }

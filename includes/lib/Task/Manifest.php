@@ -1,7 +1,7 @@
 <?php
 namespace lib\Task;
 
-/** One explicit protocol, no legacy aliases or inferred entry points. */
+
 final class Manifest
 {
     public static function fields(array $data,array $fields)
@@ -23,7 +23,7 @@ final class Manifest
     public static function parse($raw)
     {
         $data=json_decode($raw,true,16,JSON_THROW_ON_ERROR);
-        if(!is_array($data)||substr(ltrim($raw),0,1)!=='{')throw new \RuntimeException('旧 tasks.json 必须先显式迁移为 schema_version=1');
+        if(!is_array($data)||substr(ltrim($raw),0,1)!=='{')throw new \RuntimeException('后台能力声明必须是 schema_version=1 的对象');
         self::fields($data,['schema_version','tasks','services']);
         if($data['schema_version']!==1)throw new \RuntimeException('不支持的后台能力协议版本');
         foreach(['tasks','services'] as $kind){
@@ -75,8 +75,8 @@ final class Manifest
             $relative=substr($file->getPathname(),strlen($directory)+1);
             $hash=hash_file('sha256',$file->getPathname());
             if(!is_string($hash))throw new \RuntimeException('插件版本快照读取失败');
-            // ZIP uploads can contain legacy-encoded filenames on Linux. Encode
-            // path bytes losslessly; JSON substitution would merge distinct names.
+
+
             $files[bin2hex(str_replace('\\','/',$relative))]=$hash;
             if(hrtime(true)>=$deadline)throw new \RuntimeException('插件版本快照扫描超时（5秒）');
         }

@@ -3,7 +3,7 @@ namespace lib\Complaint;
 
 use lib\AdminApp\Store;
 
-/** Durable read-only synchronization progress, independent of complaint actions. */
+
 final class SyncState
 {
     private $db;
@@ -25,9 +25,9 @@ final class SyncState
     public function reconcile(array $account)
     {
         $row=$this->ensure($account['id']);
-        $digest=hash('sha256',($account['credentials']??'')."\0".($account['plugin']??'')."\0".($account['config']??''));
+        $digest=hash('sha256',($account['plugin']??'')."\0".($account['config']??''));
         if(!hash_equals($row['config_digest'],$digest)&&$row['state']!=='running'){
-            // A task can claim the channel between the discovery read and this write.
+
             $this->db->query("UPDATE pre_complaint_sync SET config_digest=?,state='pending',`cursor`=NULL,processed=0,failures=0,last_error=NULL,next_at=?,updated_at=? WHERE account_id=? AND config_digest=? AND state<>'running' AND NOT EXISTS (SELECT 1 FROM pre_task t WHERE t.action='complain' AND t.channel_id=? AND (t.lock_token IS NOT NULL OR EXISTS (SELECT 1 FROM pre_task_execution e WHERE e.active_task_id=t.id)))",[$digest,date('Y-m-d H:i:s'),date('Y-m-d H:i:s'),$account['id'],$row['config_digest'],$account['channel']]);
         }
     }

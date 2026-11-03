@@ -4,7 +4,7 @@ namespace lib\Merchant;
 use lib\AdminApp\ApiError;
 use lib\AdminApp\Store;
 
-/** Administrator-owned routing. Absence means group routing; a custom policy never falls back. */
+
 final class ChannelPolicy
 {
     private $db;
@@ -16,11 +16,11 @@ final class ChannelPolicy
         if (!$row) return ['mode'=>'group', 'rules'=>[], 'revision'=>0];
         $rules = json_decode($row['rules'], true);
         try {
-            if (!in_array($row['mode'], ['group','custom'], true) || !is_array($rules) || !array_is_list($rules) || substr(ltrim($row['rules']),0,1) !== '[' || count($rules)>100 || (int)$row['revision']<1 || ($row['mode']==='group' && $rules!==[])) throw new ApiError('invalid stored policy');
+            if (!in_array($row['mode'], ['group','custom'], true) || !is_array($rules) || !array_is_list($rules) || substr(ltrim($row['rules']),0,1) !== '[' || count($rules)>100 || (int)$row['revision']<1 || ($row['mode']==='group' && $rules!==[])) throw new ApiError('商户通道策略数据无效');
             $seen=[];
             foreach($rules as $rule) {
                 $normalized=self::rule($rule);
-                if ($normalized!==$rule || isset($seen[$normalized['type_id']])) throw new ApiError('invalid stored rules');
+                if ($normalized!==$rule || isset($seen[$normalized['type_id']])) throw new ApiError('商户通道规则数据无效');
                 $seen[$normalized['type_id']]=true;
             }
         } catch (ApiError $e) { throw new ApiError('商户通道策略损坏，请联系管理员重新配置', 503); }
@@ -118,7 +118,7 @@ final class ChannelPolicy
         return ['uid'=>$uid, 'revision'=>$revision+1, 'message'=>'商户通道策略已保存'];
     }
 
-    /** Reads live channel state on every payment, including reused unpaid orders. */
+
     private function channel($uid, $type, array $rule, $money, $checkTime=true)
     {
         $paytype = $this->db->row('SELECT id,name,status FROM pre_type WHERE id=?', [$type]);
@@ -173,7 +173,7 @@ final class ChannelPolicy
         if ($selected !== null && ($selected['channel'] !== (int)$channel || $selected['subchannel'] !== (int)$subchannel)) throw new ApiError('订单通道与当前商户策略不一致，请重新下单');
     }
 
-    /** null means the declared group mode; [] means independent mode with no usable methods. */
+
     public function types($uid, $gid, array $types)
     {
         if ($this->load($uid)['mode'] === 'group') return null;

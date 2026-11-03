@@ -1,7 +1,7 @@
 <?php
 namespace lib;
 
-/** Web income statistics use the payment date and paid/frozen orders, as cron.php does. */
+
 class DashboardStats
 {
     public static function lastSevenDays($db, \DateTimeImmutable $today = null)
@@ -14,7 +14,7 @@ class DashboardStats
             [$start->format('Y-m-d'), $end->format('Y-m-d')]
         );
         if ($rows === false) {
-            throw new \RuntimeException('Dashboard order aggregation failed');
+            throw new \RuntimeException('仪表盘订单汇总失败');
         }
 
         $days = [];

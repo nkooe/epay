@@ -1,7 +1,7 @@
 <?php
 namespace lib\AdminApp;
 
-/** Explicit adapters for installed plugins. No arbitrary PHP function/HTML bridge. */
+
 final class PluginNative
 {
     const QR=['yunwechatxd','yunalipayxd','yunkdskxd','yunskljxd','yunqnmxd','yundianyxd','yunxingyifuxd'];

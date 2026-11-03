@@ -3,7 +3,7 @@ namespace lib\Task;
 
 use lib\AdminApp\Store;
 
-/** Channel/account configuration is the source of truth for background work. */
+
 final class Automatic
 {
     const POLL_SECONDS = 3;
@@ -74,7 +74,7 @@ final class Automatic
     private function task(TaskService $tasks, array $row, $enabled)
     {
         if ((int)$row['enabled'] === $enabled || $row['lock_token'] !== null) return;
-        // Never clear an unknown business result or replay an interrupted owner.
+
         if ($enabled && in_array($row['last_status'], ['failed', 'interrupted'], true)) return;
         if ($this->db->row('SELECT id FROM pre_task_execution WHERE active_task_id=?', [$row['id']])) return;
         try {
@@ -87,13 +87,13 @@ final class Automatic
     public function services($plugin)
     {
         $registry = new ServiceRegistry($this->db, $this->plugins);
-        $registry->beginTurn(); // One coherent discovery snapshot per reconciliation.
+        $registry->beginTurn();
         $result = $registry->sync($plugin);
         $catalog = $registry->discover($plugin);
         $invalid = array_column($catalog['errors'], 'channel_id');
         foreach ($this->db->all('SELECT * FROM pre_plugin_service WHERE plugin=? ORDER BY id', [$plugin]) as $before) {
             $item = $catalog['services'][$before['id']] ?? null;
-            // Malformed manifests must never silently launch a partial group.
+
             $enabled = $item && $item['channel_enabled'] && !$invalid;
             $this->db->pdo->beginTransaction();
             try {
@@ -104,7 +104,7 @@ final class Automatic
                 } elseif (!$this->db->row("SELECT id FROM pre_service_operation WHERE service_id=? AND state IN ('pending','starting')", [$row['id']])) {
                     $changed = !hash_equals($row['digest'], $item['digest']);
                     if ($changed || (!(int)$row['desired'] && $row['observed'] !== 'attention')) {
-                        // The supervisor drains the old generation before accepting this snapshot.
+
                         $this->db->insert('service_operation', ['id'=>bin2hex(random_bytes(16)), 'service_id'=>$row['id'],
                             'revision'=>$row['revision'], 'action'=>'refresh', 'state'=>'pending',
                             'created_at'=>date('Y-m-d H:i:s'), 'message'=>'随通道配置自动接管']);

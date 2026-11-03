@@ -253,6 +253,6 @@ case 'wximg':
 break;
 
 default:
-	exit('No Act');
+	exit('操作不存在');
 break;
 }

@@ -1,13 +1,13 @@
 <?php
 namespace lib\Task;
 
-/** Drain both child streams into daily files; systemd still owns the whole cgroup. */
+
 final class LogProcess
 {
     private static function append(ServiceLog $logs, $source, $text)
     {
-        // A stuck filesystem must not pin the collector indefinitely. systemd
-        // removes the complete cgroup if its main collector exits abnormally.
+
+
         $previous = pcntl_signal_get_handler(SIGALRM);
         pcntl_signal(SIGALRM, static function () { throw new \RuntimeException('服务日志操作超时（5秒）'); });
         pcntl_alarm(5);
@@ -26,8 +26,8 @@ final class LogProcess
         fclose($pipes[0]); unset($pipes[0]);
         $buffers = [1=>'', 2=>'', 3=>'']; $discard = [1=>false, 2=>false]; $exit = null; $drainUntil = null;
         foreach ($pipes as $pipe) stream_set_blocking($pipe, false);
-        // KillMode=control-group delivers the signal to the child as well. Keep
-        // draining during its graceful shutdown; do not send a duplicate signal.
+
+
         if (function_exists('pcntl_async_signals')) {
             pcntl_async_signals(true);
             pcntl_signal(SIGTERM, static function () {});
@@ -43,12 +43,12 @@ final class LogProcess
                     $drainUntil = microtime(true) + 1;
                 }
                 if (!$pipes && !$status['running']) break;
-                // A descendant can inherit stdout after the actual service dies.
-                // Do not let its open pipe keep this unit falsely alive forever.
+
+
                 if ($drainUntil !== null && microtime(true) >= $drainUntil) break;
                 if (!$pipes) { usleep(20000); continue; }
                 $read = array_values($pipes); $write = null; $except = null;
-                // Signals can interrupt select; the next iteration continues draining.
+
                 $ready = @stream_select($read, $write, $except, 0, 200000);
                 if ($ready === false) {
                     $last = error_get_last();
@@ -95,7 +95,7 @@ final class LogProcess
                 if ($progress !== null && $status['running']) $watchdog->advance($progress);
             }
         } catch (\Throwable $e) {
-            // Logging failure cannot leave an untracked child doing business.
+
             proc_terminate($process, 9);
             throw $e;
         } finally {

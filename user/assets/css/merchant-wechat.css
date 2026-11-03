@@ -1,4 +1,4 @@
-/* Merchant portal theme. Payment plugins and admin pages have separate styles. */
+
 :root {
   --merchant-green: #078744;
   --merchant-green-dark: #066e38;
@@ -207,7 +207,7 @@ body.merchant-portal, body.merchant-auth {
 .merchant-portal .merchant-chart .tab-content { padding: 16px; }
 .merchant-portal .merchant-chart .nav-tabs { padding: 3px 8px 0; }
 .merchant-portal .merchant-chart .tab-pane { min-height: 230px; }
-/* Overview uses a clear main column and a compact account sidebar. */
+
 .merchant-overview .merchant-metrics { margin-bottom: 16px; gap: 16px; }
 .merchant-overview .merchant-metric { padding: 15px 18px; }
 .merchant-overview .merchant-metric-value { margin-top: 5px; font-size: clamp(22px,2vw,27px); }
@@ -284,7 +284,7 @@ body.merchant-portal, body.merchant-auth {
 .merchant-portal .type-info { margin-bottom: 20px; white-space: normal; padding-left: 20px; }
 .merchant-portal .type-info li { font-size: 13px; line-height: 2.4; }
 .merchant-portal .type-info li i { color: var(--merchant-green); }
-/* Standalone login, registration and identity-provider screens. */
+
 .merchant-auth .app { position: relative; padding: 44px 16px 24px; min-height: 100vh; height: auto; }
 .merchant-auth .app:before { background: var(--merchant-page); }
 .merchant-auth .container.w-xxl { width: 400px; max-width: 100%; padding: 0; }

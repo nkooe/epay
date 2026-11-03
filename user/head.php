@@ -55,12 +55,12 @@ $conf = array_merge($conf, $groupconfig);
       </ul>
     </div>
   </header>
-  <!-- aside -->
+
   <aside id="aside" class="app-aside" aria-label="商户中心导航">
       <div class="aside-wrap">
         <div class="navi-wrap">
 
-          <!-- nav -->
+
           <nav class="navi clearfix" aria-label="功能菜单">
             <ul class="nav">
               <li class="hidden-folded padder m-t m-b-sm text-muted text-xs">
@@ -73,7 +73,7 @@ $conf = array_merge($conf, $groupconfig);
                 </a>
               </li>
               <li class="<?php echo checkIfActive('userinfo,editinfo,certificate,deposit')?>">
-                <a href class="auto">      
+                <a href class="auto">
                   <span class="pull-right text-muted">
                     <i class="fa fa-fw fa-angle-right text"></i>
                     <i class="fa fa-fw fa-angle-down text-active"></i>
@@ -186,7 +186,7 @@ $conf = array_merge($conf, $groupconfig);
 			  <?php }?>
               <li class="line dk hidden-folded"></li>
 
-              <li class="hidden-folded padder m-t m-b-sm text-muted text-xs">          
+              <li class="hidden-folded padder m-t m-b-sm text-muted text-xs">
                 <span>其他</span>
               </li>
 			  <?php if($conf['user_transfer']==1){?>
@@ -237,10 +237,9 @@ $conf = array_merge($conf, $groupconfig);
 			  <?php }?>
             </ul>
           </nav>
-          <!-- nav -->
+
         </div>
       </div>
   </aside>
   <!-- / aside -->
   <button type="button" id="merchantNavBackdrop" class="merchant-nav-backdrop" aria-label="关闭导航菜单" tabindex="-1"></button>
-  <!-- content -->

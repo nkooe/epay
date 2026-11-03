@@ -10,10 +10,10 @@ class CommUtil
     public static $no_order_plugins = ['chinaums','dinpay','duolabao','allinpay','suixingpay'];
     public static $mode_plugins = ['haipay','adapay','huifu','helipay'];
 
-    /**
-     * @param array $channel
-     * @return IProfitSharing|false
-     */
+
+
+
+
     public static function getModel($channel){
         if($channel['plugin'] == 'alipay' || $channel['plugin'] == 'alipaysl' || $channel['plugin'] == 'alipayd'){
             return new Alipay($channel);
@@ -56,7 +56,7 @@ class CommUtil
         foreach($list as $srow){
             self::process_item($srow);
         }
-    
+
         $limit = 10; //每次提交分账的订单数量
         $list = $DB->getAll("SELECT A.*,B.channel,B.account,B.name,B.rate,B.info,B.uid psuid,C.uid,C.subchannel,C.realmoney ordermoney FROM pre_psorder A INNER JOIN pre_psreceiver B ON B.id=A.rid LEFT JOIN pre_order C ON C.trade_no=A.trade_no WHERE A.status=0 AND (A.addtime<=DATE_SUB(NOW(), INTERVAL 60 SECOND) AND A.delay=0 OR A.addtime<=DATE_SUB(NOW(), INTERVAL 24 HOUR) AND A.delay=1) ORDER BY A.id ASC LIMIT {$limit}");
         foreach($list as $srow){
@@ -77,7 +77,7 @@ class CommUtil
         global $DB;
         $store=\lib\AdminApp\Runtime::legacyStore($DB);
         return \lib\AdminApp\Runtime::sharingLock($store,$row['id'],function()use($store,$row){
-            // The selected row can be stale by the time a worker acquires the lock.
+
             $fresh=$store->row('SELECT * FROM pre_psorder WHERE id=?',[$row['id']]);
             if(!$fresh)return;
             $row=array_merge($row,$fresh);
@@ -91,7 +91,7 @@ class CommUtil
     }
     private static function appManaged($store,$id){
         try{$guard=$store->row('SELECT state,detail FROM pre_app_operation WHERE id=?',['sharing:'.$id]);}
-        catch(\PDOException $e){return false;} // Existing installations without the app tables.
+        catch(\PDOException $e){return false;}
         $detail=json_decode($guard['detail'] ?? '',true);
         return $guard&&in_array($guard['state'],['pending','done'],true)&&strpos($detail['action'] ?? '','sharing-')===0;
     }
@@ -160,7 +160,7 @@ class CommUtil
         if($psorder){
             $store=\lib\AdminApp\Runtime::legacyStore($DB);
             return \lib\AdminApp\Runtime::sharingLock($store,$psorder['id'],function()use($store,$psorder,$status,$errmsg,$settle_no){
-                // App-managed results must be queried with the ledger in one transaction.
+
                 if(self::appManaged($store,$psorder['id']))return;
                 return self::notifyLegacy($psorder,$status,$errmsg,$settle_no);
             });

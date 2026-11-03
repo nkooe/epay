@@ -2,7 +2,7 @@ function getId(value){
     return document.getElementById(value);
 }
 
-//ajax post
+
 function Post(option){
 	var url = option.url || "";
 	var data = (function(){
@@ -44,7 +44,7 @@ function Post(option){
 	http.send(data);
 }
 
-//loading
+
 function Loading(){
     var obj = document.createElement('div');
     var box = document.createElement('div');
@@ -74,7 +74,7 @@ function Loading(){
     };
 }
 
-//tips
+
 function Tips(){
     var obj = document.createElement('div');
     var box = document.createElement('div');

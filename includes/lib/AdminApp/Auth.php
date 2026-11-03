@@ -69,7 +69,7 @@ final class Auth
         require_once dirname(__DIR__).'/TOTP.php';
         $code=(string)($data['code'] ?? '');
         if (!preg_match('/^\d{6}$/D', $code) || !\lib\TOTP::create($this->conf['totp_secret'])->verify($code, $this->now(), 1)) throw new ApiError('动态口令错误', 401);
-        // Atomic consumption prevents concurrent requests from reusing a password-verified challenge.
+
         if ($this->db->query('DELETE FROM pre_app_challenge WHERE id=? AND attempts<=5', [$id])->rowCount()!==1) throw new ApiError('验证已使用，请重新登录', 401);
         $info=json_decode($row['data'], true);
         return $this->issue($info['username'], $info['device']);

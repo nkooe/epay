@@ -29,10 +29,10 @@ final class ChannelTest
         }
         $trade=date('YmdHis').random_int(10000,99999);
         $return=$base.'/user/test.php?ok=1&trade_no='.$trade;
-        // Match the website test order, preselecting this exact channel for public submit2.php.
+
         $db->insert('order',['trade_no'=>$trade,'out_trade_no'=>$trade,'uid'=>$uid,'tid'=>3,'addtime'=>date('Y-m-d H:i:s'),'name'=>'支付测试','money'=>$amount,'type'=>$channel['type'],'channel'=>(int)$id,'subchannel'=>0,'realmoney'=>$amount,'getmoney'=>$amount,'notify_url'=>$return,'return_url'=>$return,'domain'=>parse_url($base,PHP_URL_HOST),'ip'=>$ip,'status'=>0]);
         $db->audit('通道测试支付',$ip,['trade_no'=>$trade,'channel'=>(int)$id,'money'=>$amount]);
-        // This public payment entry needs no administrator cookie or bearer in the browser.
+
         return ['trade_no'=>$trade,'money'=>$amount,'url'=>'submit2.php?typeid='.$channel['type'].'&trade_no='.$trade];
     }
 }

@@ -1,11 +1,10 @@
-DROP TABLE IF EXISTS `pre_config`;
 create table `pre_config` (
 `k` varchar(32) NOT NULL,
 `v` text NULL,
 PRIMARY KEY  (`k`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-INSERT INTO `pre_config` VALUES ('version', '2063');
+INSERT INTO `pre_config` VALUES ('version', '2064');
 INSERT INTO `pre_config` VALUES ('admin_user', 'admin');
 INSERT INTO `pre_config` VALUES ('admin_pwd', '123456');
 INSERT INTO `pre_config` VALUES ('admin_paypwd', '123456');
@@ -65,7 +64,6 @@ INSERT INTO `pre_config` VALUES ('cdnpublic', '0');
 INSERT INTO `pre_config` VALUES ('ip_type', '2');
 
 
-DROP TABLE IF EXISTS `pre_cache`;
 create table `pre_cache` (
   `k` varchar(32) NOT NULL,
   `v` longtext NULL,
@@ -73,7 +71,6 @@ create table `pre_cache` (
 PRIMARY KEY  (`k`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_anounce`;
 create table `pre_anounce` (
   `id` int(11) unsigned NOT NULL auto_increment,
   `content` text DEFAULT NULL,
@@ -84,7 +81,6 @@ create table `pre_anounce` (
 PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_type`;
 CREATE TABLE `pre_type` (
   `id` int(11) unsigned NOT NULL auto_increment,
   `name` varchar(30) NOT NULL,
@@ -107,7 +103,6 @@ INSERT INTO `pre_type` VALUES (9, 'trx', 0, 'TRON TRX', 1);
 INSERT INTO `pre_type` VALUES (10, 'usdtpolygon', 0, 'Polygon USDT', 1);
 INSERT INTO `pre_type` VALUES (11, 'usdtaptos', 0, 'Aptos USDT', 1);
 
-DROP TABLE IF EXISTS `pre_plugin`;
 CREATE TABLE `pre_plugin` (
   `name` varchar(30) NOT NULL,
   `showname` varchar(60) DEFAULT NULL,
@@ -118,7 +113,6 @@ CREATE TABLE `pre_plugin` (
  PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_channel`;
 CREATE TABLE `pre_channel` (
   `id` int(11) unsigned NOT NULL auto_increment,
   `mode` tinyint(1) DEFAULT 0,
@@ -143,7 +137,6 @@ CREATE TABLE `pre_channel` (
  KEY `type` (`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_roll`;
 CREATE TABLE `pre_roll` (
   `id` int(11) unsigned NOT NULL auto_increment,
   `type` int(11) unsigned NOT NULL,
@@ -155,7 +148,6 @@ CREATE TABLE `pre_roll` (
  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=101;
 
-DROP TABLE IF EXISTS `pre_weixin`;
 CREATE TABLE `pre_weixin` (
   `id` int(11) unsigned NOT NULL auto_increment,
   `type` tinyint(4) unsigned NOT NULL DEFAULT '0',
@@ -170,7 +162,6 @@ CREATE TABLE `pre_weixin` (
  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_order`;
 CREATE TABLE `pre_order` (
   `trade_no` char(19) NOT NULL,
   `out_trade_no` varchar(150) NOT NULL,
@@ -222,7 +213,6 @@ CREATE TABLE `pre_order` (
  KEY `date` (`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_group`;
 CREATE TABLE `pre_group` (
   `gid` int(11) unsigned NOT NULL auto_increment,
   `name` varchar(30) NOT NULL,
@@ -242,7 +232,6 @@ INSERT INTO `pre_group` (`gid`, `name`, `info`) VALUES
 (0, '默认用户组', '{"1":{"type":"","channel":"-1","rate":""},"2":{"type":"","channel":"-1","rate":""},"3":{"type":"","channel":"-1","rate":""}}');
 UPDATE `pre_group` SET `gid` = '0' WHERE `gid` = 1;
 
-DROP TABLE IF EXISTS `pre_user`;
 CREATE TABLE `pre_user` (
   `uid` int(11) unsigned NOT NULL auto_increment,
   `gid` int(11) unsigned NOT NULL DEFAULT 0,
@@ -302,7 +291,6 @@ CREATE TABLE `pre_user` (
  KEY `phone` (`phone`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1000;
 
-DROP TABLE IF EXISTS `pre_settle`;
 CREATE TABLE `pre_settle` (
   `id` int(11) NOT NULL auto_increment,
   `uid` int(11) NOT NULL,
@@ -329,7 +317,6 @@ CREATE TABLE `pre_settle` (
  KEY `transfer_no` (`transfer_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_log`;
 CREATE TABLE `pre_log` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `uid` int(11) NOT NULL DEFAULT '0',
@@ -342,7 +329,6 @@ CREATE TABLE `pre_log` (
   KEY `logincheck` (`ip`,`date`,`uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_record`;
 CREATE TABLE `pre_record` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `uid` int(11) NOT NULL,
@@ -358,7 +344,6 @@ CREATE TABLE `pre_record` (
   KEY `trade_no` (`trade_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_batch`;
 CREATE TABLE `pre_batch` (
   `batch` varchar(20) NOT NULL,
   `allmoney` decimal(10,2) NOT NULL,
@@ -368,7 +353,6 @@ CREATE TABLE `pre_batch` (
  PRIMARY KEY (`batch`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_regcode`;
 CREATE TABLE `pre_regcode` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `uid` int(11) NOT NULL DEFAULT '0',
@@ -384,7 +368,6 @@ CREATE TABLE `pre_regcode` (
   KEY `code` (`to`,`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_risk`;
 CREATE TABLE `pre_risk` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `uid` int(11) NOT NULL DEFAULT '0',
@@ -397,7 +380,6 @@ CREATE TABLE `pre_risk` (
   KEY `uid` (`uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_domain`;
 CREATE TABLE `pre_domain` (
   `id` int(11) unsigned NOT NULL auto_increment,
   `uid` int(11) NOT NULL DEFAULT '0',
@@ -409,7 +391,6 @@ CREATE TABLE `pre_domain` (
  KEY `domain` (`domain`,`uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_psreceiver`;
 CREATE TABLE `pre_psreceiver` (
   `id` int(11) unsigned NOT NULL auto_increment,
   `channel` int(11) NOT NULL,
@@ -427,7 +408,6 @@ CREATE TABLE `pre_psreceiver` (
  KEY `channel` (`channel`,`uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_psorder`;
 CREATE TABLE `pre_psorder` (
   `id` int(11) unsigned NOT NULL auto_increment,
   `rid` int(11) NOT NULL,
@@ -447,7 +427,6 @@ CREATE TABLE `pre_psorder` (
  KEY `addtime` (`addtime`,`delay`,`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_subchannel`;
 CREATE TABLE `pre_subchannel` (
   `id` int(11) unsigned NOT NULL auto_increment,
   `channel` int(11) NOT NULL,
@@ -463,7 +442,6 @@ CREATE TABLE `pre_subchannel` (
  KEY `uid` (`uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_blacklist`;
 CREATE TABLE `pre_blacklist` (
   `id` int(11) unsigned NOT NULL auto_increment,
   `type` tinyint(1) NOT NULL DEFAULT '0',
@@ -475,7 +453,6 @@ CREATE TABLE `pre_blacklist` (
  UNIQUE KEY `content`(`content`,`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_wework`;
 CREATE TABLE `pre_wework` (
   `id` int(11) unsigned NOT NULL auto_increment,
   `name` varchar(30) NOT NULL,
@@ -489,7 +466,6 @@ CREATE TABLE `pre_wework` (
  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_wxkfaccount`;
 CREATE TABLE `pre_wxkfaccount` (
   `id` int(11) unsigned NOT NULL auto_increment,
   `wid` int(11) unsigned NOT NULL,
@@ -504,7 +480,6 @@ CREATE TABLE `pre_wxkfaccount` (
  UNIQUE KEY `openkfid`(`openkfid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_wxkflog`;
 CREATE TABLE `pre_wxkflog` (
   `trade_no` char(19) NOT NULL,
   `aid` int(11) unsigned NOT NULL,
@@ -517,7 +492,6 @@ CREATE TABLE `pre_wxkflog` (
  KEY `addtime`(`addtime`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_transfer`;
 CREATE TABLE `pre_transfer` (
   `biz_no` char(19) NOT NULL,
   `out_biz_no` varchar(150) NOT NULL DEFAULT '',
@@ -541,7 +515,6 @@ CREATE TABLE `pre_transfer` (
  KEY `out_biz_no` (`out_biz_no`,`uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_invitecode`;
 CREATE TABLE `pre_invitecode` (
   `id` int(11) unsigned NOT NULL auto_increment,
   `code` varchar(40) NOT NULL,
@@ -553,7 +526,6 @@ CREATE TABLE `pre_invitecode` (
  KEY `code` (`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_refundorder`;
 CREATE TABLE `pre_refundorder` (
   `refund_no` char(19) NOT NULL,
   `out_refund_no` varchar(150) NOT NULL,
@@ -569,7 +541,6 @@ CREATE TABLE `pre_refundorder` (
  KEY `trade_no` (`trade_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `pre_suborder`;
 CREATE TABLE `pre_suborder` (
   `sub_trade_no` varchar(25) NOT NULL,
   `trade_no` char(19) NOT NULL,
@@ -597,7 +568,7 @@ CREATE TABLE `pre_order_notify_attempt` (
   KEY `order_notify_history` (`trade_no`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS `pre_task` (
+CREATE TABLE `pre_task` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `action` varchar(32) NOT NULL,
   `channel_id` int unsigned NOT NULL DEFAULT 0,
@@ -624,7 +595,7 @@ CREATE TABLE IF NOT EXISTS `pre_task` (
   KEY `task_due` (`enabled`,`next_run_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS `pre_task_run` (
+CREATE TABLE `pre_task_run` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `task_id` int unsigned NOT NULL,
   `token` char(32) NOT NULL,
@@ -647,8 +618,7 @@ INSERT INTO `pre_task` (`action`,`schedule_type`,`interval_seconds`,`daily_at`) 
 ('profitsharing','interval',60,NULL),
 ('check','interval',60,NULL),
 ('transfer','interval',300,NULL),
-('cleanup_logs','daily',NULL,'03:30')
-ON DUPLICATE KEY UPDATE `action`=VALUES(`action`);
+('cleanup_logs','daily',NULL,'03:30');
 
 CREATE TABLE `pre_merchant_channel_policy` (
   `uid` int unsigned NOT NULL,
@@ -665,7 +635,6 @@ CREATE TABLE `pre_complaint_account` (
   `provider` varchar(16) NOT NULL,
   `channel` int unsigned NOT NULL,
   `enabled` tinyint NOT NULL DEFAULT 1,
-  `credentials` mediumtext NOT NULL,
   `revision` int unsigned NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
@@ -715,7 +684,7 @@ CREATE TABLE `pre_complaint_attachment` (
   PRIMARY KEY (`id`), KEY `idx_complaint` (`complaint_id`,`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS pre_task_worker (
+CREATE TABLE pre_task_worker (
   id tinyint unsigned NOT NULL,
   token char(32) NOT NULL,
   pid int unsigned NOT NULL,
@@ -726,7 +695,7 @@ CREATE TABLE IF NOT EXISTS pre_task_worker (
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS pre_task_request (
+CREATE TABLE pre_task_request (
   id char(32) NOT NULL,
   task_id int unsigned NOT NULL,
   revision int unsigned NOT NULL,
@@ -740,7 +709,7 @@ CREATE TABLE IF NOT EXISTS pre_task_request (
   KEY request_pending (state,created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS pre_task_execution (
+CREATE TABLE pre_task_execution (
  id char(32) NOT NULL,
  task_id int unsigned NOT NULL,
  active_task_id int unsigned DEFAULT NULL,
@@ -760,7 +729,7 @@ CREATE TABLE IF NOT EXISTS pre_task_execution (
  KEY execution_history (task_id,created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS pre_plugin_service (
+CREATE TABLE pre_plugin_service (
  id char(32) NOT NULL,
  channel_id int unsigned NOT NULL,
  plugin varchar(64) NOT NULL,
@@ -782,7 +751,7 @@ CREATE TABLE IF NOT EXISTS pre_plugin_service (
  KEY service_desired (desired,observed)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS pre_service_operation (
+CREATE TABLE pre_service_operation (
  id char(32) NOT NULL,
  service_id char(32) NOT NULL,
  revision int unsigned NOT NULL,
@@ -814,4 +783,40 @@ CREATE TABLE `pre_complaint_sync` (
  `updated_at` datetime NOT NULL,
  PRIMARY KEY (`account_id`),
  KEY sync_due (state,next_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `pre_app_session` (
+ `id` varchar(32) NOT NULL PRIMARY KEY, `username` varchar(80) NOT NULL,
+ `access_hash` varchar(64) NOT NULL UNIQUE, `refresh_hash` varchar(64) NOT NULL UNIQUE,
+ `stamp` varchar(64) NOT NULL, `device` varchar(80) NOT NULL, `ip` varchar(50) NOT NULL,
+ `created` bigint NOT NULL, `last_seen` bigint NOT NULL, `access_expires` bigint NOT NULL,
+ `expires` bigint NOT NULL, `revoked` tinyint NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE `pre_app_operation` (
+ `id` varchar(128) NOT NULL PRIMARY KEY, `request_id` varchar(64) NOT NULL,
+ `reference` varchar(64) NOT NULL, `state` varchar(16) NOT NULL,
+ `created` bigint NOT NULL, `detail` text NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE `pre_app_challenge` (
+ `id` varchar(64) NOT NULL PRIMARY KEY, `kind` varchar(16) NOT NULL, `proof` varchar(64) NOT NULL,
+ `data` mediumtext NOT NULL, `expires` bigint NOT NULL, `attempts` int NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE `pre_app_limit` (
+ `id` varchar(64) NOT NULL PRIMARY KEY, `hits` int NOT NULL DEFAULT 0, `expires` bigint NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE `pre_app_request` (
+ `id` varchar(64) NOT NULL PRIMARY KEY, `fingerprint` varchar(64) NOT NULL,
+ `response` mediumtext NULL, `created` bigint NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE `pre_app_notification_device` (
+ `device_id` char(36) NOT NULL PRIMARY KEY, `username` varchar(80) NOT NULL,
+ `enabled` tinyint NOT NULL DEFAULT 0, `created` bigint NOT NULL, `last_seen` bigint NOT NULL,
+ KEY `enabled_seen` (`enabled`,`last_seen`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE `pre_app_notification` (
+ `id` bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, `event_key` char(64) NOT NULL UNIQUE,
+ `type` varchar(32) NOT NULL, `title` varchar(128) NOT NULL, `body` varchar(255) NOT NULL,
+ `trade_no` varchar(32) NOT NULL, `uid` bigint unsigned NOT NULL DEFAULT 0,
+ `amount` decimal(12,2) NOT NULL DEFAULT 0, `created` bigint NOT NULL,
+ KEY `created_id` (`created`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

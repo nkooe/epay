@@ -1,7 +1,7 @@
 <?php
 namespace lib\Task;
 
-/** The console's actual log files. No journal replay or deletion markers. */
+
 final class ServiceLog
 {
     public const DAY_BYTES = 4194304;
@@ -13,7 +13,7 @@ final class ServiceLog
     public static function directory(array $config)
     {
         if (!is_string($config['helper'] ?? null) || $config['helper'] === '') throw new \RuntimeException('缺少日志目录配置');
-        // Installed beside the site-specific helper, outside the public website.
+
         return dirname($config['helper']).'/logs';
     }
     public function __construct(array $config) { $this->directory = self::directory($config); }
@@ -84,8 +84,8 @@ final class ServiceLog
         $record = $prefix.implode("\n".$prefix, $lines)."\n";
         $this->locked(function () use ($now, $record) {
             $path = $this->path($now->format('Y-m-d'));
-            // Open and close for each append while holding the same lock as delete.
-            // A live process never keeps writing to a deleted inode or yesterday's file.
+
+
             $stream = fopen($path, 'c+b');
             if (!$stream) throw new \RuntimeException('无法写入服务日志');
             try {

@@ -23,7 +23,7 @@ try {
     }
     exit(\lib\Task\LogProcess::run(new \lib\Task\ServiceLog($config), $command, $source));
 } catch (Throwable $e) {
-    // Only collector/installation faults go to systemd journal; no daily log replay.
+
     fwrite(STDERR, '[epay-task-log] '.\lib\Task\SystemdController::redact($e->getMessage())."\n");
     exit(78);
 }

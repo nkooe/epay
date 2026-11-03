@@ -87,7 +87,7 @@ case 'set':
 		saveSetting($k, $v);
 	}
 	$ad=$CACHE->clear();
-	if($ad)exit('{"code":0,"msg":"succ"}');
+	if($ad)exit('{"code":0,"msg":"操作成功"}');
 	else exit('{"code":-1,"msg":"修改设置失败['.$DB->error().']"}');
 break;
 case 'setGonggao':
@@ -116,7 +116,7 @@ case 'setArticle': //文章状态
 	$id=intval($_GET['id']);
 	$active=intval($_GET['active']);
 	$DB->exec("update pre_article set active='$active' where id='{$id}'");
-	exit('{"code":0,"msg":"succ"}');
+	exit('{"code":0,"msg":"操作成功"}');
 break;
 case 'article_upload':
 	$file_name = $_FILES['imgFile']['name'];
@@ -170,6 +170,6 @@ case 'generate_wxa_link':
 	exit('{"code":0,"url":"'.$url_link.'"}');
 break;
 default:
-	exit('{"code":-4,"msg":"No Act"}');
+	exit('{"code":-4,"msg":"操作不存在"}');
 break;
 }

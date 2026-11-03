@@ -93,10 +93,10 @@ class TOTP
         }
         $label = $this->getLabel();
         if (null === $label) {
-            throw new \InvalidArgumentException('The label is not set.');
+            throw new \InvalidArgumentException('未设置验证器名称。');
         }
         if ($this->hasColon($label)) {
-            throw new \InvalidArgumentException('Label must not contain a colon.');
+            throw new \InvalidArgumentException('验证器名称不能包含冒号。');
         }
         $params['issuer'] = $this->getIssuer();
         $params['secret'] = $this->getSecret();
@@ -104,9 +104,9 @@ class TOTP
         return sprintf('otpauth://totp/%s?%s', rawurlencode((null !== $this->getIssuer() ? $this->getIssuer() . ':' : '') . $label), $query);
     }
 
-    /**
-     * The OTP at the specified input.
-     */
+
+
+
     private function generateOTP(int $input): string
     {
         $hash = hash_hmac($this->digest, $this->intToByteString($input), $this->base32_decode($this->getSecret()), true);
@@ -134,7 +134,7 @@ class TOTP
     {
         $timestamp = $timestamp ?? time();
         if ($timestamp < 0) {
-            throw new \InvalidArgumentException('Timestamp must be at least 0.');
+            throw new \InvalidArgumentException('时间戳不能小于零。');
         }
 
         return $timestamp;
@@ -184,7 +184,7 @@ class TOTP
             $c = $data[$i];
             $b = strpos(self::$BASE32_ALPHABET, $c);
             if ($b === false) {
-                throw new \Exception('Encoded string is invalid, it contains unknown char #'.ord($c));
+                throw new \Exception('编码内容含有无效字符，位置：'.ord($c));
             }
             $buf = ($buf << 5) | $b;
             $bufSize += 5;

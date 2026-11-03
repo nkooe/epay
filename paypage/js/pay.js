@@ -1,4 +1,4 @@
-//insert
+
 function keypress(e){
     e.preventDefault();
     var target = e.target;
@@ -33,7 +33,7 @@ function keypress(e){
     format();
 }
 
-//format
+
 function format(){
     var arr = valueCur.split('.');
     var right = arr.length === 2 ? '.'+arr[1] : '';
@@ -49,7 +49,7 @@ function format(){
     check();
 }
 
-//check
+
 function check(){
     amount.innerHTML = valueFormat;
     if(valueFormat.length > 0){
@@ -64,7 +64,7 @@ function check(){
     }
 }
 
-//clear
+
 function clearFun(){
     valueCur = '';
     valueFormat = '';
@@ -74,7 +74,7 @@ function clearFun(){
     payBtn.classList.add('disable');
 }
 
-//submit
+
 function submitFun(){	
     if(!submitAble || payBtn.classList.contains('disable')){
         return;
@@ -105,12 +105,12 @@ function submitFun(){
         error : function(){
             loading.hide();
             submitAble = true;
-            //update by yuwm 2018.03.14
+
             tips.show('<span style="color:#959595;margin-top:5px">网络异常，请重新发起支付</span>');
         },
         success : function(data){
             loading.hide();
-            if(data.code=="0"){//success
+            if(data.code=="0"){
 				$("#trade_no").val(data.trade_no);
 				if (data.direct==1) {
 					if (paytype == 'wxpay') {
@@ -131,7 +131,7 @@ function submitFun(){
     });
 }
 
-//region WX JS
+
 function WxpayJsPay(payStr){
     var jsonPayStr = eval("("+payStr+")");
     WeixinJSBridge.invoke(
@@ -142,7 +142,7 @@ function WxpayJsPay(payStr){
             if(res.err_msg == "get_brand_wcpay_request:ok" ) {
                 // 支付成功则关闭窗口
                 // tips.show("支付成功");
-                //WeixinJSBridge.call('closeWindow');
+
                 window.location.href="./success.php?trade_no="+$("#trade_no").val();
             } else if(res.err_msg == "get_brand_wcpay_request:cancel") {
                 // tips.show("支付过程中用户取消");
@@ -154,9 +154,9 @@ function WxpayJsPay(payStr){
         }
     );
 }
-//endregion
 
-//region ALI JS
+
+
 function AlipayJsPay(payStr) {
 	var trade_no = $("#trade_no").val();
     Alipayready(function(){
@@ -165,7 +165,7 @@ function AlipayJsPay(payStr) {
         }, function(result){
             var msg = "";
             if(result.resultCode == "9000"){
-                //AlipayJSBridge.call('closeWebview');
+
 				window.location.href="./success.php?trade_no="+$("#trade_no").val();
             }else if(result.resultCode == "8000"){
                 msg = "正在处理中";
@@ -189,9 +189,9 @@ function Alipayready(callback) {
         document.addEventListener('AlipayJSBridgeReady', callback, false);
     }
 }
-//endregion
 
-//region QQ JS
+
+
 function QQJsPay(payStr){
 	var trade_no = $("#trade_no").val();
 	var jsonPayStr = eval("("+payStr+")");
@@ -200,14 +200,14 @@ function QQJsPay(payStr){
 		appInfo: jsonPayStr.appInfo
 	}, function(result, resultCode){
 		if(resultCode == 0){ //支付成功
-			//mqq.ui.popBack();
+
 			window.location.href="./success.php?trade_no="+$("#trade_no").val();
 		}else{
 			tips.show("支付失败");
 		}
 	});
 }
-//endregion
+
 
 
 var keyboard = getId('keyboard');

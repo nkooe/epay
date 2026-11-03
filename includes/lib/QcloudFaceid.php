@@ -50,7 +50,7 @@ class QcloudFaceid {
 	private function generateSign($payload, $time){
 		$algorithm = "TC3-HMAC-SHA256";
 
-		// step 1: build canonical request string
+
 		$httpRequestMethod = "POST";
 		$canonicalUri = "/";
 		$canonicalQueryString = "";
@@ -63,8 +63,8 @@ class QcloudFaceid {
 			.$canonicalHeaders."\n"
 			.$signedHeaders."\n"
 			.$hashedRequestPayload;
-		
-		// step 2: build string to sign
+
+
 		$date = gmdate("Y-m-d", $time);
 		$credentialScope = $date."/".$this->service."/tc3_request";
 		$hashedCanonicalRequest = hash("SHA256", $canonicalRequest);
@@ -72,14 +72,14 @@ class QcloudFaceid {
 			.$time."\n"
 			.$credentialScope."\n"
 			.$hashedCanonicalRequest;
-		
-		// step 3: sign string
+
+
 		$secretDate = hash_hmac("SHA256", $date, "TC3".$this->SecretKey, true);
 		$secretService = hash_hmac("SHA256", $this->service, $secretDate, true);
 		$secretSigning = hash_hmac("SHA256", "tc3_request", $secretService, true);
 		$signature = hash_hmac("SHA256", $stringToSign, $secretSigning);
 
-		// step 4: build authorization
+
 		$authorization = $algorithm
 			." Credential=".$this->SecretId."/".$credentialScope
 			.", SignedHeaders=content-type;host, Signature=".$signature;

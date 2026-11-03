@@ -159,7 +159,7 @@ case 'edit_receiver':
 		if($channel){
 			$new_info = json_decode($data['info'], true);
 			$old_info = !empty($row['info']) ? json_decode($row['info'], true) : [['account'=>$row['account'], 'name'=>$row['name'], 'rate'=>$row['rate']]];
-			
+
 			$model = \lib\ProfitSharing\CommUtil::getModel($channel);
 			foreach($new_info as $item){
 				if(!array_filter($old_info, function($v) use ($item) {
@@ -233,7 +233,7 @@ case 'submit':
 			changeUserMoney($row['psuid'], $row['money'], false, '订单分账', $row['trade_no']);
 		}
 	}elseif($result['code'] == -2){
-		//$DB->update('psorder', ['status'=>3,'result'=>$result['msg']], ['id'=>$id]);
+
 	}
 	if(isset($result['rdata'])){
 		$DB->update('psorder', ['money'=>$result['money'], 'rdata'=>json_encode($result['rdata'])], ['id'=>$id]);
@@ -317,7 +317,7 @@ case 'editmoney':
 	if(!$row)exit('{"code":-1,"msg":"订单不存在"}');
 	if($row['status']!=0)exit('{"code":-1,"msg":"只有待分账的订单才能修改金额"}');
 	$DB->update('psorder', ['money'=>$money], ['id'=>$id]);
-	exit('{"code":0,"msg":"succ"}');
+	exit('{"code":0,"msg":"操作成功"}');
 break;
 
 case 'operation': //批量操作订单
@@ -394,11 +394,11 @@ case 'statistics':
         'failCount' => $result['failCount'] ?? 0,
         'successRate' => $successRate
     ];
-    
+
     exit(json_encode(['code' => 0, 'data' => $data]));
 break;
 
 default:
-	exit('{"code":-4,"msg":"No Act"}');
+	exit('{"code":-4,"msg":"操作不存在"}');
 break;
 }

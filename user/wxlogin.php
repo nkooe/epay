@@ -21,7 +21,7 @@ function wxLoginRedirectScript($target){
 
 if(isset($_GET['sid'])){
 	$sid = trim(daddslashes($_GET['sid']));
-	if(!preg_match('/^(.[a-zA-Z0-9]+)$/',$sid))exit("Access Denied");
+	if(!preg_match('/^(.[a-zA-Z0-9]+)$/',$sid))exit("访问被拒绝");
 	session_id($sid);
 }
 session_start();

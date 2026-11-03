@@ -46,7 +46,7 @@ if($conf['cert_open'] == 1){ //支付宝身份验证
 	}catch(Exception $e){
 		sysmsg('实名证件信息比对验证失败！'.$e->getMessage());
 	}
-	
+
 	if($result['passed'] == 'T'){
 		if(!empty($tokenArr['user_id'])){
 			$openid = $tokenArr['user_id'];
@@ -69,7 +69,7 @@ if($conf['cert_open'] == 1){ //支付宝身份验证
 
 }elseif($conf['cert_open'] == 4){ //微信扫码实名认证
 	$uid = intval($_GET['state']);
-	$AuthToken = isset($_GET['AuthToken'])?$_GET['AuthToken']:exit('param is error');
+	$AuthToken = isset($_GET['AuthToken'])?$_GET['AuthToken']:exit('参数不正确');
 	$userrow=$DB->getRow("SELECT * FROM pre_user WHERE uid='{$uid}' limit 1");
 	if(!$userrow)sysmsg('uid不存在');
 	if($AuthToken!=$userrow['certtoken'])sysmsg('AuthToken不正确');

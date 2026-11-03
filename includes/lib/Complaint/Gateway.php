@@ -1,7 +1,7 @@
 <?php
 namespace lib\Complaint;
 
-/** Explicit upstream operations. A refund approval never invokes an order refund. */
+
 final class Gateway
 {
     private $provider;

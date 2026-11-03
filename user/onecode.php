@@ -9,14 +9,14 @@ if(!$conf['onecode'] && $userrow['open_code']!=1)exit('未开启聚合收款');
 
 $merchant = authcode($uid, 'ENCODE', SYS_KEY);
 $code_url = $siteurl.'paypage/?merchant='.urlencode($merchant);
-/*if(isset($_SESSION['onecode_url'])){
-	$code_url = $_SESSION['onecode_url'];
-}else{
-	$code_url = getdwz($code_url);
-	if($code_url){
-		$_SESSION['onecode_url'] = $code_url;
-	}
-}*/
+
+
+
+
+
+
+
+
 ?>
  <div id="content" class="app-content" role="main">
     <div class="app-content-body ">

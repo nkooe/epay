@@ -43,7 +43,7 @@ final class Tools
         $days=$v['days'] ?? '';if(!preg_match('/^\d{2,4}$/D',(string)$days)||(int)$days<30||(int)$days>3650)throw new ApiError('保留天数应为 30 至 3650');
         [$table,$date,$condition]=$maps[$resource];$cutoff=$v['cutoff'] ?? date('Y-m-d',strtotime('-'.$days.' days'));$this->day($cutoff);
         if($cutoff!==date('Y-m-d',strtotime('-'.$days.' days')))throw new ApiError('预览已过期，请重新预览',409);
-        // Any unresolved external operation prevents deleting its business evidence.
+
         if($this->db->value("SELECT COUNT(*) FROM pre_app_operation WHERE state='pending'"))throw new ApiError('存在渠道结果待核实的操作，请先核对，暂停清理');
         return [$table,$condition.' AND `'.$date.'`<?',[$cutoff]];
     }

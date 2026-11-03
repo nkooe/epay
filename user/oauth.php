@@ -8,7 +8,7 @@ if($conf['login_alipay']==0)sysmsg("未开启支付宝快捷登录");
 
 if(isset($_GET['sid'])){
 	$sid = trim(daddslashes($_GET['sid']));
-	if(!preg_match('/^(.[a-zA-Z0-9]+)$/',$sid))exit("Access Denied");
+	if(!preg_match('/^(.[a-zA-Z0-9]+)$/',$sid))exit("访问被拒绝");
 	session_id($sid);
 }
 session_start();
@@ -47,7 +47,7 @@ if(isset($_GET['auth_code'])){
 
 	$channel = \lib\Channel::get($conf['login_alipay']);
 	if(!$channel)sysmsg('当前支付通道信息不存在');
-	
+
 	$alipay_config = require(PLUGIN_ROOT.$channel['plugin'].'/inc/config.php');
 	try{
 		$oauth = new \Alipay\AlipayOauthService($alipay_config);

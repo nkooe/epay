@@ -1,314 +1,94 @@
 <?php
-//程序安装文件
-error_reporting(0);
-date_default_timezone_set("PRC");
-$databaseFile = '../config.php';//数据库配额文件
-
-@header('Content-Type: text/html; charset=UTF-8');
-$step=isset($_GET['step'])?$_GET['step']:1;
-if(file_exists('install.lock')){
-    exit('你已经成功安装，如需重新安装，请手动删除install目录下install.lock文件！');
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+date_default_timezone_set('Asia/Shanghai');
+header('Content-Type: text/html; charset=UTF-8');
+header('Cache-Control: no-store');
+header('X-Content-Type-Options: nosniff');
+session_start();
+$root=dirname(__DIR__);
+$configFile=$root.'/config.php';
+if (file_exists(__DIR__.'/install.lock')) {
+    exit('你已经成功安装，安装入口已锁定。');
 }
-
-function clearpack() {
-	$array=glob('../epay_release*');
-	foreach($array as $dir){
-		unlink($dir);
-	}
-	$array=glob('../epay_update*');
-	foreach($array as $dir){
-		unlink($dir);
-	}
-}
-
-function random($length, $numeric = 0) {
-	$seed = base_convert(md5(microtime().$_SERVER['DOCUMENT_ROOT']), 16, $numeric ? 10 : 35);
-	$seed = $numeric ? (str_replace('0', '', $seed).'012340567890') : ($seed.'zZ'.strtoupper($seed));
-	$hash = '';
-	$max = strlen($seed) - 1;
-	for($i = 0; $i < $length; $i++) {
-		$hash .= $seed[mt_rand(0, $max)];
-	}
-	return $hash;
-}
-
-if($step==3){
-    if($_GET['jump']==1){
-        include '../config.php';
-        if(!$dbconfig['user']||!$dbconfig['pwd']||!$dbconfig['dbname']) {
-            $errorMsg='请先填写好数据库并保存后再安装！';
+if (empty($_SESSION['installation_csrf'])) $_SESSION['installation_csrf']=bin2hex(random_bytes(24));
+$configWritable=file_exists($configFile) ? (is_file($configFile) && is_writable($configFile)) : is_writable($root);
+$checks=[
+    '运行环境版本不低于 8.1'=>version_compare(PHP_VERSION,'8.1.0','>='),
+    '数据库驱动'=>extension_loaded('pdo_mysql'),
+    '网络请求组件'=>extension_loaded('curl'),
+    '加密组件'=>extension_loaded('openssl'),
+    '多字节字符组件'=>extension_loaded('mbstring'),
+    '高精度计算组件'=>extension_loaded('bcmath'),
+    '配置文件写入权限（根目录 config.php）'=>$configWritable,
+    '安装锁写入权限'=>is_writable(__DIR__),
+    '数据库安装文件'=>is_file(__DIR__.'/install.sql') && is_readable(__DIR__.'/install.sql'),
+];
+$ready=!in_array(false,$checks,true);
+$error='';$success=false;
+$fields=['host'=>'127.0.0.1','port'=>'3306','user'=>'','dbname'=>'','dbqz'=>'pay'];
+if (($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
+    $guard=null;
+    try {
+        if (!$ready) throw new RuntimeException('安装环境检测未通过，请先修复不支持的项目。');
+        if (!is_string($_POST['csrf'] ?? null) || !hash_equals($_SESSION['installation_csrf'],$_POST['csrf'])) throw new RuntimeException('安装页面已过期，请刷新重试。');
+        foreach ($fields as $key=>$value) {
+            if (!is_string($_POST[$key] ?? null)) throw new RuntimeException('请填写完整的数据库信息。');
+            $fields[$key]=trim($_POST[$key]);
         }
-    }else{
-        $host=isset($_POST['host'])?$_POST['host']:null;
-        $port=isset($_POST['port'])?$_POST['port']:null;
-        $user=isset($_POST['user'])?$_POST['user']:null;
-        $pwd=isset($_POST['pwd'])?$_POST['pwd']:null;
-        $database=isset($_POST['database'])?$_POST['database']:null;
-        $dbqz=isset($_POST['dbqz'])?$_POST['dbqz']:null;
-        if(empty($host) || empty($port) || empty($user) || empty($pwd) || empty($database) || empty($dbqz)){
-            $errorMsg='请填写完整所有数据库信息！';
+        $password=$_POST['pwd'] ?? null;
+        if (!is_string($password) || $password==='' || strlen($password)>512 || preg_match('/[\x00-\x1f\x7f]/',$password)) throw new RuntimeException('数据库密码格式不正确。');
+        if (!preg_match('/^[A-Za-z0-9_.:-]{1,255}$/D',$fields['host'])) throw new RuntimeException('数据库地址格式不正确。');
+        if (!ctype_digit($fields['port']) || (int)$fields['port']<1 || (int)$fields['port']>65535) throw new RuntimeException('数据库端口格式不正确。');
+        if ($fields['user']==='' || strlen($fields['user'])>80 || preg_match('/[\x00-\x1f\x7f]/',$fields['user'])) throw new RuntimeException('数据库用户名格式不正确。');
+        if (!preg_match('/^[A-Za-z0-9_$-]{1,64}$/D',$fields['dbname'])) throw new RuntimeException('数据库名称格式不正确。');
+        if (!preg_match('/^[A-Za-z0-9_]{1,32}$/D',$fields['dbqz'])) throw new RuntimeException('数据表前缀格式不正确。');
+        $guard=fopen(__DIR__.'/.installing','c');
+        if (!$guard || !flock($guard,LOCK_EX|LOCK_NB)) throw new RuntimeException('安装正在进行，请等待当前安装完成。');
+        if (file_exists(__DIR__.'/install.lock')) throw new RuntimeException('站点已经安装，停止重复安装。');
+        $db=new PDO('mysql:host='.$fields['host'].';port='.$fields['port'].';dbname='.$fields['dbname'].';charset=utf8mb4',$fields['user'],$password,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_TIMEOUT=>5]);
+        if ($db->query('SHOW TABLES')->fetchColumn()!==false) throw new RuntimeException('请选择空数据库。安装程序不会覆盖或升级已有数据。');
+        $db->exec("SET time_zone='+08:00'");
+        $db->exec("SET SESSION sql_mode='STRICT_ALL_TABLES'");
+        $sql=file_get_contents(__DIR__.'/install.sql');
+        if ($sql===false || trim($sql)==='') throw new RuntimeException('数据库安装文件为空或不可读。');
+        foreach (explode(';',$sql) as $statement) {
+            if (trim($statement)!=='') $db->exec(str_replace('pre_',$fields['dbqz'].'_',$statement));
         }
-        if(!preg_match('/^[A-Za-z0-9_.:-]{1,255}$/', (string)$host)){
-            $errorMsg='数据库地址格式不正确！';
-        }
-        if(!ctype_digit((string)$port) || (int)$port<1 || (int)$port>65535){
-            $errorMsg='数据库端口格式不正确！';
-        }
-        if(!preg_match('/^[A-Za-z0-9_$-]{1,64}$/', (string)$database)){
-            $errorMsg='数据库名称格式不正确！';
-        }
-        if(!preg_match('/^[A-Za-z0-9_]{1,32}$/', (string)$dbqz)){
-            $errorMsg='数据表前缀格式不正确！';
-        }
-        if(!is_string($user) || preg_match('/[\x00-\x1f\x7f]/', $user) || !is_string($pwd) || preg_match('/[\x00-\x1f\x7f]/', $pwd)){
-            $errorMsg='数据库账号或密码格式不正确！';
-        }
-        $dbconfig=array(
-            'host' => $host,
-            'port' => (int)$port,
-            'user' => $user,
-            'pwd' => $pwd,
-            'dbname' => $database,
-            'dbqz' => $dbqz
-        );
-        $config="<?php\n/*数据库配置*/\n\$dbconfig = ".var_export($dbconfig, true).";\n";
-    }
-    if(empty($errorMsg)){
-        try{
-            $DB=new PDO("mysql:host=".$dbconfig['host'].";dbname=".$dbconfig['dbname'].";port=".$dbconfig['port'],$dbconfig['user'],$dbconfig['pwd']);
-        }catch(Exception $e){
-            if($e->getCode() == 2002){
-                $errorMsg='连接数据库失败：数据库地址填写错误！';
-            }elseif($e->getCode() == 1045){
-                $errorMsg='连接数据库失败：数据库用户名或密码填写错误！';
-            }elseif($e->getCode() == 1049){
-                $errorMsg='连接数据库失败：数据库名不存在！';
-            }else{
-                $errorMsg='连接数据库失败：'.$e->getMessage();
-            }
-        }
-        if(empty($errorMsg)){
-            $DB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
-            $DB->exec("set sql_mode = ''");
-            $DB->exec("set names utf8");
-            $mysqlversion = $DB->query("select version()")->fetchColumn();
-            if(version_compare($mysqlversion, '5.5.3', '<')){
-                $errorMsg='MySQL数据库版本太低，需要MySQL 5.6或以上版本！';
-            }
-            if(!$_GET['jump'] && !file_put_contents($databaseFile, $config, LOCK_EX)){
-                $errorMsg='保存失败，请确保网站根目录有写入权限';
-            }elseif(!$_GET['jump']){
-                @chmod($databaseFile, 0600);
-            }
-        }
-    }
-}elseif($step==4){
-    include '../config.php';
-    if(!$dbconfig['user']||!$dbconfig['pwd']||!$dbconfig['dbname']) {
-        $errorMsg='请先填写好数据库并保存后再安装！';
-    }else{
-        try{
-            $DB=new PDO("mysql:host=".$dbconfig['host'].";dbname=".$dbconfig['dbname'].";port=".$dbconfig['port'],$dbconfig['user'],$dbconfig['pwd']);
-        }catch(Exception $e){
-            $errorMsg='连接数据库失败：'.$e->getMessage();
-        }
-        if(empty($errorMsg) && !$_GET['jump']){
-            $dbqz = $dbconfig['dbqz'];
-            $DB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
-            $DB->exec("set sql_mode = ''");
-            $DB->exec("set names utf8");
-            $sqls=file_get_contents('install.sql');
-            $sqls=explode(';', $sqls);
-            $sqls[]="INSERT INTO `".$dbqz."_config` VALUES ('syskey', '".random(32)."')";
-            $sqls[]="INSERT INTO `".$dbqz."_config` VALUES ('build', '".date("Y-m-d")."')";
-            $sqls[]="INSERT INTO `".$dbqz."_config` VALUES ('cronkey', '".rand(111111,999999)."')";
-            $success=0;$error=0;$errorMsg=null;
-            foreach ($sqls as $value) {
-                $value=trim($value);
-                if(empty($value))continue;
-                $value = str_replace('pre_',$dbqz.'_',$value);
-                if($DB->exec($value)===false){
-                    $error++;
-                    $dberror=$DB->errorInfo();
-                    $errorMsg.=$dberror[2]."<br>";
-                }else{
-                    $success++;
-                }
-            }
-        }
-        if(empty($errorMsg)){
-            $lock_status = file_put_contents("install.lock",'安装锁');
-            clearpack();
-            $step = 5;
-        }
+        $stmt=$db->prepare('INSERT INTO `'.$fields['dbqz'].'_config` (k,v) VALUES (?,?)');
+        foreach (['syskey'=>bin2hex(random_bytes(16)),'build'=>date('Y-m-d'),'localurl'=>(!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS']!=='off' ? 'https://' : 'http://').($_SERVER['HTTP_HOST'] ?? 'localhost').'/'] as $key=>$value) $stmt->execute([$key,$value]);
+        $config=['host'=>$fields['host'],'port'=>(int)$fields['port'],'user'=>$fields['user'],'pwd'=>$password,'dbname'=>$fields['dbname'],'dbqz'=>$fields['dbqz']];
+        $content="<?php\n// 数据库连接配置。\n\$dbconfig = ".var_export($config,true).";\n";
+        if (file_put_contents($configFile,$content,LOCK_EX)!==strlen($content)) throw new RuntimeException('数据库已导入，但配置保存失败，请检查根目录写入权限后恢复配置。');
+        if (!chmod($configFile,0600)) throw new RuntimeException('配置文件已生成，但无法限制读取权限，请检查文件权限。');
+        if (file_put_contents(__DIR__.'/install.lock','安装完成',LOCK_EX)===false) throw new RuntimeException('安装数据和配置已保存，但安装锁写入失败，请修复安装目录权限并建立安装锁。');
+        unset($_SESSION['installation_csrf']);
+        $success=true;
+    } catch (PDOException $e) {
+        error_log('数据库安装失败：'.$e->getMessage());
+        $error='数据库连接或结构导入失败，请核对数据库资料并查看服务器错误日志。若已生成部分数据，请使用新的空数据库重新安装。';
+        http_response_code(400);
+    } catch (Throwable $e) {
+        $error=$e->getMessage();
+        http_response_code(400);
+    } finally {
+        if (is_resource($guard)) { flock($guard,LOCK_UN);fclose($guard); }
     }
 }
-
+function installationEscape($value) { return htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8'); }
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
-    <meta content="yes" name="apple-mobile-web-app-capable">
-    <meta content="black" name="apple-mobile-web-app-status-bar-style">
-    <title>彩虹易支付 - 安装程序</title>
-    <link href="//lib.baomitu.com/twitter-bootstrap/3.4.1/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-<div class="container"><br>
-    <div class="row">
-        <div class="col-xs-12 col-sm-10 col-md-8 center-block" style="float: none;">
-            <pre><h4>彩虹易支付 - 安装程序</h4></pre>
-            <div class="panel panel-warning">
-                <?php
-                if($step==2){
-                ?>
-                <div class="panel-heading text-center">MYSQL数据库信息配置</div>
-                <div class="panel-body">
-                    <div class="list-group text-success">
-                        <form class="form-horizontal" action="?step=3" method="post">
-                            <div class="form-group">
-                                <label class="col-sm-2 control-label">数据库地址</label>
-                                <div class="col-sm-10">
-                                    <input type="text" name="host" class="form-control" value="localhost" required>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="col-sm-2 control-label">数据库端口</label>
-                                <div class="col-sm-10">
-                                    <input type="text" name="port" class="form-control" value="3306" required>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="col-sm-2 control-label">数据库用户名</label>
-                                <div class="col-sm-10">
-                                    <input type="text" name="user" class="form-control" required>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="col-sm-2 control-label">数据库密码</label>
-                                <div class="col-sm-10">
-                                    <input type="text" name="pwd" class="form-control" required>
-                                </div>
-                            </div>
-							<div class="form-group">
-                                <label class="col-sm-2 control-label">数据库名称</label>
-                                <div class="col-sm-10">
-                                    <input type="text" name="database" class="form-control" required>
-                                </div>
-                            </div>
-							<div class="form-group">
-                                <label class="col-sm-2 control-label">数据表前缀</label>
-                                <div class="col-sm-10">
-                                    <input type="text" name="dbqz" class="form-control" value="pay" readonly>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <div class="col-sm-offset-2 col-sm-10">
-                                    <button type="submit" class="btn btn-success btn-block">确认无误，下一步</button>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <div class="col-sm-offset-2 col-sm-10">
-                                （如果已事先填写好config.php相关数据库配置，请 <a href="?step=3&jump=1">点击此处</a> 跳过这一步！）
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-                <?php }elseif($step==3){ ?>
-                <div class="panel-heading text-center">保存数据库配置</div>
-                <div class="panel-body">
-<?php
-if(!empty($errorMsg)){
-    echo '<div class="alert alert-danger text-center" role="alert">'.$errorMsg.'</div><div class="list-group-item"><a href="javascript:history.back(-1)" class="btn btn-block btn-info"><< 返回上一页</a></div>';
-}else{
-    echo '<div class="alert alert-success text-center" role="alert">数据库配置文件保存成功！</div>';
-    if($DB->query("select * from ".$dbconfig['dbqz']."_config")){
-?>
-                <div class="list-group-item list-group-item-info text-center">系统检测到你已安装过彩虹易支付</div>
-				<div class="list-group-item">
-					<a href="?step=4&jump=1" class="btn btn-block btn-info">跳过安装数据表</a>
-				</div>
-				<div class="list-group-item">
-					<a href="?step=4" onclick="if(!confirm('全新安装将会清空所有数据，是否继续？')){return false;}" class="btn btn-block btn-warning">强制全新安装</a>
-				</div>
-<?php }else{?>
-                <div class="list-group-item">
-					<a href="?step=4" class="btn btn-block btn-success">立即安装数据表 >></a>
-				</div>
-<?php }
-}
-?>
-                </div>
-                <?php }elseif($step==4){ ?>
-                <div class="panel-heading text-center">安装数据表</div>
-                <div class="panel-body">
-                    <div class="alert alert-danger" role="alert"><?php echo $errorMsg?></div>
-                    <div class="list-group-item"><a href="?step=4" class="btn btn-block btn-warning">点此进行重试</a></div>
-                    <div class="list-group-item"><a href="javascript:history.back(-1)" class="btn btn-block btn-info"><< 返回上一页</a></div>
-                </div>
-                <?php }elseif($step==5){ ?>
-                <div class="panel-heading text-center">安装完成</div>
-                <div class="panel-body">
-                    <?php if($success>0){?><div class="alert alert-success" role="alert">成功执行SQL语句<?php echo $success;?>条，失败<?php echo $error;?>条！</div><?php }?>
-                    <ul class="list-group">
-                        <li class="list-group-item">1、系统已成功安装完毕！</li>
-                        <li class="list-group-item">2、后台地址：<a href="/admin/" target="_blank">/admin/</a> 密码:123456</li>
-                        <li class="list-group-item">3、请及时修改后台管理员密码！</li>
-                        <?php if(!$lock_status){?><li class="list-group-item">4、<font color="#FF0033">你的空间不支持本地文件读写，请自行在 /install/ 目录建立 install.lock 文件！</font></li><?php }?>
-                        <li class="list-group-item"><a href="/" class="btn btn-block btn-default">进入网站首页</a></li>
-                    </ul>
-                </div>
-                <?php }else{ ?>
-                <div class="panel-heading text-center">安装环境检测</div>
-                <div class="panel-body">
-                    <?php
-                    $install=true;
-                    if(function_exists('curl_exec')){
-                        $check[2]='<span class="pull-right label label-success">支持</span>';
-                    }else{
-                        $check[2]='<span class="pull-right label label-danger">不支持</span>';
-                        $install=false;
-                    }
-                    if(class_exists("PDO")){
-                        $check[0]='<span class="pull-right label label-success">支持</span>';
-                    }else{
-                        $check[0]='<span class="pull-right label label-danger">不支持</span>';
-                        $install=false;
-                    }
-                    if(is_writable($databaseFile)) {
-                        $check[1]='<span class="pull-right label label-success">支持</span>';
-                    }else{
-                        $check[1]='<span class="pull-right label label-danger">不支持</span>';
-                    }
-                    if(version_compare(PHP_VERSION,'7.4.0','<')){
-                        $check[3]='<span class="pull-right label label-danger">不支持</span>';
-                        $install=false;
-                    }else{
-                        $check[3]='<span class="pull-right label label-success">支持</span>';
-                    }
-
-                    ?>
-                    <ul class="list-group">
-                        <li class="list-group-item">PHP版本>=7.4 <?php echo $check[3];?></li>
-                        <li class="list-group-item">PDO_MYSQL组件 <?php echo $check[0];?></li>
-                        <li class="list-group-item">CURL组件 <?php echo $check[2];?></li>
-                        <li class="list-group-item">主目录写入权限 <?php echo $check[1];?></li>
-                        <li class="list-group-item">成功安装后安装文件就会锁定，如需重新安装，请手动删除install目录下install.lock配置文件！</li>
-                        <?php
-                        if($install) echo'<li class="list-group-item"><a href="?step=2" class="btn btn-block btn-default">检测通过，下一步</a></li>';
-                        ?>
-                    </ul>
-                </div>
-                <?php } ?>
-            </div>
-            <footer class="footer">
-            <pre><center>Powered by <a href="#">彩虹</a> !</center></pre>
-            </footer>
-        </div>  
-    </div>
-</div>
-</body>
-</html>
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>易支付安装</title>
+<style>body{margin:0;background:#f4f5f7;color:#263238;font:15px/1.6 system-ui,sans-serif}main{max-width:760px;margin:40px auto;padding:24px;background:white;border:1px solid #e3e7e9;border-radius:10px}h1{font-size:24px;margin:0 0 20px}h2{font-size:18px}ul{padding:0;list-style:none}li{padding:9px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;gap:12px}.ok{color:#168348}.bad,.error{color:#b3261e}.error{background:#fce8e6;padding:12px}label{display:block;margin:14px 0}input{display:block;box-sizing:border-box;width:100%;padding:10px;border:1px solid #bcc5cb;border-radius:5px;font:inherit}button,.button{display:inline-block;background:#168348;color:white;border:0;border-radius:5px;padding:10px 18px;font:inherit;text-decoration:none}button:disabled{opacity:.45;cursor:not-allowed}p{color:#52616b}@media(max-width:800px){main{margin:12px;padding:18px}}</style></head>
+<body><main><h1>易支付安装</h1>
+<?php if($success){ ?>
+<h2>安装完成</h2><p>支付系统、管理员应用接口和后台任务的数据表已一次创建完成，无需额外导入数据库。</p><p>请登录管理后台修改初始管理员密码和支付密码，再配置支付通道。</p><a class="button" href="/admin/">进入管理后台</a>
+<?php }else{ ?>
+<h2>安装环境检测</h2><ul><?php foreach($checks as $label=>$supported){ ?><li><span><?php echo installationEscape($label); ?></span><span class="<?php echo $supported?'ok':'bad'; ?>"><?php echo $supported?'支持':'不支持'; ?></span></li><?php } ?></ul>
+<?php if($error!==''){ ?><p class="error" role="alert"><?php echo installationEscape($error); ?></p><?php } ?>
+<h2>数据库配置</h2><p>请先创建空数据库。已有表的数据库不能用于此次安装。</p>
+<form method="post"><input type="hidden" name="csrf" value="<?php echo installationEscape($_SESSION['installation_csrf']); ?>">
+<?php foreach(['host'=>'数据库地址','port'=>'数据库端口','user'=>'数据库用户名','dbname'=>'数据库名称','dbqz'=>'数据表前缀'] as $key=>$label){ ?><label><?php echo $label; ?><input name="<?php echo $key; ?>" value="<?php echo installationEscape($fields[$key]); ?>" required maxlength="255" autocomplete="off"></label><?php } ?>
+<label>数据库密码<input type="password" name="pwd" required maxlength="512" autocomplete="new-password"></label>
+<button type="submit" <?php echo $ready?'':'disabled'; ?>>安装系统</button></form>
+<?php } ?></main></body></html>

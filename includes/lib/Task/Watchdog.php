@@ -1,7 +1,7 @@
 <?php
 namespace lib\Task;
 
-/** Collector forwards real loop progress only after successfully draining logs. */
+
 final class Watchdog
 {
     public const SECONDS = 30;

@@ -55,7 +55,7 @@ body.checkout-page{margin:0;color:var(--checkout-text);background:var(--checkout
 .checkout-empty span{font-size:12px}
 .checkout-notice{margin:0 0 14px;padding:11px 14px;border:1px solid #f1dfc9;border-radius:9px;color:#855421;background:#fff8ee;font-size:13px}
 .checkout-footer{margin:18px 0 0;text-align:center;font-size:12px;color:var(--checkout-muted);overflow-wrap:anywhere}
-/* Merchant amount entry. Scoped styles do not affect transfer or red-packet pages. */
+
 .merchant-shell{max-width:420px}
 .merchant-card{padding:22px}
 .merchant-heading{display:flex;align-items:center;gap:12px;padding-bottom:20px;border-bottom:1px solid var(--checkout-border)}
@@ -109,7 +109,7 @@ body.checkout-page{margin:0;color:var(--checkout-text);background:var(--checkout
 .checkout-result-message{margin:0 0 20px;color:var(--checkout-muted);overflow-wrap:anywhere}
 .checkout-result-message p{margin:10px 0}
 .checkout-result-message a{display:inline-block;padding:8px 0}
-/* Existing request loading and error dialogs used by the payment bridge. */
+
 .checkout-page .circle-box,.checkout-page .pop_wrapper{position:fixed;inset:0;z-index:30;background:#0006;display:flex;align-items:center;justify-content:center;padding:20px}
 .checkout-page .circle_animate{max-width:240px;background:#242b28;color:white;border-radius:12px;padding:18px 24px;text-align:center}
 .checkout-page .circle_animate p{margin:8px 0 0;font-size:14px}

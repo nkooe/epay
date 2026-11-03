@@ -29,9 +29,9 @@ class DouyinOauth
         return base64_encode(json_encode($payload, JSON_UNESCAPED_UNICODE));
     }
 
-    /**
-     * @return array{channel:int,sid?:string}|null
-     */
+
+
+
     public static function decodeOpenidState(string $state): ?array
     {
         $raw = base64_decode($state, true);

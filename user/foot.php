@@ -1,6 +1,6 @@
   <!-- / content -->
 
-  <!-- footer -->
+
   <footer id="footer" class="app-footer" role="contentinfo">
     <?php echo htmlspecialchars($conf['sitename'], ENT_QUOTES, 'UTF-8')?> · 商户中心 &nbsp; &copy; <?php echo date("Y")?>
   </footer>

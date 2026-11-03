@@ -46,7 +46,7 @@ class Cache {
 	public function clean() {
 		global $DB;
 		$DB->exec("DELETE FROM pre_cache WHERE expire>0 AND expire<'".time()."'");
-		//$DB->exec("OPTIMIZE TABLE pre_cache");
+
 		return true;
 	}
 }

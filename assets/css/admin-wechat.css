@@ -388,7 +388,7 @@ body.admin-portal {
   color: var(--admin-green-dark);
 }
 
-/* Keep plugin login/config actions aligned with their generated Save button. */
+
 .admin-portal #form-info > a[class*="login"],
 .admin-portal #form-info > a[class*="action"],
 .admin-portal #form-info > a[class*="login"] ~ #save,
@@ -551,7 +551,7 @@ body.admin-portal {
   outline-color: rgba(7, 193, 96, .35);
 }
 
-/* Keep legacy pages inside the shared header without their old 70px spacer. */
+
 .admin-portal > .container:not(.admin-login)[style*="padding-top"],
 .admin-portal > .container-fluid:not(.admin-login)[style*="padding-top"] {
   padding-top: 0 !important;
@@ -621,7 +621,7 @@ body.admin-portal {
 .admin-portal a:focus-visible, .admin-portal button:focus-visible { outline: 2px solid var(--admin-green); outline-offset: 3px; }
 .admin-portal [hidden] { display: none !important; }
 
-/* Overview uses the same grouped rows and restrained type scale as the app. */
+
 .admin-dashboard { padding-bottom: 24px; }
 .dashboard-page-heading { flex-wrap: nowrap; gap: 20px; }
 .dashboard-page-heading .admin-breadcrumb, .dashboard-page-heading .admin-account, .dashboard-page-heading #dashboard-refresh { flex-shrink: 0; white-space: nowrap; }

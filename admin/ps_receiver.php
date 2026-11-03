@@ -271,7 +271,7 @@ function editframe(id){
 				$("#minmoney").val(data.data.minmoney);
 				changeChannel(data.data.subchannel);
 				
-				// Initialize receiver table
+
 				$("#receiverList").empty();
 				receiverCount = 0;
 				$.each(data.data.info, function(index, item) {

@@ -11,10 +11,10 @@ class DouyinPayException extends \Exception
     private $errCode;
     private $httpCode;
 
-    /**
-     * @param array $res
-     * @param string $httpCode
-     */
+
+
+
+
     public function __construct($res, $httpCode)
     {
         $this->res = $res;

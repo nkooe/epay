@@ -71,7 +71,7 @@ wx.ready(function () {
 });
 wx.error(function(res){
   //$('#loadingToast').fadeOut(100);
-  //alert(res.errMsg);
+
 });
 function jsApiCall(){
     $('#Confirm').removeAttr('disabled');

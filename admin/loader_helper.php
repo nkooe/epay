@@ -1,6 +1,6 @@
 <?php
 if(!defined('IN_CRONLITE')) {
-    exit('Access Denied');
+    exit('访问被拒绝');
 }
 preg_match("#^\d.\d#", PHP_VERSION, $p_v);
 $php_v = str_replace('.', '', $p_v[0]);

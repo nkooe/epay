@@ -598,7 +598,7 @@ pre {
   margin-left: -1px;
 }
 
-/*cols*/
+
 
 .col-lg-2-4 {
   position: relative;
@@ -653,7 +653,7 @@ pre {
   left: 50%;
 }
 
-/*layout*/
+
 
 html,
 body {
@@ -2645,7 +2645,7 @@ fieldset[disabled] .i-checks input + i:before {
   color: #fff !important;
 }
 
-/*Charts*/
+
 
 .jqstooltip {
   padding: 5px 10px !important;
@@ -4935,7 +4935,7 @@ a.text-#000000:hover {
   filter: alpha(opacity=80);
 }
 
-/*desktop*/
+
 
 @media screen and (min-width: 992px) {
   .col-lg-2-4 {
@@ -4953,7 +4953,7 @@ a.text-#000000:hover {
   }
 }
 
-/*phone*/
+
 
 @media (max-width: 767px) {
   .w-auto-xs {
@@ -5058,7 +5058,7 @@ a.text-#000000:hover {
           animation: movingbar 0.75s infinite;
 }
 
-/* Moving bar */
+
 
 @-webkit-keyframes movingbar {
   0% {
@@ -5105,7 +5105,7 @@ a.text-#000000:hover {
   }
 }
 
-/* change bar */
+
 
 @-webkit-keyframes changebar {
   0% {

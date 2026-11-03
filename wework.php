@@ -24,7 +24,7 @@ if($msg['MsgType'] == 'event' && $msg['Event'] == 'kf_msg_or_event'){
     $token = $msg['Token'];
     $wxkfaccount = $DB->find('wxkfaccount', 'id,wid', ['openkfid'=>$kfid]);
     if(!$wxkfaccount) exit('该微信客服账号不存在:'.$kfid);
-    
+
     $wework = new \lib\wechat\WeWorkAPI($wxkfaccount['wid']);
     try{
         $msg_list = $wework->lockGetMsg($kfid, $token);
@@ -33,7 +33,7 @@ if($msg['MsgType'] == 'event' && $msg['Event'] == 'kf_msg_or_event'){
         $CACHE->save('wxkferrmsg', ['errmsg'=>$errmsg, 'time'=>$date], 86400);
         exit($errmsg);
     }
-    //print_r($msg_list);
+
     foreach($msg_list as $row){
         if($row['msgtype'] == 'event' && $row['event']['event_type'] == 'enter_session' && $row['event']['scene'] == 'pay'){
             //用户进入客服聊天界面，发送确认支付菜单消息

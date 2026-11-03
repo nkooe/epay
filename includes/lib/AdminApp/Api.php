@@ -30,12 +30,12 @@ final class Api
     public function handle($method, $route, array $data=[], $bearer='', $requestKey='')
     {
         if (($this->conf['app_api_enabled'] ?? '1')==='0') throw new ApiError('管理员 App 接口已关闭',503);
-        if (!$this->db->installed()) throw new ApiError('请先运行 bin/install-app-api.php --apply 安装 App 数据表',503);
+        if (!$this->db->installed()) throw new ApiError('管理员应用数据表缺失，请核对本站完整安装结果',503);
         $route=trim($route,'/');
         $expected=['v1/site'=>'GET','v1/auth/captcha'=>'GET','v1/auth/login'=>'POST','v1/auth/totp'=>'POST','v1/auth/refresh'=>'POST'];
         if (isset($expected[$route])) {
             if ($method!==$expected[$route]) throw new ApiError('请求方法不允许',405);
-            if ($route==='v1/site') return ['name'=>$this->conf['sitename'] ?? '易支付','api_version'=>1,'release_version'=>'1.2.20','captcha'=>($this->conf['app_captcha_open'] ?? '1')!=='0','timezone'=>'Asia/Shanghai'];
+            if ($route==='v1/site') return ['name'=>$this->conf['sitename'] ?? '易支付','api_version'=>1,'release_version'=>'1.2.30','captcha'=>($this->conf['app_captcha_open'] ?? '1')!=='0','timezone'=>'Asia/Shanghai'];
             if ($route==='v1/auth/captcha') return $this->auth->captcha();
             if ($route==='v1/auth/login') return $this->auth->login($data);
             if ($route==='v1/auth/totp') return $this->auth->totp($data);
@@ -46,7 +46,7 @@ final class Api
         if ($method==='GET') return $this->read($route,$data);
         if ($method!=='POST') throw new ApiError('请求方法不允许',405);
         if ($route==='v1/auth/logout') { $this->db->update('app_session',['revoked'=>1],'id',$this->session['id']); $this->db->audit('退出',$this->ip); return ['logged_out'=>true]; }
-        // Every business write has an explicit endpoint and a durable idempotency key.
+
         $writes=['v1/merchants/create','v1/merchants/update','v1/channels/status','v1/channels/config/save','v1/profile/save','v1/profile/password','v1/sessions/revoke','v1/orders/notify','v1/settings/save','v1/management/save','v1/management/delete','v1/actions/run','v1/tools/run','v1/credentials/save','v1/notifications/device'];
         $writes=array_merge($writes,['v1/profile/totp/prepare','v1/profile/totp/bind','v1/profile/totp/disable','v1/channels/test','v1/plugins/run','v1/merchants/policy/save']);
         $writes=array_merge($writes,array_keys(NativeManagement::WRITES));
@@ -62,7 +62,7 @@ final class Api
         catch (\PDOException $e) { $prior=$this->db->row('SELECT * FROM pre_app_request WHERE id=?',[$id]); if ($prior) return $this->replay($prior,$fingerprint); throw $e; }
         try { $result=$this->write($route,$data); }
         catch (ApiError $e) { $this->db->update('app_request',['response'=>json_encode(['error'=>$e->getMessage(),'status'=>$e->status])],'id',$id); throw $e; }
-        // Unexpected failures retain a pending entry: financial operations are never retried blindly.
+
         $cachedResult=$result;
         if(isset($cachedResult['secret'])){unset($cachedResult['secret'],$cachedResult['uri']);$cachedResult['message']='操作已完成，敏感信息仅在首次响应显示';}
         $this->db->update('app_request',['response'=>json_encode(['result'=>$cachedResult],JSON_UNESCAPED_UNICODE)],'id',$id);
@@ -236,7 +236,7 @@ final class Api
         if($route==='v1/actions/run'){
             $this->auth->rate('actions:'.$this->session['username'],90,60);
             $values=$data['values'] ?? [];
-            // A valid batch may contain 50 actions; only wrong credentials use the stricter bucket.
+
             if(is_array($values))foreach(['paypwd'=>'admin_paypwd','admin_password'=>'admin_pwd'] as $input=>$setting){
                 if(isset($values[$input])&&(!is_string($values[$input])||!hash_equals((string)($this->conf[$setting] ?? ''),$values[$input])))$this->auth->rate('payment-password-failed:'.$this->session['username'],10,60);
             }
@@ -304,7 +304,6 @@ final class Api
         $clause=$where?' WHERE '.implode(' AND ',$where):'';
         $projection=implode(',',array_map(function($column){return '`'.$column.'`';},$columns));
         $rows=$this->db->all('SELECT '.$projection.' FROM pre_'.$table.$clause.' ORDER BY '.$sort.' LIMIT '.$limit.' OFFSET '.$offset,$params);
-        if($key==='logs')foreach($rows as $index=>$row)$rows[$index]['type']=Store::auditType($row['type']);
         $total=(int)$this->db->value('SELECT COUNT(*) FROM pre_'.$table.$clause,$params);
         $edit=Management::definitions()[$key] ?? null;
         return ['rows'=>$rows,'total'=>$total,'page'=>$page,'has_more'=>$offset+count($rows)<$total,'editable'=>(bool)$edit,'can_create'=>$edit&&empty($edit['edit_only']),'pk'=>$edit['pk'] ?? explode(',',$fields)[0]];

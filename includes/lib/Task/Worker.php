@@ -2,7 +2,7 @@
 namespace lib\Task;
 use lib\AdminApp\Store;
 
-/** Single scheduling leader; independent systemd cgroups own every execution. */
+
 final class Worker
 {
     private $db;private $config;private $children=[];private $stopping=false;private $token;
@@ -43,27 +43,27 @@ final class Worker
                 if(hrtime(true)-$this->lastBeat>=2000000000){
                     $deadline=hrtime(true)+8000000000;
                     $this->reap($deadline);
-                    // Type=notify must publish its first healthy turn before the
-                    // parent target becomes active and permits instance starts.
+
+
                     $targetReady=$this->stopping||$this->controller->targetReady();
                     $this->services->tick($this->stopping||!$targetReady);
                     if(!$this->stopping&&$targetReady){
                         if(!$this->reapBacklog&&hrtime(true)<$deadline&&count($this->children)<$this->config['concurrency'])$this->dispatch($deadline);
                         if(hrtime(true)<$deadline&&time()-$this->lastSync>=Automatic::POLL_SECONDS)$this->syncChannel();
                     }
-                    // This is a completed turn, not an independent timer. A
-                    // blocking DB, controller or filesystem cannot keep it alive.
+
+
                     $this->beat($this->stopping?'draining':'running');
                 }
-                // spawn() records the run immediately, whereas activeCount is
-                // refreshed on the next reaping turn. Do not let a just-spawned
-                // job be abandoned merely because stop arrived in that gap.
+
+
+
                 if($this->stopping&&!$this->children&&!$this->reapBacklog)break;
                 usleep(200000);
             }while(true);
             $this->beat('stopped');
         }catch(\Throwable $e){
-            // Existing jobs keep their own deadline; no lock reset or replay on DB/controller failure.
+
             $this->log('stopped scheduling: '.$e->getMessage());throw $e;
         }finally{try{$this->db->value('SELECT RELEASE_LOCK(?)',[$this->lock]);}catch(\Throwable $ignored){}}
         $this->log('stopped after draining');
@@ -149,9 +149,9 @@ final class Worker
     {
         $this->activeCount=(int)$this->db->value('SELECT COUNT(*) FROM pre_task_execution WHERE active_task_id IS NOT NULL');
         if($this->activeCount===0){$this->children=[];$this->reapBacklog=false;$this->reapCursor='';return;}
-        // Once the table exceeds one bounded page, do not dispatch at all. The
-        // cursor then reconciles every live cgroup without ever forgetting an
-        // earlier resource while a later page is being inspected.
+
+
+
         $this->reapBacklog=$this->activeCount>16;
         $active=$this->executions->activePage($this->reapBacklog?$this->reapCursor:'',16);
         if(!$active&&$this->reapBacklog){$this->reapCursor='';return;}
@@ -166,8 +166,8 @@ final class Worker
             if($this->executions->reap($run,$unit))unset($this->children[$run['task_id']]);
             $lastProcessed=$run['id'];
         }
-        // A partial turn advances only as far as work actually reconciled.
-        // A full page repeats only after the next empty cursor lookup resets it.
+
+
         $this->reapCursor=$this->reapBacklog&&$lastProcessed!==null?$lastProcessed:'';
     }
 }

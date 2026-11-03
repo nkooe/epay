@@ -1,5 +1,5 @@
 <?php
-/** Native administrator API. Does not accept website cookies or merchant API keys. */
+
 declare(strict_types=1);
 ini_set('display_errors','0');
 date_default_timezone_set('Asia/Shanghai');
@@ -61,7 +61,7 @@ try {
     }
     $api=new \lib\AdminApp\Api($store,$ip);
     $result=$api->handle($method,(string)($_GET['route'] ?? ''),$data,$bearer,(string)($_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? ''));
-    echo json_encode(['code'=>0,'msg'=>'success','data'=>$result,'request_id'=>$requestId],JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE);
+    echo json_encode(['code'=>0,'msg'=>'操作成功','data'=>$result,'request_id'=>$requestId],JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE);
 } catch (\lib\AdminApp\ApiError $e) {
     http_response_code($e->status);echo json_encode(['code'=>-1,'msg'=>$e->getMessage(),'request_id'=>$requestId],JSON_UNESCAPED_UNICODE);
 } catch (Throwable $e) {

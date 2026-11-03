@@ -26,7 +26,7 @@ final class Delivery
         return new self(Runtime::legacyStore($DB), $conf);
     }
 
-    /** Named lock covers signing, gateway I/O and result writes across every sender. */
+
     public function send($trade, $source, $mode = 'manual', $uid = 0)
     {
         if (!in_array($source, ['payment','cron','cron_exhausted','admin','merchant','app'], true)
@@ -48,11 +48,11 @@ final class Delivery
                 return ['skipped'=>true];
             }
             if ($mode === 'initial' && $this->db->value('SELECT COUNT(*) FROM pre_order_notify_attempt WHERE trade_no=?', [$trade])) return ['skipped'=>true];
-            // A previous sender lost its connection after claiming: its delivery cannot be asserted.
+
             $this->db->query("UPDATE pre_order_notify_attempt SET status='unknown',finished_at=?,error_code='interrupted',error_summary='发送进程中断，接收结果未确认' WHERE trade_no=? AND status='sending'", [$now, $trade]);
             $attempt = $this->db->insert('order_notify_attempt', ['trade_no'=>$trade, 'source'=>$source,
                 'status'=>'sending', 'started_at'=>$now]);
-            // Persist a retry intent before any external request, including manual sends.
+
             $this->db->query('UPDATE pre_order SET notify=?,notifytime=? WHERE trade_no=?',
                 [max(1, (int)$order['notify']), date('Y-m-d H:i:s', time()+60), $trade]);
             $url = ($this->sign)($order);

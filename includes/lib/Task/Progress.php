@@ -1,7 +1,7 @@
 <?php
 namespace lib\Task;
 
-/** Only the actual scheduler may acknowledge a completed scheduling turn. */
+
 final class Progress
 {
     private $stream;

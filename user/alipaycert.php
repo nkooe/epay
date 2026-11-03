@@ -1,7 +1,7 @@
 <?php
 include("../includes/common.php");
-$uid = isset($_GET['uid'])?intval($_GET['uid']):exit('param is error');
-$certify_id = isset($_GET['certtoken'])?$_GET['certtoken']:exit('param is error');
+$uid = isset($_GET['uid'])?intval($_GET['uid']):exit('参数不正确');
+$certify_id = isset($_GET['certtoken'])?$_GET['certtoken']:exit('参数不正确');
 
 $userrow=$DB->getRow("SELECT * FROM pre_user WHERE uid='{$uid}' limit 1");
 if(!$userrow)sysmsg('uid不存在');

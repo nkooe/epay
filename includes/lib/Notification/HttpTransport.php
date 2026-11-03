@@ -1,7 +1,7 @@
 <?php
 namespace lib\Notification;
 
-/** Only the fixed acknowledgement is persisted; signed URLs and response bodies stay out of logs. */
+
 final class HttpTransport
 {
     public function send($url, array $config)

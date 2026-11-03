@@ -3,7 +3,7 @@ namespace lib\Task;
 
 use lib\AdminApp\Store;
 
-/** Coordinates desired configuration; systemd alone retries crashed processes. */
+
 final class ServiceSupervisor
 {
     private $db;private $registry;private $ctl;private $limit;private $pendingCursor='';private $attentionCursor='';
@@ -31,8 +31,8 @@ final class ServiceSupervisor
     {
         $deadline=hrtime(true)+4000000000;
         $reserved="(token IS NOT NULL OR observed IN ('starting','waiting','running','draining','backoff'))";
-        // Live services are checked every turn; idle/pending services use a
-        // separate keyset page so a large stopped catalog cannot starve them.
+
+
         $rows=$this->db->all('SELECT * FROM pre_plugin_service WHERE '.$reserved.' ORDER BY id LIMIT 33');
         if(count($rows)>32)throw new \RuntimeException('活动插件实例超过安全上限，停止调度并核查');
         $liveCount=count($rows);
@@ -57,7 +57,7 @@ final class ServiceSupervisor
             $op=$this->db->row("SELECT * FROM pre_service_operation WHERE service_id=? AND state IN ('pending','starting') ORDER BY created_at,id LIMIT 1",[$row['id']]);
             if($draining){
                 if($live&&$row['observed']!=='attention')$this->db->query("UPDATE pre_plugin_service SET observed='draining' WHERE id=?",[$row['id']]);
-                continue; // Runner sees the worker's draining heartbeat and closes cooperatively.
+                continue;
             }
             try{
                 if($op&&$op['state']==='pending'){
@@ -77,7 +77,7 @@ final class ServiceSupervisor
                         $message='插件服务并发已达上限 '.$this->limit.'，请先停止其他插件，或通过安装器 --service-limit 调整容量后重试';
                         if ($op['message']==='随通道配置自动接管') {
                             if ($row['last_error']!==$message) $this->db->query('UPDATE pre_plugin_service SET last_error=? WHERE id=?',[$message,$row['id']]);
-                            continue; // Keep one durable request while waiting for capacity.
+                            continue;
                         }
                         $this->db->query('UPDATE pre_plugin_service SET desired=0,last_error=? WHERE id=?',[$message,$row['id']]);
                         $this->operation($op,'failed',$message);continue;
@@ -91,8 +91,8 @@ final class ServiceSupervisor
                 if(!(int)$row['desired']||$row['observed']==='attention'){
                     if($live&&$row['observed']!=='draining'){
                         if($row['observed']!=='attention')$this->db->query("UPDATE pre_plugin_service SET observed='draining' WHERE id=?",[$row['id']]);
-                        // Keep attention visible while forcefully converging a
-                        // stale cgroup to its disabled desired state.
+
+
                         $this->ctl->instance('plugin','stop',ServiceRegistry::instance($row));
                     }
                     if(!$live)$this->db->query("UPDATE pre_plugin_service SET observed=CASE WHEN observed='attention' THEN observed ELSE 'stopped' END,token=NULL WHERE id=?",[$row['id']]);
@@ -101,7 +101,7 @@ final class ServiceSupervisor
                 $item=$this->registry->resolve($row);
                 if($unit['active_state']==='failed')throw new ServiceFault('服务启动限流或异常退出，请查看日志后应用配置恢复');
                 if(!$live){
-                    // An initial dispatch may not have reached systemd yet. Never create a second generation immediately.
+
                     if($row['observed']==='starting'&&strtotime($row['started_at'])>time()-15)continue;
                     if(in_array($row['observed'],['waiting','running','starting'],true))throw new ServiceFault('服务进程已退出且未恢复，请核查日志');
                     if($liveCount<$this->limit){$this->launch($row);$liveCount++;}

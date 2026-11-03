@@ -1,7 +1,7 @@
 <?php
 namespace lib\AdminApp;
 
-/** Explicit business actions. Local money/state/ledger changes share one transaction. */
+
 final class Operations
 {
     private $db;private $conf;private $ip;private $request;private $activeObject=null;
@@ -67,7 +67,7 @@ final class Operations
         $action=(string)($data['action'] ?? '');$s=self::definitions()[$action] ?? null;if(!$s)throw new ApiError('操作不存在',404);
         $management=new Management($this->db,$this->ip);$fields=[];
         foreach($s['fields'] as $f){if(isset($f['reference'])&&$f['type']==='select')$f['options']=$management->options($f['reference']);$f['value']=!empty($f['secret'])?'':(string)($data[$f['key']] ?? $f['default']);$fields[]=$f;}
-        // Always show current financial context before confirmation.
+
         $context=[];
         if(!empty($data['trade_no']))$context=$this->db->row('SELECT trade_no,uid,name,realmoney,getmoney,refundmoney,status FROM pre_order WHERE trade_no=?',[$data['trade_no']]) ?: [];
         if(!empty($data['id'])&&strpos($action,'settle-')===0)$context=$this->db->row('SELECT id,uid,account,username,money,realmoney,status FROM pre_settle WHERE id=?',[$data['id']]) ?: [];
@@ -96,7 +96,7 @@ final class Operations
         if($this->activeObject===$object)return;
         if($this->db->row("SELECT id FROM pre_app_operation WHERE id=? AND state='pending'",[$object]))throw new ApiError('此业务有渠道操作结果待核实，请先核对渠道与操作记录，勿重复提交',409);
     }
-    /** A durable object guard survives unknown gateway responses and different request keys. */
+
     private function external($object,$reference,$call,array $detail=[])
     {
         Runtime::boot($this->db,$this->conf);
@@ -173,7 +173,7 @@ final class Operations
         if(strpos($action,'sharing-')===0||strpos($action,'receiver-')===0)return $this->sharing($action,$v);
         if($action==='transfer-balance'){Runtime::boot($this->db,$this->conf);$this->channel($v['channel'],$v['type']);$c=\lib\Channel::get($v['channel']);Runtime::prepare($c,'balance_query');return $this->gatewayResult(\lib\Transfer::balance($v['type'],$c));}
         if($action==='close'&&$this->closed($v['trade_no']))throw new ApiError('此订单已登记渠道关单，请勿重复提交');
-        if($action==='close')return $this->external('order:'.$v['trade_no'],$v['trade_no'],function(&$sent)use($v){return $this->transaction(function()use($v,&$sent){$o=$this->row('order','trade_no',$v['trade_no']);if((int)$o['status']!==0)throw new ApiError('只能关闭未付订单');$c=Runtime::orderChannel($this->db,$o);$method=empty($o['combine'])?'close':'close_combine';Runtime::prepare($c,$method);$sent=true;$r=Runtime::orderCall($c,$method,$o);if((int)($r['code'] ?? -1)!==0)throw new \RuntimeException('close unconfirmed');// status=4 belongs to preauthorization; channel closure is recorded in the durable operation guard.
+        if($action==='close')return $this->external('order:'.$v['trade_no'],$v['trade_no'],function(&$sent)use($v){return $this->transaction(function()use($v,&$sent){$o=$this->row('order','trade_no',$v['trade_no']);if((int)$o['status']!==0)throw new ApiError('只能关闭未付订单');$c=Runtime::orderChannel($this->db,$o);$method=empty($o['combine'])?'close':'close_combine';Runtime::prepare($c,$method);$sent=true;$r=Runtime::orderCall($c,$method,$o);if((int)($r['code'] ?? -1)!==0)throw new \RuntimeException('关闭订单结果尚未确认');
 $this->markClosed($v['trade_no']);$this->db->audit('关闭订单',$this->ip,['trade_no'=>$v['trade_no']]);return ['message'=>'订单已关闭'];});},['action'=>'close']);
         if(strpos($action,'settle-')===0)return $this->settlement($action,$v);
         if($action==='batch-create')return $this->transaction(function(){
@@ -183,7 +183,7 @@ $this->markClosed($v['trade_no']);$this->db->audit('关闭订单',$this->ip,['tr
         if(in_array($action,['transfer-query','transfer-cancel','transfer-proof'],true))return $this->transferAction($action,$v);
         throw new ApiError('操作未实现',422);
     }
-    /** Website/API callers share the same guarded state transition as the native administrator. */
+
     public function refundOrder($reference, $trade, $amount, $api, $uid, $outReference)
     {
         $owner=$this->db->row('SELECT uid FROM pre_order WHERE trade_no=?',[$trade]);
@@ -222,7 +222,7 @@ $this->markClosed($v['trade_no']);$this->db->audit('关闭订单',$this->ip,['tr
             if(!empty($v['expected_uid']) && bccomp($debit,(string)$account['money'],2)>0) throw new ApiError('商户余额不足，请先充值');
             if($v['mode']==='api'&&!$reconciled){
                 if(empty($o['api_trade_no']))throw new ApiError('缺少渠道订单号，无法原路退款');$c=Runtime::orderChannel($this->db,$o);$method=empty($o['combine'])?'refund':'refund_combine';Runtime::prepare($c,$method);$gateway=$o;$gateway['refund_no']=$ref;$gateway['refundmoney']=$v['money'];$sent=true;
-                $r=Runtime::orderCall($c,$method,$gateway);if((int)($r['code'] ?? -1)!==0)throw new \RuntimeException('refund unconfirmed');
+                $r=Runtime::orderCall($c,$method,$gateway);if((int)($r['code'] ?? -1)!==0)throw new \RuntimeException('退款结果尚未确认');
             }
             $this->ledger($uid,$debit,false,'订单退款',$v['trade_no']);
             if($direct&&($this->conf['refund_fee_type'] ?? '0')!=='1'&&bccomp($next,$paid,2)===0){$fee=$this->db->row("SELECT money FROM pre_record WHERE trade_no=? AND type IN ('订单服务费','在线收款服务费') ORDER BY id LIMIT 1",[$v['trade_no']]);if($fee)$this->ledger($uid,(string)$fee['money'],true,'服务费退款',$v['trade_no']);}
@@ -248,7 +248,7 @@ $this->markClosed($v['trade_no']);$this->db->audit('关闭订单',$this->ip,['tr
             else{$r=$this->row('psorder','id',$v['id']);$rule=$this->row('psreceiver','id',$r['rid']);$o=$this->row('order','trade_no',$r['trade_no']);$o['channel']=$rule['channel'];}
             $c=Runtime::orderChannel($this->db,$o);$model=\lib\ProfitSharing\CommUtil::getModel($c);if(!$model)throw new ApiError('此通道不支持分账');
             $info=json_decode($rule['info'] ?? '',true) ?: [['account'=>$rule['account'],'name'=>$rule['name'],'rate'=>$rule['rate']]];
-            if($receiver){$next=$action==='receiver-enable'?1:0;if((int)$rule['status']===$next)throw new ApiError('规则已处于此状态');foreach($info as $item){$sent=true;$out=$next?$model->addReceiver($item['account'],$item['name']):$model->deleteReceiver($item['account'],$item['name']);if((int)($out['code'] ?? -1)!==0)throw new \RuntimeException('receiver sync unconfirmed');}$this->db->update('psreceiver',['status'=>$next],'id',$v['id']);}
+            if($receiver){$next=$action==='receiver-enable'?1:0;if((int)$rule['status']===$next)throw new ApiError('规则已处于此状态');foreach($info as $item){$sent=true;$out=$next?$model->addReceiver($item['account'],$item['name']):$model->deleteReceiver($item['account'],$item['name']);if((int)($out['code'] ?? -1)!==0)throw new \RuntimeException('分账接收方同步结果尚未确认');}$this->db->update('psreceiver',['status'=>$next],'id',$v['id']);}
             else{
                 $trade=$r['sub_trade_no'] ?: $r['trade_no'];$status=(int)$r['status'];
                 if($action==='sharing-edit-money'){$this->noPending($object);if($status!==0)throw new ApiError('只有待分账记录可修改金额');if(bccomp($v['money'],(string)$o['realmoney'],2)>0)throw new ApiError('分账金额超过订单实付');$this->db->update('psorder',['money'=>$v['money']],'id',$v['id']);}
@@ -263,8 +263,8 @@ $this->markClosed($v['trade_no']);$this->db->audit('关闭订单',$this->ip,['tr
                     if($u){$this->db->update('psorder',$u,'id',$v['id']);if(($detail['action'] ?? '')==='sharing-submit')$this->db->update('app_operation',['state'=>'done'],'id',$object);}return ['message'=>'分账结果已刷新','status'=>$u['status'] ?? $status];
                 }else{
                     if($action==='sharing-cancel'){
-                        if(!in_array($status,[0,3],true))throw new ApiError('请先查询已提交分账的最终结果');$sent=true;$out=$model->unfreeeze($trade,$r['api_trade_no']);if((int)($out['code'] ?? -1)!==0)throw new \RuntimeException('sharing cancel unconfirmed');$u=['status'=>4];
-                    }else{if($status!==2)throw new ApiError('只有成功分账可回退');$sent=true;$out=$model->return($trade,$r['api_trade_no'],$r['settle_no'],json_decode($r['rdata'] ?? '',true) ?: []);if((int)($out['code'] ?? -1)!==0)throw new \RuntimeException('sharing return unconfirmed');$u=['status'=>4];}
+                        if(!in_array($status,[0,3],true))throw new ApiError('请先查询已提交分账的最终结果');$sent=true;$out=$model->unfreeeze($trade,$r['api_trade_no']);if((int)($out['code'] ?? -1)!==0)throw new \RuntimeException('取消分账结果尚未确认');$u=['status'=>4];
+                    }else{if($status!==2)throw new ApiError('只有成功分账可回退');$sent=true;$out=$model->return($trade,$r['api_trade_no'],$r['settle_no'],json_decode($r['rdata'] ?? '',true) ?: []);if((int)($out['code'] ?? -1)!==0)throw new \RuntimeException('分账退回结果尚未确认');$u=['status'=>4];}
                     $this->db->update('psorder',$u,'id',$v['id']);
                 }
             }
@@ -282,11 +282,11 @@ $this->markClosed($v['trade_no']);$this->db->audit('关闭订单',$this->ip,['tr
                 $c=Runtime::orderChannel($this->db,$o);$model=\lib\ProfitSharing\CommUtil::getModel($c);if(!$model)throw new ApiError('此通道不支持分账');
                 $trade=$r['sub_trade_no'] ?: $r['trade_no'];$amount=$r['sub_trade_no']?$this->db->value('SELECT money FROM pre_suborder WHERE sub_trade_no=?',[$trade]):$o['realmoney'];if(!$amount||bccomp((string)$r['money'],'0',2)<=0)throw new ApiError('订单或分账金额无效');
                 $info=json_decode($rule['info'] ?? '',true) ?: [['account'=>$rule['account'],'name'=>$rule['name'],'rate'=>$rule['rate']]];
-                // This claim must commit before I/O. A timeout must never restore status=0.
+
                 $this->db->update('psorder',['status'=>1,'result'=>'渠道结果待查询'],'id',$r['id']);return [$r,$rule,$c,$model,$trade,$amount,$info];
             });
             [$r,$rule,$c,$model,$trade,$amount,$info]=$prepared;$sent=true;$out=$model->submit($trade,$r['api_trade_no'],$amount,$info);
-            if(!in_array((int)($out['code'] ?? -1),[0,1],true))throw new \RuntimeException('sharing unconfirmed');
+            if(!in_array((int)($out['code'] ?? -1),[0,1],true))throw new \RuntimeException('分账结果尚未确认');
             return $this->transaction(function()use($v,$out,$rule,$c,$r){
                 $current=$this->row('psorder','id',$v['id']);$u=['settle_no'=>$out['settle_no'] ?? null];
                 if(isset($out['rdata'])){$u['money']=$out['money'];$u['rdata']=json_encode($out['rdata'],JSON_UNESCAPED_UNICODE);}
@@ -329,7 +329,7 @@ $this->markClosed($v['trade_no']);$this->db->audit('关闭订单',$this->ip,['tr
         $ref=date('YmdHis').random_int(10000,99999);
         return $this->external('settle:'.$v['id'],$ref,function(&$sent)use($v,$ref){
             $prepared=$this->transaction(function()use($v,$ref){$r=$this->row('settle','id',$v['id']);if((int)$r['status']===1||$r['transfer_no'])throw new ApiError('已有付款记录，不能重复出款');$type=[1=>'alipay',2=>'wxpay',3=>'qqpay',4=>'bank'][(int)$r['type']] ?? '';if(!$type)throw new ApiError('结算方式不支持');$this->channel($v['channel'],$type);$c=\lib\Channel::get($v['channel']);Runtime::prepare($c,'transfer');$this->db->update('settle',['transfer_no'=>$ref,'transfer_channel'=>$v['channel'],'transfer_status'=>0,'result'=>'渠道结果待查询'],'id',$r['id']);return [$r,$type,$c];});
-            [$r,$type,$c]=$prepared;$sent=true;$out=\lib\Transfer::submit($type,$c,$ref,$r['account'],$r['username'],$r['realmoney'],null,null);if((int)($out['code'] ?? -1)!==0)throw new \RuntimeException('settlement unconfirmed');
+            [$r,$type,$c]=$prepared;$sent=true;$out=\lib\Transfer::submit($type,$c,$ref,$r['account'],$r['username'],$r['realmoney'],null,null);if((int)($out['code'] ?? -1)!==0)throw new \RuntimeException('结算结果尚未确认');
             return $this->transaction(function()use($v,$out){$r=$this->row('settle','id',$v['id']);$this->settleResult($r,$out);$this->db->audit('结算转账',$this->ip,['id'=>$r['id'],'reference'=>$r['transfer_no']]);return ['message'=>'转账已提交，请查询渠道最终结果','status'=>$out['status'] ?? 0,'biz_no'=>$r['transfer_no']];});
         },['action'=>'settle-pay']);
     }
@@ -347,7 +347,7 @@ $this->markClosed($v['trade_no']);$this->db->audit('关闭订单',$this->ip,['tr
         return $this->external('transfer:'.$biz,$biz,function(&$sent)use($action,$v,$c,$biz){
             $this->transaction(function()use($action,$v,$biz){$this->db->insert('transfer',['biz_no'=>$biz,'out_biz_no'=>$biz,'uid'=>0,'type'=>$v['type'],'channel'=>$v['channel'],'account'=>$v['account'] ?? '','username'=>$v['name'] ?? '','money'=>$v['money'],'costmoney'=>$v['money'],'addtime'=>date('Y-m-d H:i:s'),'status'=>$action==='redpacket'?4:0,'desc'=>$v['desc']]);});
             if($action==='redpacket')return ['message'=>'红包已创建','biz_no'=>$biz,'url'=>\lib\Transfer::red_url($biz),'status'=>4];
-            $sent=true;$out=\lib\Transfer::submit($v['type'],$c,$biz,$v['account'],$v['name'],$v['money'],null,$v['desc']);if((int)($out['code'] ?? -1)!==0)throw new \RuntimeException('transfer unconfirmed');
+            $sent=true;$out=\lib\Transfer::submit($v['type'],$c,$biz,$v['account'],$v['name'],$v['money'],null,$v['desc']);if((int)($out['code'] ?? -1)!==0)throw new \RuntimeException('转账结果尚未确认');
             $this->transaction(function()use($biz,$out){$r=$this->row('transfer','biz_no',$biz);$this->transferResult($r,$out);$this->db->audit('新增付款',$this->ip,['biz_no'=>$biz]);});return ['message'=>'付款已提交，请查询最终结果','biz_no'=>$biz,'status'=>$out['status'] ?? 0];
         },['action'=>$action]);
     }
@@ -375,7 +375,7 @@ $this->markClosed($v['trade_no']);$this->db->audit('关闭订单',$this->ip,['tr
             return $this->transaction(function()use($v,$out){$r=$this->row('transfer','biz_no',$v['biz_no']);$this->transferResult($r,$out);if(in_array((int)($out['status'] ?? -1),[1,2],true))$this->db->update('app_operation',['state'=>'done'],'id','transfer:'.$v['biz_no']);return ['message'=>'付款结果已刷新','status'=>$out['status'] ?? 0];});
         }
         return $this->external('transfer:'.$v['biz_no'],$v['biz_no'],function(&$sent)use($v){return $this->transaction(function()use($v,&$sent){$r=$this->row('transfer','biz_no',$v['biz_no']);if(in_array((int)$r['status'],[1,2],true))throw new ApiError('已结束付款不能撤销');
-            if((int)$r['status']===4)$out=['code'=>0,'status'=>2];else{$c=\lib\Channel::get($r['channel'],$r['uid']?$this->db->value('SELECT channelinfo FROM pre_user WHERE uid=?',[$r['uid']]):null);if(!$c)throw new ApiError('通道不存在');Runtime::prepare($c,'transfer_cancel');$sent=true;$out=\lib\Plugin::call('transfer_cancel',$c,['type'=>$r['type'],'out_biz_no'=>$r['biz_no'],'orderid'=>$r['pay_order_no']]);if((int)($out['code'] ?? -1)!==0)throw new \RuntimeException('cancel unconfirmed');$out['status']=2;}
+            if((int)$r['status']===4)$out=['code'=>0,'status'=>2];else{$c=\lib\Channel::get($r['channel'],$r['uid']?$this->db->value('SELECT channelinfo FROM pre_user WHERE uid=?',[$r['uid']]):null);if(!$c)throw new ApiError('通道不存在');Runtime::prepare($c,'transfer_cancel');$sent=true;$out=\lib\Plugin::call('transfer_cancel',$c,['type'=>$r['type'],'out_biz_no'=>$r['biz_no'],'orderid'=>$r['pay_order_no']]);if((int)($out['code'] ?? -1)!==0)throw new \RuntimeException('撤销结果尚未确认');$out['status']=2;}
             $this->transferResult($r,$out);$this->db->audit('撤销付款',$this->ip,['biz_no'=>$r['biz_no']]);return ['message'=>'付款已撤销'];});},['action'=>'transfer-cancel']);
     }
     private function reconcile(array $v)
@@ -392,7 +392,7 @@ $this->markClosed($v['trade_no']);$this->db->audit('关闭订单',$this->ip,['tr
                 if($success&&(int)$o['status']!==1)throw new ApiError('尚未确认平台入账完成。请先由后台核对渠道、商户余额及业务流水并修复，再登记成功；此入口不会重复入账');
                 if(!$success&&(int)$o['status']!==($action==='manual-fill'?0:4))throw new ApiError('订单状态已改变，不能登记未成功');
             }
-            // Guard transition and ledger changes commit together. No gateway call is replayed.
+
             $this->db->update('app_operation',['state'=>$success?'done':'rejected'],'id',$guard['id']);
             if($success){
                 if($action==='close'){if((int)$o['status']!==0)throw new ApiError('订单状态已改变，请先核对');$this->markClosed($v['trade_no']);}
@@ -425,7 +425,7 @@ $this->markClosed($v['trade_no']);$this->db->audit('关闭订单',$this->ip,['tr
     }
     private function orderAction($action,array $v)
     {
-        // The persistent guard spans legacy business logic, which owns its own transactions.
+
         $ref=date('YmdHis').random_int(10000,99999);
         return $this->external('order:'.$v['trade_no'],$ref,function(&$sent)use($action,$v,$ref){
             $o=$this->db->row('SELECT A.*,B.name typename,B.showname typeshowname FROM pre_order A LEFT JOIN pre_type B ON A.type=B.id WHERE A.trade_no=?',[$v['trade_no']]);
@@ -436,7 +436,7 @@ $this->markClosed($v['trade_no']);$this->db->audit('关闭订单',$this->ip,['tr
                 if((int)$o['status']!==0)throw new ApiError('只有未支付订单可补单');
                 $GLOBALS['channel']=$c;$sent=true;
                 \lib\Payment::processOrder(true,$o,$o['api_trade_no']);
-                if((int)$this->db->value('SELECT status FROM pre_order WHERE trade_no=?',[$v['trade_no']])!==1)throw new \RuntimeException('completion not confirmed');
+                if((int)$this->db->value('SELECT status FROM pre_order WHERE trade_no=?',[$v['trade_no']])!==1)throw new \RuntimeException('操作完成结果尚未确认');
             }elseif($action==='order-settle'){
                 if((int)$o['status']!==1||!in_array((int)$o['settle'],[1,3],true)||!in_array($c['plugin'],['alipayd','wxpaynp'],true))throw new ApiError('此订单不支持确认结算');
                 $sent=true;if($c['plugin']==='alipayd')\lib\Payment::alipaydSettle($c,$o);else \lib\Payment::wxpaynpSettle($c,$o);
@@ -453,7 +453,7 @@ $this->markClosed($v['trade_no']);$this->db->audit('关闭订单',$this->ip,['tr
                     $this->db->query('UPDATE pre_order SET status=0 WHERE trade_no=? AND status=4',[$v['trade_no']]);
                 }else{
                     $out=\lib\Payment::alipayPreAuthPay($c,$o,$o['realmoney']);
-                    if(empty($out['trade_no'])||!isset($out['total_amount'])||bccomp((string)$out['total_amount'],(string)$o['realmoney'],2)!==0)throw new \RuntimeException('preauth amount mismatch');
+                    if(empty($out['trade_no'])||!isset($out['total_amount'])||bccomp((string)$out['total_amount'],(string)$o['realmoney'],2)!==0)throw new \RuntimeException('预授权金额不一致');
                     $GLOBALS['channel']=$c;\lib\Payment::processOrder(true,$o,$out['trade_no'],$out['buyer_user_id'] ?? null);
                 }
             }
@@ -471,7 +471,7 @@ $this->markClosed($v['trade_no']);$this->db->audit('关闭订单',$this->ip,['tr
         });
         return $this->external('transfer:'.$v['biz_no'],$v['biz_no'],function(&$sent)use($v){
             $r=$this->transaction(function()use($v){$r=$this->row('transfer','biz_no',$v['biz_no']);if((int)$r['status']!==3)throw new ApiError('只有待审核付款可提交');$this->channel($r['channel'],$r['type']);$c=\lib\Channel::get($r['channel'],$r['uid']?$this->db->value('SELECT channelinfo FROM pre_user WHERE uid=?',[$r['uid']]):null);Runtime::prepare($c,'transfer');$this->db->update('transfer',['status'=>0],'biz_no',$r['biz_no']);return [$r,$c];});
-            [$row,$c]=$r;$sent=true;$out=\lib\Transfer::submit($row['type'],$c,$row['biz_no'],$row['account'],$row['username'],$row['money'],null,$row['desc']);if((int)($out['code'] ?? -1)!==0)throw new \RuntimeException('transfer review unconfirmed');
+            [$row,$c]=$r;$sent=true;$out=\lib\Transfer::submit($row['type'],$c,$row['biz_no'],$row['account'],$row['username'],$row['money'],null,$row['desc']);if((int)($out['code'] ?? -1)!==0)throw new \RuntimeException('付款审核结果尚未确认');
             $this->transaction(function()use($row,$out){$r=$this->row('transfer','biz_no',$row['biz_no']);$this->transferResult($r,$out);});$this->db->audit('审核付款',$this->ip,['biz_no'=>$row['biz_no']]);return ['message'=>'审核付款已提交，请查询最终结果','biz_no'=>$row['biz_no']];
         },['action'=>'transfer-approve']);
     }

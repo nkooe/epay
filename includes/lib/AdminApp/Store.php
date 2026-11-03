@@ -7,7 +7,7 @@ final class ApiError extends \RuntimeException
     public function __construct($message, $status = 400, $code = -1) { parent::__construct($message, $code); $this->status = $status; }
 }
 
-/** Small PDO adapter shared by the HTTP entry point, installer and integration tests. */
+
 final class Store
 {
     public $pdo;
@@ -48,6 +48,16 @@ final class Store
     {
         try { foreach(['app_session','app_challenge','app_limit','app_request','app_operation','app_notification'] as $table)$this->query('SELECT id FROM pre_'.$table.' WHERE 1=0');$this->query('SELECT detail FROM pre_app_operation WHERE 1=0');$this->query('SELECT device_id FROM pre_app_notification_device WHERE 1=0'); return true; } catch (\PDOException $e) { return false; }
     }
+    /** 清理已过期的应用数据，未确认的资金操作请求继续保留。 */
+    public function cleanup($now=null)
+    {
+        $now=$now??time();$deleted=0;
+        foreach(['app_challenge','app_limit','app_session'] as $table)$deleted+=$this->query('DELETE FROM pre_'.$table.' WHERE expires<?',[$now-86400])->rowCount();
+        $deleted+=$this->query('DELETE FROM pre_app_request WHERE created<? AND response IS NOT NULL',[$now-90*86400])->rowCount();
+        $this->query('UPDATE pre_app_notification_device SET enabled=0 WHERE enabled=1 AND last_seen<?',[$now-30*86400]);
+        $deleted+=$this->query('DELETE FROM pre_app_notification WHERE created<?',[$now-90*86400])->rowCount();
+        return $deleted;
+    }
     public static function auditType($type)
     {
         $type=(string)$type;
@@ -74,24 +84,15 @@ final class Store
             'order-reconcile'=>'核实渠道结果','operation-reconcile'=>'登记渠道核实结果',
             'payment-password'=>'设置支付密码','读取监控商户密钥'=>'读取监控商户密钥','星译付共享登录态同步'=>'星译付会话同步','清除收款单手填SID'=>'清除收款单SID'
         ];
-        // Older versions truncated these mixed-language action names in log.type.
-        if(strpos($action,'订单状态修改:')===0){
-            $action=substr($action,strlen('订单状态修改:'));
-            return '原生'.($labels[$action] ?? '订单状态修改');
-        }
-        if(strlen($action)===16&&!isset($labels[$action])){
-            $matches=[];
-            foreach($labels as $key=>$label)if(substr($key,0,16)===$action)$matches[]=$label;
-            if(count($matches)===1)return '原生'.$matches[0];
-        }
+
         return '原生'.($labels[$action] ?? $action);
     }
     public function audit($action, $ip, array $data = [])
     {
-        // Do not pass passwords, credentials, tokens or channel config into this method.
+
         $type=self::auditType('App:'.$action);
         if($type!=='原生'.$action)$data['_action']=$action;
-        // The existing payment system's log.type is VARCHAR(20).
+
         if(mb_strlen($type)>20){$data['_action']=$action;$type=mb_substr($type,0,20);}
         $this->insert('log', ['uid'=>0, 'type'=>$type, 'date'=>date('Y-m-d H:i:s'), 'ip'=>$ip, 'data'=>json_encode($data, JSON_UNESCAPED_UNICODE)]);
     }

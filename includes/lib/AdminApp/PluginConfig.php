@@ -29,7 +29,7 @@ final class PluginConfig
     }
     public static function collect(array $channel,callable $call)
     {
-        if(self::$context!==null)throw new \LogicException('Nested native plugin invocation');
+        if(self::$context!==null)throw new \LogicException('不允许嵌套调用插件');
         self::$context=['plugin'=>$channel['plugin'],'id'=>(int)$channel['id'],'updates'=>[]];
         try{$result=$call();return [$result,self::$context['updates']];}finally{self::$context=null;}
     }

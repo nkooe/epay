@@ -56,8 +56,8 @@ if(!defined('IN_PLUGIN'))exit();
 				if(res.err_msg == "get_brand_wcpay_request:ok" ) {
 					loadmsg();
 				}
-				//WeixinJSBridge.log(res.err_msg);
-				//alert(res.err_code+res.err_desc+res.err_msg);
+
+
 			}
 		);
 	}

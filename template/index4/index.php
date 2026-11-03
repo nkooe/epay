@@ -74,7 +74,7 @@ if(!defined('IN_CRONLITE'))exit();
     </div>
   </nav>
   <div class="main-content">
-    <!-- Header -->
+
     <div class="header bg-primary pt-5 pb-7">
       <div class="container">
         <div class="header-body">
@@ -313,21 +313,21 @@ if(!defined('IN_CRONLITE'))exit();
         <div class="blur--hover">
           <a href="#">
             <div class="icons-container blur-item mt-5">
-              <!-- Center -->
+
               <i class="icon ni ni-diamond"></i>
-              <!-- Right 1 -->
+
               <i class="icon icon-sm ni ni-album-2"></i>
               <i class="icon icon-sm ni ni-app"></i>
               <i class="icon icon-sm ni ni-atom"></i>
-              <!-- Right 2 -->
+
               <i class="icon ni ni-cart"></i>
               <i class="icon ni ni-bell-55"></i>
               <i class="icon ni ni-credit-card"></i>
-              <!-- Left 1 -->
+
               <i class="icon icon-sm ni ni-briefcase-24"></i>
               <i class="icon icon-sm ni ni-building"></i>
               <i class="icon icon-sm ni ni-button-play"></i>
-              <!-- Left 2 -->
+
               <i class="icon ni ni-calendar-grid-58"></i>
               <i class="icon ni ni-camera-compact"></i>
               <i class="icon ni ni-chart-bar-32"></i>
@@ -338,7 +338,7 @@ if(!defined('IN_CRONLITE'))exit();
       </div>
     </section>
   </div>
-  <!-- Footer -->
+
   <footer class="py-5" id="footer-main">
     <div class="container">
       <div class="row align-items-center justify-content-xl-between">

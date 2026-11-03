@@ -678,7 +678,7 @@ function processOrderAccounting(&$srow){
 				return;
 			}
 		}
-		// Commit the delivery intent together with the paid status and merchant ledger.
+
 		$DB->exec("UPDATE pre_order SET notify=1,notifytime=date_add(now(), interval 1 minute) WHERE trade_no=:trade_no", [':trade_no'=>$srow['trade_no']]);
 	}
 	if($srow['tid']==0 || $srow['tid']==3){
@@ -764,7 +764,7 @@ function sendOrderReceipt(array $srow){
 	\lib\MsgNotice::send('order', $srow['uid'], ['trade_no'=>$srow['trade_no'], 'out_trade_no'=>$srow['out_trade_no'], 'name'=>$srow['name'], 'money'=>$srow['money'], 'type'=>$srow['typeshowname'], 'time'=>date('Y-m-d H:i:s'), 'tid'=>$srow['tid'], 'remark'=>$srow['param']]);
 }
 
-/** Network effects never hold the accounting transaction open. */
+
 function processOrderAfterCommit(array $srow){
 	global $conf;
 	if(!empty($srow['black'])){
@@ -849,10 +849,10 @@ function processProfitSharing($trade_no, $status, $errmsg = null, $settle_no = n
 
 function ordername_replace($name,$oldname,$uid,$order,$outorder=null){
 	global $DB;
-	/*if(strpos($name, '|')){
-		$names = explode('|', $name);
-		$name = $names[array_rand($names)];
-	}*/
+
+
+
+
 	if(strpos($name,'[name]')!==false){
 		$name = str_replace('[name]', $oldname, $name);
 	}

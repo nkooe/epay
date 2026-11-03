@@ -1,7 +1,7 @@
 <?php
 namespace lib\Complaint;
 
-/** HTTPS transport for complaint APIs only; payment plugin transports are untouched. */
+
 final class Transport
 {
     public static function request($method, $url, array $headers, $body = null)

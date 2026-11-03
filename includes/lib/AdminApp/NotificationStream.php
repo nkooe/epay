@@ -1,7 +1,7 @@
 <?php
 namespace lib\AdminApp;
 
-/** Bounded SSE connection for the administrator's explicitly enabled device. */
+
 final class NotificationStream
 {
     private $db;
@@ -45,7 +45,7 @@ final class NotificationStream
     }
     public function run(callable $emit, callable $connected, $seconds=25, callable $pause=null)
     {
-        if($this->device===null)throw new \LogicException('Open the stream first');
+        if($this->device===null)throw new \LogicException('请先建立事件连接');
         $pause=$pause ?: function(){usleep(1000000);};
         $start=microtime(true);$heartbeat=0;$authCheck=$start;
         try{

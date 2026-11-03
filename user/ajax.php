@@ -27,7 +27,7 @@ case 'testpay':
 	$money=trim($_POST['money']);
 	$typeid=intval($_POST['typeid']);
 	$name = '支付测试';
-	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"CSRF TOKEN ERROR"}');
+	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"页面校验失败，请刷新重试"}');
 	if($money<=0 || !is_numeric($money) || !preg_match('/^[0-9.]+$/', $money))exit('{"code":-1,"msg":"金额不合法"}');
 	if($conf['pay_maxmoney']>0 && $money>$conf['pay_maxmoney'])exit('{"code":-1,"msg":"最大支付金额是'.$conf['pay_maxmoney'].'元"}');
 	if($conf['pay_minmoney']>0 && $money<$conf['pay_minmoney'])exit('{"code":-1,"msg":"最小支付金额是'.$conf['pay_minmoney'].'元"}');
@@ -49,7 +49,7 @@ case 'login':
 	$pass=trim($_POST['pass']);
 	$enc_type = isset($_POST['enc']) ? $_POST['enc'] : '0';
 	if(empty($user) || empty($pass))exit('{"code":-1,"msg":"请确保各项不能为空"}');
-	//if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"CSRF TOKEN ERROR"}');
+
 
 	if($conf['captcha_open_login']==1){
 		if(!isset($_SESSION['gtserver']))exit('{"code":-1,"msg":"验证加载失败"}');
@@ -236,7 +236,7 @@ case 'sendcode':
 	$result = \lib\VerifyCode::send_code('reg', $type, $sendto);
 	if($result === true){
 		$_SESSION['send_code_time']=time();
-		exit('{"code":0,"msg":"succ"}');
+		exit('{"code":0,"msg":"操作成功"}');
 	}else{
 		exit(json_encode(['code'=>-1, 'msg'=>$result]));
 	}
@@ -256,7 +256,7 @@ case 'reg':
 	if($conf['verifytype']==1 && empty($phone) || $conf['verifytype']==0 && empty($email) || empty($code) || empty($pwd)){
 		exit('{"code":-1,"msg":"请确保各项不能为空"}');
 	}
-	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"CSRF TOKEN ERROR"}');
+	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"页面校验失败，请刷新重试"}');
 	if($enc_type == '1'){
 		$plain = '';
 		$private_key = base64ToPem($conf['private_key'], 'PRIVATE KEY');
@@ -401,7 +401,7 @@ case 'findpwd':
 	if(empty($account) || empty($code) || empty($pwd)){
 		exit('{"code":-1,"msg":"请确保各项不能为空"}');
 	}
-	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"CSRF TOKEN ERROR"}');
+	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"页面校验失败，请刷新重试"}');
 	if($enc_type == '1'){
 		$plain = '';
 		$private_key = base64ToPem($conf['private_key'], 'PRIVATE KEY');
@@ -476,6 +476,6 @@ case 'getopenid':
 	exit(json_encode($result));
 	break;
 default:
-	exit('{"code":-4,"msg":"No Act"}');
+	exit('{"code":-4,"msg":"操作不存在"}');
 break;
 }

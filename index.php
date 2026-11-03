@@ -1,6 +1,6 @@
 <?php
-if (version_compare(PHP_VERSION, '7.4.0', '<')) {
-    die('require PHP >= 7.4 !');
+if (version_compare(PHP_VERSION, '8.1.0', '<')) {
+    die('运行环境版本必须不低于 8.1');
 }
 $is_defend = true;
 $allow_search = true;

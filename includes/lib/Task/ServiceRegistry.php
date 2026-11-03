@@ -63,7 +63,7 @@ final class ServiceRegistry
             $enabled[(int)$channel['id']]=true;
             $config=json_decode($channel['config']?:'{}',true,32,JSON_THROW_ON_ERROR);$template=false;
             foreach($config as $value)if(is_string($value)&&preg_match('/^\[[^\[\]]+\]$/D',$value)){$template=true;break;}
-            // A credential template is not a payable account. Its enabled children are.
+
             if(!$template)$targets[]=['channel_id'=>(int)$channel['id'],'subchannel_id'=>0];
         }
         foreach($children as $child)if(isset($enabled[(int)$child['channel']])&&(int)$child['status']===1)$targets[]=['channel_id'=>(int)$child['channel'],'subchannel_id'=>(int)$child['id']];
@@ -101,8 +101,8 @@ final class ServiceRegistry
         if(!$item['channel_enabled'])throw new \RuntimeException('服务所属通道已停用');
         if(!$acceptChange&&!hash_equals($row['digest'],$item['digest'])){
             if($this->cacheTurn){unset($this->turnCatalog[$row['plugin']]);$catalog=$this->discover($row['plugin']);$item=$catalog['services'][$row['id']]??null;}
-            // The running owner can atomically persist a provider credential refresh.
-            // A supervisor turn may have read its row just before that commit.
+
+
             $current=$this->get($row['id']);
             if(!$item||!$item['channel_enabled']||(int)$current['revision']!==(int)$row['revision']||(int)$current['generation']!==(int)$row['generation']||!hash_equals($current['digest'],$item['digest']))throw new \RuntimeException('插件文件或通道配置已变化，请应用配置后重新启动');
         }

@@ -81,7 +81,7 @@ wx.ready(function () {
 });
 wx.error(function(res){
   //$('#loadingToast').fadeOut(100);
-  //alert(res.errMsg);
+
 });
 function showDialog(title, content) {
     $('#dialog_title').text(title);

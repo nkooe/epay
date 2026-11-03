@@ -3,7 +3,7 @@
  * 批量转账页面
 **/
 include("../includes/common.php");
-$type = isset($_GET['type'])?daddslashes($_GET['type']):exit('no type');
+$type = isset($_GET['type'])?daddslashes($_GET['type']):exit('未指定操作类型');
 if($type == 'alipay'){
 	$typename = '支付宝';
 	$default_channel = $conf['transfer_alipay'];
@@ -87,7 +87,7 @@ $(function(){
 	$('#excelFile').change(function(e){
 		var file = e.target.files[0];
 		if(!file) return;
-		
+
 		var reader = new FileReader();
 		reader.onload = function(e){
 			var data = new Uint8Array(e.target.result);
@@ -101,9 +101,9 @@ $(function(){
 			var totalCount = 0;
 			jsonData.forEach((item, i) => {
 				if(i==0 || !item.index || !item.account || !item.money) return;
-				
+
 				totalMoney += parseFloat(item.money) || 0;
-				
+
 				// 第一行：转账信息
 				$('#list').append(`
 					<tr>
@@ -120,7 +120,7 @@ $(function(){
 				`);
 				totalCount++;
 			});
-			
+
 			$('#allnum').text(totalCount);
 			$('#allmoney').text('总金额：'+totalMoney.toFixed(2));
 		};
@@ -149,9 +149,9 @@ $(function(){
 			if(typeof callback === 'function') callback(false);
 			return;
 		}
-		
+
 		btn.hide().after('<img src="../assets/img/load.gif" height="22">');
-		
+
 		// 获取转账数据
 		var transferData = {
 			type: '<?php echo $type?>',
@@ -162,7 +162,7 @@ $(function(){
 			money: row.find('td:nth-child(4)').text(),
 			desc: row.find('td:nth-child(5)').text(),
 		};
-		
+
 		$.post('./ajax_transfer.php?act=batch_submit', transferData, function(result){
 
 			row.find('img').remove();
@@ -184,7 +184,7 @@ $(function(){
 				layer.alert(result.msg, {icon: 2, title: '转账失败'});
 				btn.show();
 			}
-			
+
 			if(typeof callback === 'function') {
 				callback(rescode);
 			}
@@ -204,14 +204,14 @@ $(function(){
 		var total = items.length;
 		var processed = 0;
 		if(btn.attr('disabled')) return;
-		
+
 		if(total == 0) return alert('请选择要转账的记录');
-		
+
 		// 禁用所有相关按钮
 		btn.attr('disabled', true);
 		$('#importExcel').prop('disabled', true);
 		$('.submit-btn').prop('disabled', true);
-		
+
 		function processNext(index){
 			if(index >= total) {
 				// 恢复所有按钮状态
@@ -220,7 +220,7 @@ $(function(){
 				$('.submit-btn').prop('disabled', false);
 				return;
 			}
-			
+
 			var item = items.eq(index);
 			submitTransfer(item, function(rescode){
 				if(rescode) {
@@ -234,7 +234,7 @@ $(function(){
 				}
 			});
 		}
-		
+
 		processNext(0);
 	});
 });

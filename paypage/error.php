@@ -15,7 +15,7 @@ $checkoutEscape = static function ($value) { return htmlspecialchars((string)$va
     <section class="checkout-card">
         <div class="checkout-result-icon is-error" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20"/><path d="M24 13v13m0 7v1"/></svg></div>
         <h1>暂时无法付款</h1>
-        <?php /* Existing error messages may contain the merchant-binding link. */ ?>
+        <?php   ?>
         <div class="checkout-result-message" role="alert"><?php echo $msg; ?></div>
         <button type="button" class="checkout-button" id="Close">关闭页面</button>
     </section>

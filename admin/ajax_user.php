@@ -524,7 +524,7 @@ case 'edit_keytype':
 	$keytype=intval($_POST['keytype']);
 	$sqs = $DB->update('user', ['keytype'=>$keytype], ['uid'=>$uid]);
 	if($sqs!==false){
-		exit('{"code":1,"msg":"succ"}');
+		exit('{"code":1,"msg":"操作成功"}');
 	}else{
 		exit('{"code":-1,"msg":"保存失败！'.$DB->error().'"}');
 	}
@@ -631,13 +631,13 @@ case 'recharge':
 	$row=$DB->getRow("select uid,money from pre_user where uid='$uid' limit 1");
 	if(!$row)
 		exit('{"code":-1,"msg":"当前用户不存在！"}');
-	//if($do==1 && $rmb>$row['money'])$rmb=$row['money'];
+
 	if($do==0){
 		changeUserMoney($uid, $rmb, true, '后台加款');
 	}else{
 		changeUserMoney($uid, $rmb, false, '后台扣款');
 	}
-	exit('{"code":0,"msg":"succ"}');
+	exit('{"code":0,"msg":"操作成功"}');
 break;
 
 case 'addDomain':
@@ -656,12 +656,12 @@ break;
 case 'setDomainStatus':
 	$id=intval($_POST['id']);
 	$status=intval($_POST['status']);
-	if($DB->exec("UPDATE pre_domain SET status='$status',endtime=NOW() WHERE id='$id'")!==false)exit('{"code":0,"msg":"succ"}');
+	if($DB->exec("UPDATE pre_domain SET status='$status',endtime=NOW() WHERE id='$id'")!==false)exit('{"code":0,"msg":"操作成功"}');
 	else exit('{"code":-1,"msg":"修改失败['.$DB->error().']"}');
 break;
 case 'delDomain':
 	$id=intval($_POST['id']);
-	if($DB->exec("DELETE FROM pre_domain WHERE id='$id'")!==false)exit('{"code":0,"msg":"succ"}');
+	if($DB->exec("DELETE FROM pre_domain WHERE id='$id'")!==false)exit('{"code":0,"msg":"操作成功"}');
 	else exit('{"code":-1,"msg":"删除失败['.$DB->error().']"}');
 break;
 case 'domain_operation':
@@ -806,7 +806,7 @@ case 'addBlack':
 break;
 case 'delBlack':
 	$id=intval($_POST['id']);
-	if($DB->exec("DELETE FROM pre_blacklist WHERE id='$id'")!==false)exit('{"code":0,"msg":"succ"}');
+	if($DB->exec("DELETE FROM pre_blacklist WHERE id='$id'")!==false)exit('{"code":0,"msg":"操作成功"}');
 	else exit('{"code":-1,"msg":"删除失败['.$DB->error().']"}');
 break;
 case 'batchdelBlack':
@@ -829,7 +829,7 @@ break;
 
 case 'delRecord':
 	$id=intval($_GET['id']);
-	if($DB->exec("DELETE FROM pre_record WHERE id='$id'")!==false)exit('{"code":0,"msg":"succ"}');
+	if($DB->exec("DELETE FROM pre_record WHERE id='$id'")!==false)exit('{"code":0,"msg":"操作成功"}');
 	else exit('{"code":-1,"msg":"删除失败['.$DB->error().']"}');
 break;
 
@@ -837,12 +837,12 @@ case 'checkuid':
 	$uid=intval($_GET['uid']);
 	$row=$DB->getRow("select * from pre_user where uid='$uid' limit 1");
 	if($row)
-		exit('{"code":0,"msg":"succ"}');
+		exit('{"code":0,"msg":"操作成功"}');
 	else
 		exit('{"code":-1,"msg":"当前商户ID不存在"}');
 break;
 
 default:
-	exit('{"code":-4,"msg":"No Act"}');
+	exit('{"code":-4,"msg":"操作不存在"}');
 break;
 }

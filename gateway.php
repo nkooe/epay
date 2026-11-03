@@ -11,7 +11,7 @@ function voicemsg($msg){
 $json = file_get_contents('php://input');
 $arr = json_decode($json,true);
 if(!$arr || !isset($arr['cmd'])) exit;
-//file_put_contents('gateway.txt', $json);
+
 
 if($arr['cmd'] == 'heartbeat'){
     $result = ['cmd'=>'heartbeat'];
@@ -56,7 +56,7 @@ if($arr['cmd'] == 'heartbeat'){
     }
 
     $DB->update('order', ['type'=>$submitData['typeid'], 'channel'=>$submitData['channel'], 'subchannel'=>$submitData['subchannel'], 'realmoney'=>$realmoney, 'getmoney'=>$getmoney], ['trade_no'=>$trade_no]);
-    
+
     $order['trade_no'] = $trade_no;
     $order['out_trade_no'] = $out_trade_no;
     $order['uid'] = $uid;

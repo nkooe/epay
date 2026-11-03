@@ -1,7 +1,7 @@
 <?php
 namespace lib\Task;
 
-/** Cooperative payment polling. Business matching remains inside each plugin. */
+
 final class PaymentMonitor
 {
     private static $context;

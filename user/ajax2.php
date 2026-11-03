@@ -225,7 +225,7 @@ case 'sendcode':
 break;
 case 'verifycode':
 	$code=trim($_POST['code']);
-	
+
 	if($conf['verifytype']==1){
 		$sendto = $userrow['phone'];
 		$type = 1;
@@ -285,7 +285,7 @@ case 'completeinfo':
 		}
 	}
 	if($DB->update('user', $data, ['uid'=>$uid])!==false){
-		exit('{"code":1,"msg":"succ"}');
+		exit('{"code":1,"msg":"操作成功"}');
 	}else{
 		exit('{"code":-1,"msg":"保存失败！'.$DB->error().'"}');
 	}
@@ -317,7 +317,7 @@ case 'edit_settle':
 	}
 	$data = ['settle_id'=>$type, 'account'=>$account, 'username'=>$username];
 	if($DB->update('user', $data, ['uid'=>$uid])!==false){
-		exit('{"code":1,"msg":"succ"}');
+		exit('{"code":1,"msg":"操作成功"}');
 	}else{
 		exit('{"code":-1,"msg":"保存失败！'.$DB->error().'"}');
 	}
@@ -357,7 +357,7 @@ case 'edit_info':
 	}
 	$sqs = $DB->update('user', $data, ['uid'=>$uid]);
 	if($sqs!==false){
-		exit('{"code":1,"msg":"succ"}');
+		exit('{"code":1,"msg":"操作成功"}');
 	}else{
 		exit('{"code":-1,"msg":"保存失败！'.$DB->error().'"}');
 	}
@@ -366,7 +366,7 @@ case 'edit_keytype':
 	$keytype=intval($_POST['keytype']);
 	$sqs = $DB->update('user', ['keytype'=>$keytype], ['uid'=>$uid]);
 	if($sqs!==false){
-		exit('{"code":1,"msg":"succ"}');
+		exit('{"code":1,"msg":"操作成功"}');
 	}else{
 		exit('{"code":-1,"msg":"保存失败！'.$DB->error().'"}');
 	}
@@ -376,7 +376,7 @@ case 'edit_voice':
 	$voice_order=intval($_POST['voice_order']);
 	$sqs = $DB->update('user', ['voice_devid'=>$voice_devid, 'voice_order'=>$voice_order], ['uid'=>$uid]);
 	if($sqs!==false){
-		exit('{"code":1,"msg":"succ"}');
+		exit('{"code":1,"msg":"操作成功"}');
 	}else{
 		exit('{"code":-1,"msg":"保存失败！'.$DB->error().'"}');
 	}
@@ -389,7 +389,7 @@ case 'edit_print':
 	$print_config=serialize(['devid'=>$print_devid, 'count'=>$print_count, 'voice'=>$print_voice]);
 	$sqs = $DB->update('user', ['print_order'=>$print_order, 'print_config'=>$print_config], ['uid'=>$uid]);
 	if($sqs!==false){
-		exit('{"code":1,"msg":"succ"}');
+		exit('{"code":1,"msg":"操作成功"}');
 	}else{
 		exit('{"code":-1,"msg":"保存失败！'.$DB->error().'"}');
 	}
@@ -400,7 +400,7 @@ case 'edit_channel_info':
 
 	$sqs=$DB->update('user', ['channelinfo'=>$channelinfo], ['uid'=>$uid]);
 	if($sqs!==false){
-		exit('{"code":1,"msg":"succ"}');
+		exit('{"code":1,"msg":"操作成功"}');
 	}else{
 		exit('{"code":-1,"msg":"保存失败！'.$DB->error().'"}');
 	}
@@ -410,7 +410,7 @@ case 'edit_mode':
 
 	$sqs=$DB->update('user', ['mode'=>$mode], ['uid'=>$uid]);
 	if($sqs!==false){
-		exit('{"code":1,"msg":"succ"}');
+		exit('{"code":1,"msg":"操作成功"}');
 	}else{
 		exit('{"code":-1,"msg":"保存失败！'.$DB->error().'"}');
 	}
@@ -430,7 +430,7 @@ case 'edit_msgconfig':
 
 	$sqs=$DB->update('user', ['msgconfig'=>serialize($msgconfig)], ['uid'=>$uid]);
 	if($sqs!==false){
-		exit('{"code":1,"msg":"succ"}');
+		exit('{"code":1,"msg":"操作成功"}');
 	}else{
 		exit('{"code":-1,"msg":"保存失败！'.$DB->error().'"}');
 	}
@@ -468,7 +468,7 @@ case 'edit_bind':
 	}
 	if($sqs!==false){
 		\lib\VerifyCode::void_code();
-		exit('{"code":1,"msg":"succ"}');
+		exit('{"code":1,"msg":"操作成功"}');
 	}else{
 		exit('{"code":-1,"msg":"保存失败！'.$DB->error().'"}');
 	}
@@ -567,7 +567,7 @@ case 'certificate':
 	$certno=htmlspecialchars(strip_tags(trim($_POST['certno'])));
 	$certtype=intval($_POST['certtype']);
 	$certcardtype=intval($_POST['certcardtype']);
-	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"CSRF TOKEN ERROR"}');
+	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"页面校验失败，请刷新重试"}');
 	if($userrow['cert']==1 &&($certtype==0 || $certtype==1 && $userrow['certtype']==1))exit('{"code":-1,"msg":"你已完成实名认证"}');
 	if($conf['cert_money']>0 && $userrow['money']<$conf['cert_money'])exit('{"code":-1,"msg":"账户余额不足'.$conf['cert_money'].'元，无法完成认证"}');
 	if(empty($certname) || empty($certno))exit('{"code":-1,"msg":"请确保各项不能为空"}');
@@ -606,7 +606,7 @@ case 'certificate':
 		}catch(Exception $e){
 			exit('{"code":-1,"msg":"支付宝接口返回异常'.$e->getMessage().'"}');
 		}
-		
+
 		if(isset($certifyResult['certify_id'])){
 			$_SESSION[$uid.'_certify']=true;
 			$sqs=$DB->exec("update `pre_user` set `cert`=0,`certtype`=:certtype,`certmethod`=:certmethod,`certno`=:certno,`certname`=:certname,`certtoken`=:certtoken where `uid`=:uid", [':certtype'=>$certtype, ':certmethod'=>0, ':certno'=>$certno, ':certname'=>$certname, ':certtoken'=>$certifyResult['certify_id'], ':uid'=>$uid]);
@@ -644,7 +644,7 @@ case 'certificate':
 		}catch(Exception $e){
 			exit('{"code":-1,"msg":"支付宝接口返回异常'.$e->getMessage().'"}');
 		}
-		
+
 		$_SESSION[$uid.'_certify']=true;
 		$sqs=$DB->exec("update `pre_user` set `cert`=0,`certtype`=:certtype,`certmethod`=:certmethod,`certno`=:certno,`certname`=:certname,`certtoken`=:certtoken where `uid`=:uid", [':certtype'=>$certtype, ':certmethod'=>0, ':certno'=>$certno, ':certname'=>$certname, ':certtoken'=>$result['verify_id'], ':uid'=>$uid]);
 		if($sqs!==false){
@@ -721,7 +721,7 @@ case 'certificate':
 	}
 break;
 case 'cert_geturl':
-	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"CSRF TOKEN ERROR"}');
+	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"页面校验失败，请刷新重试"}');
 	if(isset($_SESSION[$uid.'_certify'])){
 		if($conf['cert_open'] == 1){
 			$url = $siteurl.'user/alipaycert.php?uid='.$uid.'&certtoken='.$userrow['certtoken'];
@@ -741,18 +741,18 @@ case 'cert_geturl':
 			exit(json_encode(['code'=>1, 'msg'=>'ok', 'url'=>$url]));
 		}
 	}else{
-		exit('{"code":-1,"msg":"Access Denied"}');
+		exit('{"code":-1,"msg":"访问被拒绝"}');
 	}
 break;
 case 'cert_query':
-	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"CSRF TOKEN ERROR"}');
+	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"页面校验失败，请刷新重试"}');
 	$cert = $DB->getColumn("select cert from pre_user where uid=$uid");
 	if($cert == 1){
 		unset($_SESSION[$uid.'_certify']);
 		unset($_SESSION['qrcode_url']);
-		exit('{"code":1,"msg":"succ","passed":true}');
+		exit('{"code":1,"msg":"操作成功","passed":true}');
 	}else{
-		exit('{"code":1,"msg":"succ","passed":false}');
+		exit('{"code":1,"msg":"操作成功","passed":false}');
 	}
 break;
 case 'order': //订单详情
@@ -789,7 +789,7 @@ case 'notify':
 	session_write_close();
 	try{$result=\lib\Notification\Delivery::legacy()->send($trade_no,'merchant','manual',$uid);exit(json_encode(['code'=>$result['delivered']?0:-1,'msg'=>$result['message'],'data'=>$result]));}
 	catch(\lib\AdminApp\ApiError $e){exit(json_encode(['code'=>-1,'msg'=>$e->getMessage()]));}
-	catch(Throwable $e){error_log('Merchant order notify failed: '.get_class($e));exit(json_encode(['code'=>-1,'msg'=>'通知处理异常，请查看发送记录后再重试']));}
+	catch(Throwable $e){error_log('商户订单通知失败：'.get_class($e));exit(json_encode(['code'=>-1,'msg'=>'通知处理异常，请查看发送记录后再重试']));}
 break;
 case 'printOrder':
 	$trade_no=$_POST['trade_no'];
@@ -820,7 +820,7 @@ case 'recharge':
 	$money=trim(daddslashes($_POST['money']));
 	$typeid=intval($_POST['typeid']);
 	$name = '充值余额 UID:'.$uid;
-	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"CSRF TOKEN ERROR"}');
+	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"页面校验失败，请刷新重试"}');
 	if($userrow['pay']==0)exit('{"code":-1,"msg":"当前商户已被封禁"}');
 	if($conf['cert_force']==1 && $userrow['cert']==0 && !$conf['cert_money'])exit('{"code":-1,"msg":"当前商户未完成实名认证，无法收款"}');
 	if($money<=0 || !is_numeric($money) || !preg_match('/^[0-9.]+$/', $money))exit('{"code":-1,"msg":"金额不合法"}');
@@ -854,7 +854,7 @@ case 'groupbuy':
 	if($row['isbuy']==0)
 		exit('{"code":-1,"msg":"当前会员等级无法购买！"}');
 	if($gid==$userrow['gid'] && $userrow['endtime']==null)exit('{"code":-1,"msg":"你已购买此会员等级，请勿重复购买"}');
-	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"CSRF TOKEN ERROR"}');
+	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"页面校验失败，请刷新重试"}');
 	$money = $row['price'];
 	$num=intval($_POST['num']);
 	$typeid=intval($_POST['typeid']);
@@ -1288,7 +1288,7 @@ case 'refund_submit': //确认退款
 	if(!is_numeric($money) || !preg_match('/^[0-9.]+$/', $money))exit('{"code":-1,"msg":"金额输入错误"}');
 	if(getMd5Pwd($pwd, $userrow['uid'])!=$userrow['pwd'])
 		exit('{"code":-1,"msg":"登录密码输入错误！"}');
-	
+
 	$refund_no = date("YmdHis").rand(11111,99999);
 	$result = \lib\Order::refund($refund_no, $trade_no, $money, 1, $uid);
 	if($result['code'] == 0){
@@ -1324,7 +1324,7 @@ case 'deposit_recharge':
 	$money=trim(daddslashes($_POST['money']));
 	$typeid=intval($_POST['typeid']);
 	if($money<=0 || !is_numeric($money) || !preg_match('/^[0-9.]+$/', $money))exit('{"code":-1,"msg":"金额不合法"}');
-	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"CSRF TOKEN ERROR"}');
+	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"页面校验失败，请刷新重试"}');
 	if($typeid==0){
 		if($money>$userrow['money'])exit('{"code":-1,"msg":"余额不足，请选择其他方式支付"}');
 		changeUserMoney($uid, $money, false, '充值保证金');
@@ -1351,7 +1351,7 @@ break;
 case 'deposit_withdraw':
 	$money=trim(daddslashes($_POST['money']));
 	if($money<=0 || !is_numeric($money) || !preg_match('/^[0-9.]+$/', $money))exit('{"code":-1,"msg":"金额不合法"}');
-	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"CSRF TOKEN ERROR"}');
+	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"页面校验失败，请刷新重试"}');
 	if($money>$userrow['deposit'])exit('{"code":-1,"msg":"保证金不足"}');
 	if($conf['user_deposit_day']>0){
 		$days = intval($conf['user_deposit_day']);
@@ -1369,6 +1369,6 @@ case 'deposit_withdraw':
 break;
 
 default:
-	exit('{"code":-4,"msg":"No Act"}');
+	exit('{"code":-4,"msg":"操作不存在"}');
 break;
 }

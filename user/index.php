@@ -71,7 +71,7 @@ $list = $DB->getAll("SELECT * FROM pre_anounce WHERE status=1 ORDER BY sort ASC"
   <small class="text-muted">欢迎使用<?php echo $conf['sitename']?></small>
 </div>
 <div class="wrapper-md control merchant-overview">
-<!-- stats -->
+
 <?php
 if($conf['cert_force']==1 && $userrow['cert']==0){
 	echo '<div class="alert alert-danger"><span class="btn-sm btn-danger">重要</span>&nbsp;请完成实名认证，否则您的商户无法正常收款！ <a href="./certificate.php" class="btn btn-default btn-xs">立即实名认证</a></div>';

@@ -341,7 +341,7 @@ class BaseService
         $inBody = file_get_contents('php://input');
 
         if (empty($inBody)) {
-            throw new Exception('no data');
+            throw new Exception('接口响应为空');
         }
         if ($this->platformCertificateSerial != $inDouyinpaySerial) {
             if (!$this->download_cert) {

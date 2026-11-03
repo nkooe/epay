@@ -43,6 +43,6 @@ try {
 } catch (JsonException $e) {
     taskResponse(400, ['code'=>-1, 'msg'=>'JSON 格式错误']);
 } catch (Throwable $e) {
-    error_log('Task API failed: '.$e->getMessage());
+    error_log('任务接口失败：'.$e->getMessage());
     taskResponse(500, ['code'=>-1, 'msg'=>'任务管理异常，请查看服务器错误日志']);
 }

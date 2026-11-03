@@ -24,7 +24,7 @@ final class Menu
     }
     public static function resources()
     {
-        // These explicit projections must never be replaced by SELECT *.
+
         return [
             'subchannels'=>['subchannel','id,uid,channel,name,status,addtime','id DESC'],
             'refunds'=>['refundorder','refund_no,trade_no,uid,money,reducemoney,status,addtime,endtime','addtime DESC'],

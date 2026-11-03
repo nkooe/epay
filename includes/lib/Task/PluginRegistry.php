@@ -54,7 +54,7 @@ final class PluginRegistry
         }
         return ['created'=>$created,'errors'=>$errors];
     }
-    /** Scheduler maintenance advances one channel per turn, never all channels. */
+
     public function syncChannel(TaskService $tasks, array $channel)
     {
         $created=0;$errors=[];

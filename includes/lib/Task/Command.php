@@ -15,7 +15,7 @@ final class Command
     public static function run(array $args, $timeout = 10, $limit = 32768, array $environment = null)
     {
         if (!function_exists('proc_open')) throw new \RuntimeException('PHP 必须启用 proc_open');
-        // Temporary file descriptors avoid pipe deadlocks and work with bounded polling on Windows too.
+
         $out=tmpfile();$err=tmpfile();
         if(!$out||!$err){if($out)fclose($out);if($err)fclose($err);throw new \RuntimeException('无法创建命令输出缓冲');}
         try {

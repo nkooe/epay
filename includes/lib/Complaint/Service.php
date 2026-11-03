@@ -36,39 +36,16 @@ final class Service
         if($enabled&&!(int)$row['enabled'])throw new ApiError('该投诉接口已停用');
         return $row;
     }
-    private function key()
-    {
-        $key=$this->config['syskey']??'';
-        if(!is_string($key)||strlen($key)<16)throw new ApiError('系统加密密钥未配置',503);
-        return hash_hkdf('sha256',$key,32,'epay-complaint-credentials-v1');
-    }
-    private function seal(array $credentials)
-    {
-        $iv=random_bytes(12);$tag='';
-        $cipher=openssl_encrypt(json_encode($credentials,JSON_THROW_ON_ERROR),'aes-256-gcm',$this->key(),OPENSSL_RAW_DATA,$iv,$tag,'complaint-v1');
-        if($cipher===false)throw new ApiError('投诉凭证加密失败',503);
-        return base64_encode($iv.$tag.$cipher);
-    }
     private function open(array $account)
     {
-        $credentials=[];
-        if($account['provider']==='alipay'){
-            if(($account['credentials']??'')===''){
-                $channel=$this->db->row('SELECT c.config,c.plugin,t.name type FROM pre_channel c INNER JOIN pre_type t ON t.id=c.type WHERE c.id=?',[$account['channel']]);
-                if(!$channel)throw new ApiError('关联支付通道已删除');
-                return ($this->factory)($account,ChannelCredentials::alipay($channel));
-            }
-            $raw=base64_decode($account['credentials'],true);
-            if($raw===false||strlen($raw)<29)throw new ApiError('投诉接口凭证损坏',503);
-            $plain=openssl_decrypt(substr($raw,28),'aes-256-gcm',$this->key(),OPENSSL_RAW_DATA,substr($raw,0,12),substr($raw,12,16),'complaint-v1');
-            if($plain===false)throw new ApiError('投诉接口凭证无法解密',503);
-            $credentials=json_decode($plain,true,10,JSON_THROW_ON_ERROR);
-        }
+        $channel=$this->db->row('SELECT c.config,c.plugin,t.name type FROM pre_channel c INNER JOIN pre_type t ON t.id=c.type WHERE c.id=?',[$account['channel']]);
+        if(!$channel)throw new ApiError('关联支付通道已删除');
+        $credentials=$account['provider']==='alipay'?ChannelCredentials::alipay($channel):[];
         return ($this->factory)($account,$credentials);
     }
     public function accounts()
     {
-        $rows=$this->db->all("SELECT a.id,a.name,a.provider,a.channel,a.enabled,a.revision,a.updated_at,c.name channel_name,CASE WHEN a.credentials='' THEN 'channel' ELSE 'legacy' END credential_source FROM pre_complaint_account a LEFT JOIN pre_channel c ON c.id=a.channel ORDER BY a.id DESC");
+        $rows=$this->db->all("SELECT a.id,a.name,a.provider,a.channel,a.enabled,a.revision,a.updated_at,c.name channel_name,'channel' credential_source FROM pre_complaint_account a LEFT JOIN pre_channel c ON c.id=a.channel ORDER BY a.id DESC");
         $states=new SyncState($this->db);
         foreach($rows as &$row){$task=$this->db->row("SELECT next_run_at,last_error,last_status,enabled FROM pre_task WHERE action='complain' AND channel_id=? AND source=1",[$row['channel']]);$row['sync']=$states->status($row,$task);}unset($row);
         return $rows;
@@ -79,7 +56,7 @@ final class Service
         foreach($channels as &$channel){
             $channel['bindable']=ChannelCredentials::supported($channel);$channel['config_message']=ChannelCredentials::message($channel);
             if($channel['bindable']&&$channel['config_message']===''){
-                try{$this->open(['provider'=>$channel['type']==='wxpay'?'wechat':'alipay','channel'=>$channel['id'],'credentials'=>'']);}
+                try{$this->open(['provider'=>$channel['type']==='wxpay'?'wechat':'alipay','channel'=>$channel['id']]);}
                 catch(\Throwable $e){$channel['config_message']=SyncState::message($e);}
             }
             $channel['config_ready']=$channel['bindable']&&$channel['config_message']==='';
@@ -89,7 +66,7 @@ final class Service
     }
     public function saveAccount(array $input,$ip)
     {
-        if(array_diff(array_keys($input),['id','revision','name','provider','channel','enabled','credentials']))throw new ApiError('接口配置包含未知字段');
+        if(array_diff(array_keys($input),['id','revision','name','provider','channel','enabled']))throw new ApiError('接口配置包含未知字段');
         $id=self::integer($input['id']??0,'接口编号',0);$revision=self::integer($input['revision']??0,'配置版本',0);
         $old=$id?$this->account($id,false):null;
         $channel=self::integer($input['channel']??($old['channel']??null),'支付通道');$enabled=self::integer($input['enabled']??($old['enabled']??1),'启用状态',0,1);
@@ -99,40 +76,23 @@ final class Service
         if(!in_array($provider,['wechat','alipay'],true))throw new ApiError('投诉接口类型不正确');
         $name=self::text($input['name']??($old['name']??mb_substr($payment['name'],0,76).'投诉'),'接口名称',80);
         if($old&&($old['provider']!==$provider||(int)$old['channel']!==$channel))throw new ApiError('接口类型和关联通道创建后不能修改，请新增接口');
-        if(!$old&&!isset($input['credentials'])&&!ChannelCredentials::supported($payment))throw new ApiError('该通道插件未提供官方投诉接口');
-        $sealed=$old['credentials']??'';
-        if($provider==='alipay'&&isset($input['credentials'])){
-            $c=$input['credentials'];
-            if(!is_array($c)||array_diff(array_keys($c),['app_id','app_private_key','alipay_public_key','app_auth_token']))throw new ApiError('支付宝凭证字段不正确');
-            foreach(['app_id','app_private_key','alipay_public_key'] as $key)$c[$key]=self::text($c[$key]??null,'支付宝凭证',16000);
-            if(!preg_match('/^[0-9]{10,32}$/D',$c['app_id']))throw new ApiError('支付宝应用 AppID 不正确');
-            foreach(['app_private_key'=>true,'alipay_public_key'=>false] as $key=>$private){
-                $value=$c[$key];
-                if(strpos($value,'-----BEGIN')===false){$label=$private?'RSA PRIVATE KEY':'PUBLIC KEY';$value='-----BEGIN '.$label."-----\n".chunk_split(preg_replace('/\s/','',$value),64,"\n").'-----END '.$label.'-----';}
-                $resource=$private?@openssl_pkey_get_private($value):@openssl_pkey_get_public($value);$details=$resource?openssl_pkey_get_details($resource):false;
-                if(!$details||$details['type']!==OPENSSL_KEYTYPE_RSA||$details['bits']<2048||(!$private&&strpos($value,'PRIVATE KEY')!==false))throw new ApiError($private?'支付宝应用私钥无效':'支付宝公钥无效');
-                // AOP SDK accepts PEM contents for both keys.
-                $c[$key]=$value;
-            }
-            $c['app_auth_token']=self::text($c['app_auth_token']??'','应用授权令牌',1024,false);$sealed=$this->seal($c);
-        }
-        if($provider==='wechat'&&isset($input['credentials']))throw new ApiError('微信接口使用支付通道中的证书和密钥');
+        if(!ChannelCredentials::supported($payment))throw new ApiError('该通道插件未提供官方投诉接口');
         $this->db->pdo->beginTransaction();
         try{
-            // Serialize bindings per channel, including simultaneous web/native requests.
+
             $this->db->row('SELECT id FROM pre_channel WHERE id=?'.$this->db->lockClause(),[$channel]);
             if(!$id&&$this->db->row('SELECT id FROM pre_complaint_account WHERE channel=? LIMIT 1',[$channel]))throw new ApiError('该通道已绑定投诉管理，请编辑已有接口',409);
             if($id){$locked=$this->db->row('SELECT revision FROM pre_complaint_account WHERE id=?'.$this->db->lockClause(),[$id]);if((int)$locked['revision']!==$revision)throw new ApiError('接口配置已更新，请重新读取',409);}
             elseif($revision!==0)throw new ApiError('新增接口版本不正确');
-            $data=['name'=>$name,'provider'=>$provider,'channel'=>$channel,'enabled'=>$enabled,'credentials'=>$sealed,'revision'=>$revision+1,'updated_at'=>date('Y-m-d H:i:s')];
+            $data=['name'=>$name,'provider'=>$provider,'channel'=>$channel,'enabled'=>$enabled,'revision'=>$revision+1,'updated_at'=>date('Y-m-d H:i:s')];
             if($id)$this->db->update('complaint_account',$data,'id',$id);
             else{$data['created_at']=$data['updated_at'];$id=$this->db->insert('complaint_account',$data);}
             $this->db->audit('投诉接口配置',$ip,['account_id'=>(int)$id,'enabled'=>$enabled]);$this->db->pdo->commit();
         }catch(\Throwable $e){$this->db->pdo->rollBack();throw $e;}
-        if($enabled&&(!$old||!(int)$old['enabled']||isset($input['credentials'])))(new SyncState($this->db))->request($id);
+        if($enabled&&(!$old||!(int)$old['enabled']))(new SyncState($this->db))->request($id);
         return ['id'=>(int)$id,'revision'=>$revision+1,'sync_queued'=>(bool)$enabled];
     }
-    /** Only queries the upstream list; never replies, refunds, or changes callbacks. */
+
     public function checkConnection(array $input)
     {
         if(!empty($input['id']))$account=$this->account($input['id'],false);
@@ -140,7 +100,7 @@ final class Service
             $channel=self::integer($input['channel']??null,'支付通道');
             $payment=$this->db->row('SELECT c.plugin,t.name type FROM pre_channel c INNER JOIN pre_type t ON t.id=c.type WHERE c.id=?',[$channel]);
             if(!$payment||!ChannelCredentials::supported($payment))throw new ApiError('该通道插件未提供官方投诉接口');
-            $account=['provider'=>$payment['type']==='wxpay'?'wechat':'alipay','channel'=>$channel,'credentials'=>''];
+            $account=['provider'=>$payment['type']==='wxpay'?'wechat':'alipay','channel'=>$channel];
         }
         $local=true;
         try{$gateway=$this->open($account);$local=false;$gateway->listing(date('Y-m-d'),date('Y-m-d'),1);$result=['ok'=>true,'message'=>'连接正常，已成功查询投诉接口','kind'=>'success'];}
@@ -192,7 +152,7 @@ final class Service
     private function fetchAndPersist(array $account, $third, $gateway)
     {
         Normalizer::identifier($third);
-        // Capture the revision before querying upstream, never while holding a DB lock.
+
         $before=$this->db->row('SELECT revision FROM pre_complaint WHERE account_id=? AND thirdid=?',[$account['id'],$third]);
         $info=$gateway->detail($third);
         $snapshot=Normalizer::convert($account['provider'],$info);
@@ -217,7 +177,7 @@ final class Service
             'money'=>$snapshot['money'],'created_at'=>$snapshot['created_at'],'remote_updated_at'=>$snapshot['remote_updated_at'],'snapshot_at'=>date('Y-m-d H:i:s'),'snapshot'=>$payload];
         $this->db->pdo->beginTransaction();
         try{
-            // The unique identity handles first-insert races; the revision guards in-flight reads.
+
             $sql=$this->db->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME)==='mysql'?'INSERT IGNORE':'INSERT OR IGNORE';
             $inserted=$this->db->query($sql.' INTO pre_complaint (account_id,thirdid,channel,provider,status,remote_status,type,title,content,money,created_at,snapshot_at,snapshot) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',[$account['id'],$snapshot['thirdid'],$data['channel'],$data['provider'],$data['status'],$data['remote_status'],$data['type'],$data['title'],$data['content'],$data['money'],$data['created_at'],$data['snapshot_at'],$payload])->rowCount()===1;
             $old=$this->db->row('SELECT id,revision,snapshot,remote_updated_at FROM pre_complaint WHERE account_id=? AND thirdid=?'.$this->db->lockClause(),[$account['id'],$snapshot['thirdid']]);
@@ -246,7 +206,7 @@ final class Service
         if(($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK||!is_string($path)||!is_uploaded_file($path))throw new ApiError('请选择不超过 2 MB 的图片');
         return $this->uploadFile($id,$path);
     }
-    /** Native JSON upload; never accepts a client-supplied server path. */
+
     public function uploadBytes($id,$encoded)
     {
         if(!is_string($encoded)||strlen($encoded)>950000)throw new ApiError('图片过大，请压缩到 680 KB 以内');
@@ -296,7 +256,7 @@ final class Service
             if(!$attachment)throw new ApiError('图片凭证不属于当前投诉或已过期');$images[]=$attachment['remote_id'];
         }
         $hash=hash('sha256',json_encode([$row['id'],$action,$input['content'],$images,$input['code']??null,$input['decision']??null],JSON_THROW_ON_ERROR));
-        // Validate local certificates/credentials before recording an upstream submission.
+
         $gateway=$this->open($account);
         $this->db->pdo->beginTransaction();
         try{
@@ -318,7 +278,7 @@ final class Service
         catch(\Throwable $e){$state='unknown';$message='提交结果待核实，请刷新上游状态并核实协商记录后再操作';error_log('Complaint action '.$actionId.': '.get_class($e));}
         $this->db->pdo->beginTransaction();
         try{
-            // Retire every pre-submit view even when upstream detail refresh is still pending.
+
             $this->db->query('UPDATE pre_complaint SET revision=revision+1 WHERE id=?',[$row['id']]);
             $this->db->update('complaint_action',['state'=>$state,'message'=>$message,'ended_at'=>date('Y-m-d H:i:s')],'id',$actionId);
             $this->db->audit('投诉处理',$ip,['complaint_id'=>(int)$row['id'],'action'=>$action,'state'=>$state]);

@@ -78,9 +78,9 @@ class MsgNotice
         }
     }
 
-    /**
-     * https://acnlfexk4r1d.feishu.cn/wiki/SwDcwFwR4iTc5jk6BPTctAWXnDc
-     */
+
+
+
     public static function send_voice($devid, $type, $money){
         global $conf, $CACHE;
         $url = 'http://iot.solomo-info.com:9306/admin/common/msgpush';
@@ -155,14 +155,14 @@ class MsgNotice
             $jumpurl = $siteurl.'user/';
         }
         if(empty($template_id) || empty($wid)) return false;
-    
+
         $wechat = new \lib\wechat\WechatAPI($wid);
         try{
             return $wechat->sendTemplateMessage($openid, $template_id, $jumpurl, $data);
         }catch(Exception $e){
             $errmsg = $e->getMessage();
             $CACHE->save('wxtplerrmsg', ['errmsg'=>$errmsg, 'time'=>date('Y-m-d H:i:s')], 86400);
-            //echo $errmsg;
+
             return false;
         }
     }
@@ -185,14 +185,14 @@ class MsgNotice
         if(empty($url)) return false;
         [$title, $content] = self::get_msg_tpl($scene, $param);
         if(empty($content)) return;
-        
+
         return self::robot_webhook($url, $title, $content, $admin);
     }
 
     public static function robot_webhook($url, $title, $content, $admin = false){
         global $conf, $CACHE;
         $content = str_replace(['*', '<br/>', '<b>', '</b>'], ['\*', "\n", '**', '**'], $content);
-        
+
         if (strpos($url, 'oapi.dingtalk.com')) {
             $content = '### '.$title."  \n ".str_replace("\n", "  \n ", $content);
             $post = [

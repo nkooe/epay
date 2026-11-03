@@ -1,7 +1,7 @@
 <?php
 namespace lib\AdminApp;
 
-/** Fixed slots, PEM validation and atomic bundles outside the document root. */
+
 final class PluginCertificates
 {
     public static function slots($plugin)
@@ -16,7 +16,7 @@ final class PluginCertificates
         $root=getenv('EPAY_APP_CERT_ROOT') ?: dirname(dirname(__DIR__,3)).'/epay-private/app-certificates';
         $root=str_replace('\\','/',$root);$web=str_replace('\\','/',dirname(__DIR__,3));
         if(!preg_match('~^(?:/|[a-zA-Z]:/)~',$root)||preg_match('~/(?:\.|\.\.)(?:/|$)~',$root)||strpos(strtolower(rtrim($root,'/')).'/',strtolower($web).'/')===0)throw new \RuntimeException('证书根目录必须位于网站目录外');
-        // A separate site namespace prevents collisions between installations.
+
         return rtrim($root,'/\\').'/'.substr(hash('sha256',dirname(__DIR__,3)),0,16).'/'.$plugin.'/'.$merchant;
     }
     private static function safe($path)
@@ -39,9 +39,7 @@ final class PluginCertificates
     {
         $active=self::active($plugin,$merchant);$rows=[];
         foreach(self::slots($plugin) as $slot=>$label){
-            $path=$active[$slot] ?? null;
-            // Include legacy files in the revision so a concurrent replacement is detected.
-            if(!$path){$base=dirname(__DIR__,3).'/plugins/'.$plugin.'/cert/';$path=is_file($base.$merchant.'/'.$slot)?$base.$merchant.'/'.$slot:$base.$slot;}
+            $path=$active[$slot] ?? '';
             $rows[]=['slot'=>$slot,'label'=>$label,'configured'=>is_file($path),'sha256'=>is_file($path)?hash_file('sha256',$path):''];
         }
         return ['files'=>$rows,'revision'=>hash('sha256',json_encode($rows)),'merchant'=>$merchant];
@@ -80,10 +78,8 @@ final class PluginCertificates
             if(!hash_equals($before['revision'],(string)($data['revision'] ?? '')))throw new ApiError('证书已变化，请刷新后重试',409);
             $active=self::active($plugin,$merchant);$map=is_file($dir.'/current.json')?json_decode(file_get_contents($dir.'/current.json'),true):[];
             $version=bin2hex(random_bytes(16));$bundle=$dir.'/'.$version;mkdir($bundle,0700);
-            // Migrate legacy credentials in the same bundle, so uploaded slots never mix with a different merchant.
-            $legacy=dirname(__DIR__,3).'/plugins/'.$plugin.'/cert/';
             foreach($slots as $slot=>$label){
-                $path=$active[$slot] ?? (is_file($legacy.$merchant.'/'.$slot)?$legacy.$merchant.'/'.$slot:$legacy.$slot);
+                $path=$active[$slot] ?? '';
                 $content=$validated[$slot] ?? (is_file($path)?file_get_contents($path):null);
                 if($content!==null){$file=$bundle.'/'.$slot;if(file_put_contents($file,$content)!==strlen($content))throw new ApiError('证书写入失败',503);chmod($file,0600);$map[$slot]=$version;}
             }

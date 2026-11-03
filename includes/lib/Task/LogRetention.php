@@ -3,7 +3,7 @@ namespace lib\Task;
 
 use lib\AdminApp\Store;
 
-/** Deletes expired task diagnostics only; never deletes business data or active work. */
+
 final class LogRetention
 {
     public const SUCCESS_DAYS = 30;
@@ -42,8 +42,8 @@ final class LogRetention
         $dates = [$now->modify('-'.$this->successDays.' days')->format('Y-m-d H:i:s'),
             $now->modify('-'.$this->failureDays.' days')->format('Y-m-d H:i:s')];
 
-        // Keep the latest execution and all evidence of a currently failed/locked task.
-        // A terminal status without a finish timestamp is incomplete, not disposable.
+
+
         $runs = "finished_at IS NOT NULL AND ((status='success' AND finished_at<?)
             OR (status IN ('failed','interrupted') AND finished_at<?))
             AND NOT EXISTS (SELECT 1 FROM pre_task t WHERE t.id=pre_task_run.task_id
@@ -67,7 +67,7 @@ final class LogRetention
         $ids = array_column($this->db->all('SELECT id FROM pre_'.$table.' WHERE '.$predicate.
             ' ORDER BY id LIMIT '.self::BATCH_SIZE, $dates), 'id');
         if (!$ids) return ['deleted'=>0, 'more'=>false];
-        // Recheck safety at deletion time: a task may have started after SELECT.
+
         $deleted = $this->db->query('DELETE FROM pre_'.$table.' WHERE id IN ('.
             implode(',', array_fill(0, count($ids), '?')).') AND '.$predicate,
             array_merge($ids, $dates))->rowCount();
@@ -91,7 +91,7 @@ final class LogRetention
         return ['executions_deleted'=>$runs['deleted'],'operations_deleted'=>$ops['deleted'],'more'=>$runs['more']||$ops['more']];
     }
 
-    /** Bounded CLI work; remaining expired rows can be safely processed on the next run. */
+
     public function execute()
     {
         $totals=['history_deleted'=>0,'requests_deleted'=>0,'executions_deleted'=>0,'operations_deleted'=>0];

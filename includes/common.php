@@ -1,15 +1,28 @@
 <?php
-//error_reporting(0);
+
 error_reporting(E_ERROR | E_PARSE | E_COMPILE_ERROR);
 if(defined('IN_CRONLITE'))return;
 define('VERSION', '3097');
-define('DB_VERSION', '2063');
+define('DB_VERSION', '2064');
 define('IN_CRONLITE', true);
 define('SYSTEM_ROOT', dirname(__FILE__).'/');
 define('ROOT', dirname(SYSTEM_ROOT).'/');
 define('PAYPAGE_ROOT', SYSTEM_ROOT.'pages/');
 define('TEMPLATE_ROOT', ROOT.'template/');
 define('PLUGIN_ROOT', ROOT.'plugins/');
+
+// 首次安装先进入安装器；已有安装锁时，配置丢失必须修复而非重新安装。
+$configFile = ROOT.'config.php';
+$installLocked = file_exists(ROOT.'install/install.lock');
+if (!is_file($configFile) || !is_readable($configFile)) {
+    if (!file_exists($configFile) && !is_link($configFile) && !$installLocked && is_file(ROOT.'install/index.php')) {
+        header('Location: /install/', true, 302);
+        exit;
+    }
+    http_response_code(503);
+    header('Content-Type: text/html; charset=UTF-8');
+    exit('站点配置文件缺失或不可读，请恢复 config.php 或检查读取权限。');
+}
 date_default_timezone_set('Asia/Shanghai');
 $date = date("Y-m-d H:i:s");
 
@@ -46,10 +59,15 @@ if($is_defend){
 require ROOT.'config.php';
 define('DBQZ', $dbconfig['dbqz']);
 
-if(!$dbconfig['user']||!$dbconfig['pwd']||!$dbconfig['dbname'])//检测安装1
+if(empty($dbconfig['user'])||empty($dbconfig['pwd'])||empty($dbconfig['dbname']))//检测安装1
 {
+if(!$installLocked && is_file(ROOT.'install/index.php')){
+header('Location: /install/', true, 302);
+exit();
+}
+http_response_code(503);
 header('Content-type:text/html;charset=utf-8');
-echo '你还没安装！<a href="/install/">点此安装</a>';
+echo '站点数据库配置不完整，请修复 config.php。';
 exit();
 }
 
@@ -69,12 +87,10 @@ define('SYS_KEY', $conf['syskey']);
 if(!$conf['localurl'])$conf['localurl'] = $siteurl;
 $password_hash='!@#%!s!0';
 
-if ($conf['version'] < DB_VERSION) {
-    if (!$install) {
-		header('Content-type:text/html;charset=utf-8');
-        echo '请先完成网站升级！<a href="/install/update.php"><font color=red>点此升级</font></a>';
-        exit;
-    }
+if ((string)$conf['version'] !== DB_VERSION) {
+    http_response_code(503);
+    header('Content-type:text/html;charset=utf-8');
+    exit('数据库结构与当前程序不一致，请使用本版安装文件建立新站点。');
 }
 
 include_once(SYSTEM_ROOT."functions.php");

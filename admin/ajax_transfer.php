@@ -170,13 +170,13 @@ case 'setTransferStatus':
 		if($status == 2 && ($order['status'] == 3 || $order['status'] == 0) && $order['uid'] > 0){
 			changeUserMoney($order['uid'], $order['costmoney'], true, '代付退回', $biz_no);
 		}
-		exit('{"code":0,"msg":"succ"}');
+		exit('{"code":0,"msg":"操作成功"}');
 	}
 	else exit('{"code":-1,"msg":"修改失败['.$DB->error().']"}');
 break;
 case 'delTransfer':
 	$biz_no=$_POST['biz_no'];
-	if($DB->delete('transfer', ['biz_no' => $biz_no])!==false)exit('{"code":0,"msg":"succ"}');
+	if($DB->delete('transfer', ['biz_no' => $biz_no])!==false)exit('{"code":0,"msg":"操作成功"}');
 	else exit('{"code":-1,"msg":"删除失败['.$DB->error().']"}');
 break;
 case 'refundTransfer':
@@ -248,8 +248,8 @@ case 'batch_submit':
 		exit(json_encode(['code'=>0, 'status'=>$result['status'], 'msg'=>$msg]));
 	}else{
 		if(!isset($result['errcode']) || in_array($result['errcode'], \lib\Transfer::$payee_err_code)){
-            //$data = ['biz_no'=>$out_biz_no, 'out_biz_no'=>$out_biz_no, 'uid'=>0, 'type'=>$type, 'channel'=>$channelid, 'account'=>$payee_account, 'username'=>$payee_real_name, 'money'=>$money, 'costmoney'=>$money, 'addtime'=>'NOW()', 'pay_order_no'=>$result['orderid'], 'status'=>2, 'desc'=>$desc, 'result'=>$result['msg']];
-            //$DB->insert('transfer', $data);
+
+
 			exit(json_encode(['code'=>-1, 'msg'=>$result['msg']]));
 		}else{
 			exit(json_encode(['code'=>-2, 'msg'=>$result['msg']]));
@@ -277,6 +277,6 @@ case 'stat':
 	exit(json_encode($list));
 break;
 default:
-	exit('{"code":-4,"msg":"No Act"}');
+	exit('{"code":-4,"msg":"操作不存在"}');
 break;
 }

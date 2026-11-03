@@ -1,7 +1,7 @@
 <?php
 namespace lib\Task;
 
-/** Rebuildable provider sessions live outside both the web root and code digest. */
+
 final class PluginRuntime
 {
     public static function directory($plugin)

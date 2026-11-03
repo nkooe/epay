@@ -3,7 +3,7 @@
  * 批量转账页面
 **/
 include("../includes/common.php");
-$type = isset($_GET['type'])?intval($_GET['type']):exit('no type');
+$type = isset($_GET['type'])?intval($_GET['type']):exit('未指定操作类型');
 if($type == 1){
 	$typename = '支付宝';
 	$default_channel = $conf['transfer_alipay'];

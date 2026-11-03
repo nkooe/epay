@@ -5,7 +5,7 @@ use lib\AdminApp\Store;
 use InvalidArgumentException;
 use Throwable;
 
-/** Shared authenticated task operations for web and native clients. */
+
 final class Management
 {
     private $db;

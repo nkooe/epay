@@ -11,7 +11,7 @@ class Helipay implements IProfitSharing
     static $paytype = 'helipay';
 
     private $channel;
-    /** @var \HelipayClient */
+
     private $client;
 
     function __construct($channel)

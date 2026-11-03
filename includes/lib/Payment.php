@@ -357,7 +357,7 @@ class Payment {
         $settle = $order['settle'] ?? 0;
         $order = array_replace($order, $current);
         if($settle > 0) $order['settle'] = $settle;
-        // A status-only reset must never replay the original accounting/business effects.
+
         if((int)$order['status']===0){
             $reset=$DB->getColumn("SELECT COUNT(*) FROM pre_app_operation WHERE id=:id AND state='done'",[':id'=>'status-only:'.$order['trade_no']]);
             if($reset){
@@ -417,10 +417,10 @@ class Payment {
                 require_once __DIR__.'/AdminApp/Notifications.php';
                 \lib\AdminApp\Notifications::paymentReceived($DB,$order);
             } catch (\Throwable $e) {
-                error_log('Admin receipt notification enqueue failed: '.get_class($e));
+                error_log('管理员收款通知写入失败：'.get_class($e));
             }
             try { processOrderAfterCommit($order); }
-            catch (\Throwable $e) { error_log('Paid order post-commit delivery failed: '.$order['trade_no'].' '.get_class($e)); }
+            catch (\Throwable $e) { error_log('订单支付后通知失败：'.$order['trade_no'].' '.get_class($e)); }
         }
         if(!$isnotify){
             include_once SYSTEM_ROOT.'txprotect.php';
@@ -613,7 +613,7 @@ class Payment {
             'out_request_no' => $trade_no,
         ];
         $result = $alipaySevice->preAuthQuery($bizContent);
-        //print_r($result);exit;
+
         if(!isset($result['auth_no'])) throw new Exception('预授权订单查询失败');
         if($result['rest_amount'] == 0) throw new Exception('剩余冻结金额为0');
         if(isset($expected_amount) && bccomp((string)$result['rest_amount'], (string)$expected_amount, 2)!==0) throw new Exception('预授权金额与订单金额不符');
@@ -644,7 +644,7 @@ class Payment {
             'out_request_no' => $trade_no,
         ];
         $result = $alipaySevice->preAuthQuery($bizContent);
-        //print_r($result);exit;
+
         if(!isset($result['auth_no'])) throw new Exception('预授权订单查询失败');
         if($result['rest_amount'] == 0) throw new Exception('剩余冻结金额为0');
         if($result['order_status'] == 'AUTHORIZED'){

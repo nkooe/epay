@@ -4,7 +4,7 @@ namespace lib\Task;
 use lib\AdminApp\Store;
 use lib\AdminApp\ApiError;
 
-/** Durable dispatch identities. A consumed identity is never executed twice. */
+
 final class Execution
 {
     private $db;
@@ -55,7 +55,7 @@ final class Execution
         return $this->db->query("UPDATE pre_task_execution SET state=?,finished_at=?,message=? WHERE id=? AND state='running'",
             [$state,date('Y-m-d H:i:s'),mb_substr(SystemdController::redact($message),0,2000),self::id($id)])->rowCount();
     }
-    /** Called only after systemd reports no live process, never merely on stale heartbeat. */
+
     public function reap(array $run,array $unit)
     {
         if(in_array($unit['active_state'],['active','activating','deactivating','reloading'],true))return false;
@@ -69,7 +69,7 @@ final class Execution
         $this->db->pdo->beginTransaction();
         try {
             if(!$success&&$state!=='rejected'&&$task){
-                // Do not clear an unknown business lock and do not replay external effects.
+
                 $this->db->query("UPDATE pre_task SET enabled=0,next_run_at=NULL,last_status='failed',last_error=? WHERE id=? AND revision>=?",[mb_substr($message,0,1000),$run['task_id'],$run['revision']]);
             }
             $this->db->query('UPDATE pre_task_execution SET state=?,active_task_id=NULL,finished_at=?,message=? WHERE id=? AND active_task_id IS NOT NULL',[$state,date('Y-m-d H:i:s'),$success?'业务执行成功':$message,$run['id']]);

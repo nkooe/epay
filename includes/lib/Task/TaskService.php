@@ -215,7 +215,7 @@ final class TaskService
         return $row['id'];
     }
 
-    /** Explicitly accept a changed channel plugin; never enables or clears a failed run. */
+
     public function rebind($id,$revision)
     {
         $revision=Definitions::integer($revision,1,2147483647,'配置版本');
@@ -279,7 +279,7 @@ final class TaskService
                 }
             } catch (\Throwable $e) {
                 $error = self::text(SystemdController::redact($e->getMessage()), 1000);
-                error_log('Task '.$task['id'].' failed: '.$error);
+                error_log('任务 '.$task['id'].' 执行失败：'.$error);
             } finally {
                 unset($GLOBALS['epay_task_context']);
                 while (ob_get_level() > $level) ob_end_flush();
@@ -331,7 +331,7 @@ final class TaskService
             $this->finish(self::text($error, 1000));
             $recorded = true;
         } catch (\Throwable $e) {
-            error_log('Task shutdown recording failed: '.$e->getMessage());
+            error_log('任务退出记录失败：'.$e->getMessage());
         }
         $this->active = null;
         if (PHP_SAPI !== 'cli' && !headers_sent()) {

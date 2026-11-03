@@ -1,7 +1,7 @@
 <?php
 namespace lib\AdminApp;
 
-/** Reviewed configuration allowlist; never accepts administrator credentials as settings. */
+
 final class Settings
 {
     private $db;private $ip;private $conf;
@@ -67,7 +67,7 @@ final class Settings
             if(!isset($known[$key])||!is_scalar($value))throw new ApiError('设置包含无效字段');$f=$known[$key];$value=(string)$value;
             if(!empty($f['secret'])&&$value==='')continue;
             if(mb_strlen($value)>($f['max'] ?? 4000))throw new ApiError($f['label'].'过长');
-            // An obsolete saved option may be preserved, but cannot be selected for a new value.
+
             if($f['type']==='select'&&!array_key_exists($value,(array)$f['options'])&&$value!==(string)($this->conf[$key] ?? ''))throw new ApiError($f['label'].'选项无效');
             if($key==='sitename'&&(trim($value)===''||mb_strlen($value)>40))throw new ApiError('平台名称应为 1 至 40 个字符');
             if(in_array($key,['localurl','apiurl','proxy_url','wx_open_url'],true)&&$value!==''&&!preg_match('~^https?://[^\s]+$~D',$value))throw new ApiError($f['label'].'应为完整 HTTP(S) 地址');

@@ -83,7 +83,7 @@ class Heepay implements IProfitSharing
                 $result[$row[0]] = $row[1];
             }
         }
-        
+
         if(isset($result['ret_code']) && $result['ret_code']=='0001'){
             if(empty($result['allot_data'])) return ['code'=>-1, 'msg'=>'分润数据为空'];
             $allot_data = json_decode($result['allot_data'], true);
@@ -124,7 +124,7 @@ class Heepay implements IProfitSharing
                 $result[$row[0]] = $row[1];
             }
         }
-        
+
         if(isset($result['ret_code']) && $result['ret_code']=='0001'){
             return ['code'=>0, 'msg'=>'解冻剩余资金成功', 'settle_no'=>$param['batch_no']];
         }else{
@@ -161,7 +161,7 @@ class Heepay implements IProfitSharing
             ];
             $signstr = 'version='.$param['version'].'&agent_id='.$param['agent_id'].'&agent_bill_id='.$param['agent_bill_id'].'&ref_agent_id='.$param['ref_agent_id'].'&batch_no='.$param['batch_no'].'&jnet_bill_no='.$param['jnet_bill_no'].'&allot_data='.$param['allot_data'].'&timestamp='.$param['timestamp'].'&key='.$this->channel['appkey'];
             $param['sign'] = md5($signstr);
-            //print_r($param);
+
         }else{
             $apiurl = 'https://pay.heepay.com/API/Payment/GuaranteeAllotFullRefundSubmit.aspx';
             $param = [
@@ -187,7 +187,7 @@ class Heepay implements IProfitSharing
                 $result[$row[0]] = $row[1];
             }
         }
-        
+
         if(isset($result['ret_code']) && $result['ret_code']=='0001'){
             return ['code'=>0, 'msg'=>'分润退回成功'];
         }else{

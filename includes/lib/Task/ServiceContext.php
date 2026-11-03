@@ -3,7 +3,7 @@ namespace lib\Task;
 
 use lib\AdminApp\Store;
 
-/** Cooperative liveness: validate local idle work or completed provider operations before heartbeat. */
+
 final class ServiceContext
 {
     private $db;private $row;private $spec;private $stop=false;private $ready=false;private $locks=[];private $namespace;private $configurationDigest;private $channels;private $children;private $codeDigest;
@@ -33,13 +33,13 @@ final class ServiceContext
         return $this->stop;
     }
     public function requestStop(){if(!$this->stop){$this->stop=true;pcntl_alarm($this->spec['stop_seconds']);}}
-    /** Check again after provider I/O, immediately before changing any payment. */
+
     public function checkpoint()
     {
         if($this->stopRequested())throw new ServiceStopped('服务正在停止');
         if($this->configurationDigest!==null&&!hash_equals($this->configurationDigest,(new ServiceRegistry($this->db))->currentConfigurationDigest($this->row['plugin'])))throw new ServiceFault('主通道或子通道配置已变化，请应用配置后重新启动');
     }
-    /** Only explicit provider-returned credential fields may update a live snapshot. */
+
     public function saveCredentials(array $target,array $updates,array $allowed,$childOverrides=false)
     {
         if(!$this->configurationDigest||array_diff(array_keys($updates),$allowed))throw new ServiceFault('监控服务尝试写入未声明的配置字段');
@@ -64,13 +64,13 @@ final class ServiceContext
         $digest=hash('sha256',$this->codeDigest.json_encode([$channels,$children],JSON_THROW_ON_ERROR));
         $this->db->pdo->beginTransaction();
         try{
-            // Check-and-swap prevents a concurrent administrator edit from being overwritten.
+
             foreach([['channel','config',$channels,$this->channels,$ci],['subchannel','info',$children,$this->children,$si]] as [$table,$field,$next,$old,$index]){
                 if($index===null||$next[$index][$field]===$old[$index][$field])continue;
                 $count=$this->db->query('UPDATE pre_'.$table.' SET '.$field.'=? WHERE id=? AND '.$field.'=? AND status=1',[$next[$index][$field],$old[$index]['id'],$old[$index][$field]])->rowCount();
                 if($count!==1)throw new ServiceFault('凭据刷新期间配置发生变化');
             }
-            // Verify other channels too, not only the account that refreshed its token.
+
             if(!hash_equals(ServiceRegistry::configurationDigest($channels,$children),(new ServiceRegistry($this->db))->currentConfigurationDigest($this->row['plugin'])))throw new ServiceFault('凭据刷新期间其他通道配置发生变化');
             if($digest!==$this->row['digest']){
                 $count=$this->db->query('UPDATE pre_plugin_service SET digest=? WHERE id=? AND token=? AND revision=? AND desired=1 AND digest=?',[$digest,$this->row['id'],$this->row['token'],$this->row['revision'],$this->row['digest']])->rowCount();

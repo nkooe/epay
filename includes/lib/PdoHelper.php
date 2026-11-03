@@ -10,7 +10,7 @@ class PdoHelper
 	private $errorInfo;
 
 	/**
-	 * PdoHelper constructor.
+	 * 数据库连接构造方法。
 	 *
 	 * @param array $dbconfig 数据库信息
 	 */

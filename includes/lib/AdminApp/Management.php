@@ -1,7 +1,7 @@
 <?php
 namespace lib\AdminApp;
 
-/** Native forms use a fixed schema. Neither table names nor column names come from the client. */
+
 final class Management
 {
     private $db;
@@ -83,7 +83,7 @@ final class Management
             $fields[]=self::field('route_'.$id,$type['showname'].' · 通道','select','channel:0',['options'=>(object)$options]);
             $fields[]=self::field('rate_'.$id,$type['showname'].' · 结算比例（%）','decimal','');
         }
-        // Group overrides use the same validated system setting definitions.
+
         $keys=['transfer_alipay','transfer_wxpay','transfer_qqpay','transfer_bank','settle_open','settle_type','settle_transfer','settle_money','settle_rate','settle_alipay','settle_wxpay','settle_qqpay','settle_bank','onecode','user_transfer','user_transfer_red','transfer_rate','pay_maxmoney','pay_minmoney','pay_daymax','pay_domain_forbid','direct_settle_time','ordername'];
         foreach((new Settings($this->db,$this->ip))->allFields() as $f)if(in_array($f['key'],$keys,true)){
             $f['key']='config_'.$f['key'];$f['label']='覆盖设置 · '.$f['label'];$f['default']='';
@@ -96,7 +96,7 @@ final class Management
         $fields=array_column($s['fields'],'key');$fields[]=$s['pk'];
         if($s['table']==='psreceiver'){$fields[]='account';$fields[]='name';$fields[]='rate';}
         if($s['table']==='group'){$fields[]='info';$fields[]='config';}
-        // Revision includes secret values, but exposes only a hash.
+
         $r=$this->db->row('SELECT `'.implode('`,`',$fields).'` FROM pre_'.$s['table'].' WHERE `'.$s['pk'].'`=?'.($lock?$this->db->lockClause():''),[$id]);
         if(!$r)throw new ApiError('记录不存在',404);return $r;
     }
@@ -113,8 +113,8 @@ final class Management
         }
         foreach($s['fields'] as $f){if(isset($f['reference'])&&$f['type']==='select')$f['options']=$this->options($f['reference']);$f['value']=(string)($display[$f['key']] ?? $f['default']);if(!empty($f['secret'])){$f['configured']=$f['value']!=='';$f['value']='';}$fields[]=$f;}
         $result=['resource'=>$resource,'id'=>$id,'name'=>$s['title'],'fields'=>$fields,'revision'=>$row?hash('sha256',json_encode($row)):'','can_delete'=>$id!==''&&empty($s['edit_only']),'note'=>$resource==='channels'?'新通道默认停用。保存后进入“凭据配置”填写插件参数。':''];
-        // Display-only credentials are returned only for this authenticated detail request.
-        // Keep them outside the editable fields, revisions, write results and audit records.
+
+
         if($resource==='merchant-api'){
             $conf=$this->db->config();
             $result['name']='商户 API 密钥';

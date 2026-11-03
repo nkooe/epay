@@ -41,7 +41,7 @@ class Plugin {
 		if(preg_match('/^(.[a-zA-Z0-9]+)\/([0-9]+)\/$/',$s, $matchs)){
 			$func = $matchs[1];
 			$trade_no = $matchs[2];
-			
+
 			$order = $DB->getRow("SELECT A.*,B.name typename,B.showname typeshowname FROM pre_order A left join pre_type B on A.type=B.id WHERE trade_no=:trade_no limit 1", [':trade_no'=>$trade_no]);
 			$userrow = $DB->find('user', 'gid,ordername,channelinfo', ['uid'=>$order['uid']]);
 			$groupconfig = getGroupConfig($userrow['gid']);
@@ -51,14 +51,14 @@ class Plugin {
 				if(!$channel) throw new Exception('该订单号不存在，请返回来源地重新发起请求！');
 				$trade_no = null;
             }else{
-				// Payment entry URLs revalidate current policy; payment callbacks must still settle existing funds.
+
 				if(in_array($func, ['submit','mapi','jsapi','qrcode','checkpay','getpayurl','alipay','alipayjs','wxpay','bank','jspay','wap','h5','wxminipay','apppay','applet'], true)) {
 					\lib\Channel::merchantPolicy()->assertRoute($order['uid'], $order['type'], $order['channel'], $order['subchannel'], $order['money']);
 				}
 				$channel = $order['subchannel'] > 0 ? \lib\Channel::getSub($order['subchannel']) : \lib\Channel::get($order['channel'], $userrow['channelinfo']);
 				if(!$channel) throw new Exception('当前支付通道信息不存在');
 				$channel['apptype'] = explode(',',$channel['apptype']);
-	
+
 				if(!empty($userrow['ordername']))$conf['ordername']=$userrow['ordername'];
 				$ordername = !empty($conf['ordername'])?ordername_replace($conf['ordername'],$order['name'],$order['uid'],$trade_no,$order['out_trade_no']):$order['name'];
 				$order['plugin'] = $channel['plugin'];
@@ -140,7 +140,7 @@ class Plugin {
 		if(preg_match('/^(.[a-zA-Z0-9]+)$/',$plugin) && preg_match('/^(.[0-9]+)$/',$trade_no)){
 			$func = 'submit';
 			if($ismapi) $func = 'mapi';
-			
+
 			$channelinfo = $userrow?$userrow['channelinfo']:null;
 			$channel = $order['subchannel'] > 0 ? \lib\Channel::getSub($order['subchannel']) : \lib\Channel::get($order['channel'], $channelinfo);
 			if(!$channel)throw new Exception('当前支付通道信息不存在');
@@ -173,11 +173,11 @@ class Plugin {
 				}
             }
         }else{
-			throw new Exception('Pay file not found');
+			throw new Exception('支付页面文件不存在');
 		}
 	}
 
-	
+
 	static public function exists($name){
 		$filename = PLUGIN_ROOT.$name.'/'.$name.'_plugin.php';
 		if(file_exists($filename)){

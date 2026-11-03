@@ -1,7 +1,7 @@
 <?php
 namespace lib\Task;
 
-/** Existing cron business handlers. Scheduling and execution ownership live in TaskService. */
+
 final class CronHandlers
 {
     public static function execute($action, array $params)
@@ -15,7 +15,8 @@ final class CronHandlers
     {
         global $DB;
         $store=\lib\AdminApp\Runtime::legacyStore($DB);
-        return (new LogRetention($store,$params['success_days'],$params['failure_days'],$GLOBALS['epay_task_context']??null))->execute();
+        $result=(new LogRetention($store,$params['success_days'],$params['failure_days'],$GLOBALS['epay_task_context']??null))->execute();
+        return $result.' 已清理应用过期记录 '.$store->cleanup().' 条。';
     }
 
     private static function settle(array $params)

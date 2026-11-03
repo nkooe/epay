@@ -319,7 +319,7 @@ case 'channelInfo':
 	if(!$row)
 		exit('{"code":-1,"msg":"当前支付通道不存在！"}');
 	$typename = $DB->getColumn("SELECT name FROM pre_type WHERE id='{$row['type']}'");
-	//if($row['mode']>0){
+
 	//	exit('{"code":-1,"msg":"当前通道为商户直清模式，请进入用户列表-编辑-接口密钥进行配置"}');
 	//}
 	$apptype = explode(',',$row['apptype']);
@@ -516,11 +516,11 @@ case 'getChannelMoney': //统计支付通道金额
 	if($type == 2 || $type == 3){
 		$today=$type==3 ? date("Y-m-d", strtotime("-1 day")) : date("Y-m-d");
 		$orders=$DB->getColumn("SELECT COUNT(*) FROM pre_order WHERE date='$today' AND channel='$channel' AND status>0");
-		exit('{"code":0,"msg":"succ","money":"'.$orders.'"}');
+		exit('{"code":0,"msg":"操作成功","money":"'.$orders.'"}');
 	}else{
 		$today=$type==1 ? date("Y-m-d", strtotime("-1 day")) : date("Y-m-d");
 		$money=$DB->getColumn("SELECT SUM(realmoney) FROM pre_order WHERE date='$today' AND channel='$channel' AND status>0");
-		exit('{"code":0,"msg":"succ","money":"'.round($money,2).'"}');
+		exit('{"code":0,"msg":"操作成功","money":"'.round($money,2).'"}');
 	}
 break;
 case 'getSubChannelMoney': //统计子通道金额
@@ -530,14 +530,14 @@ case 'getSubChannelMoney': //统计子通道金额
 	$channel = explode('|', $channel);
 	$channel = array_map('intval', $channel);
 	$money=$DB->getColumn("SELECT SUM(realmoney) FROM pre_order WHERE date='$today' AND subchannel IN (".implode(",", $channel).") AND status>0");
-	exit('{"code":0,"msg":"succ","money":"'.round($money,2).'"}');
+	exit('{"code":0,"msg":"操作成功","money":"'.round($money,2).'"}');
 break;
 case 'getTypeMoney': //统计支付方式金额
 	$type=intval($_GET['type']);
 	$typeid=intval($_GET['typeid']);
 	$today=$type==1 ? date("Y-m-d", strtotime("-1 day")) : date("Y-m-d");
 	$money=$DB->getColumn("SELECT SUM(realmoney) FROM pre_order WHERE date='$today' AND type='$typeid' AND status>0");
-	exit('{"code":0,"msg":"succ","money":"'.round($money,2).'"}');
+	exit('{"code":0,"msg":"操作成功","money":"'.round($money,2).'"}');
 break;
 case 'getChannelRate':
 	$channel=intval($_GET['channel']);
@@ -550,14 +550,14 @@ case 'getChannelRate':
 		if($order['status']>0)$success++;
 	}
 	$rate = $all > 0 ? round($success*100/$all, 2) : 0;
-	exit('{"code":0,"msg":"succ","rate":"'.$rate.'"}');
+	exit('{"code":0,"msg":"操作成功","rate":"'.$rate.'"}');
 break;
 case 'getSuccessRate':
 	$channel = intval($_GET['channel']);
 	$thtime = date("Y-m-d");
 	$orderrow=$DB->getRow("SELECT COUNT(*) allnum,COUNT(IF(status>0, 1, NULL)) sucnum FROM pre_order WHERE addtime>='$thtime' AND channel='$channel'");
 	$success_rate = $orderrow && $orderrow['allnum'] > 0 ? round($orderrow['sucnum']/$orderrow['allnum']*100,2) : 100;
-	exit('{"code":0,"msg":"succ","data":"' . $success_rate . '"}');
+	exit('{"code":0,"msg":"操作成功","data":"' . $success_rate . '"}');
 break;
 
 case 'testpay':
@@ -763,6 +763,6 @@ case 'testWework':
 break;
 
 default:
-	exit('{"code":-4,"msg":"No Act"}');
+	exit('{"code":-4,"msg":"操作不存在"}');
 break;
 }

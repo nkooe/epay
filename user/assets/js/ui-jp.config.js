@@ -1,4 +1,4 @@
-// lazyload config
+
 
 var jp_config = {
   easyPieChart:   [   './assets/vendor/jquery.easy-pie-chart/dist/jquery.easypiechart.fill.js'],

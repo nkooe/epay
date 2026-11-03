@@ -1,7 +1,7 @@
 <?php
 namespace lib;
 
-/** Select one heartbeat plugin; authentication and state remain inside that plugin. */
+
 final class ReportHeartbeat
 {
     const DEFAULT_X_CLIENT = '易监控';
@@ -16,7 +16,7 @@ final class ReportHeartbeat
     static public function matchesX($db, $name)
     {
         if (!is_string($name) || $name === '') return false;
-        // Include stopped channels so disabling a channel cannot reroute its traffic to PC.
+
         $rows = $db->getAll("SELECT config FROM pre_channel WHERE plugin='jktongyx'");
         if (!is_array($rows)) throw new \RuntimeException('心跳配置读取失败', 500);
         foreach ($rows as $row) {

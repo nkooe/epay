@@ -16,7 +16,7 @@ class Pay
         }else{
             exit('你还未配置支付接口商户！');
         }
-        
+
         $pid=intval($queryArr['pid']);
         if(empty($pid))sysmsg('商户ID不能为空');
         $userrow=$DB->getRow("SELECT `uid`,`gid`,`key`,`money`,`mode`,`pay`,`cert`,`status`,`channelinfo`,`qq`,`ordername`,`keytype`,`publickey`,`deposit`,`pay_minmoney`,`pay_maxmoney` FROM `pre_user` WHERE `uid`='{$pid}' LIMIT 1");
@@ -275,7 +275,7 @@ class Pay
         if(empty($pid))echojsonmsg('商户ID不能为空');
         $userrow=$DB->getRow("SELECT `uid`,`gid`,`key`,`money`,`mode`,`pay`,`cert`,`status`,`channelinfo`,`qq`,`ordername`,`keytype`,`publickey`,`deposit`,`pay_minmoney`,`pay_maxmoney` FROM `pre_user` WHERE `uid`='{$pid}' LIMIT 1");
         if(!$userrow)echojsonmsg('商户不存在！');
-        
+
         try{
             \lib\ApiHelper::api_verify($userrow, $queryArr);
         }catch(Exception $e){
@@ -302,7 +302,7 @@ class Pay
         $sitename=urlencode(base64_encode(htmlspecialchars($queryArr['sitename'])));
         $param=isset($queryArr['param'])?htmlspecialchars(daddslashes($queryArr['param'])):null;
         $channel_id=isset($queryArr['channel_id'])?intval($queryArr['channel_id']):null;
-        $method=$queryArr['method']; //web/jump/jsapi/scan
+        $method=$queryArr['method'];
         if($device == 'jump')$method = 'jump';
         $mdevice='';
         if ($device=='qq'||$device=='wechat'||$device=='alipay'||$device=='douyin'||$device=='app') {
@@ -542,7 +542,7 @@ class Pay
         global $conf, $DB, $queryArr;
 
         $pid=intval($queryArr['pid']);
-        
+
         if(!empty($queryArr['trade_no'])){
             $trade_no=daddslashes($queryArr['trade_no']);
             $order=$DB->getRow("SELECT * FROM pre_order WHERE uid='{$pid}' and trade_no='{$trade_no}' limit 1");
@@ -570,7 +570,7 @@ class Pay
 
         $money = trim($queryArr['money']);
 	    if(!empty($money) && (!is_numeric($money) || !preg_match('/^[0-9.]+$/', $money)))throw new Exception('金额输入错误');
-        
+
         if(!empty($queryArr['trade_no'])){
 			$trade_no=daddslashes($queryArr['trade_no']);
 		}elseif(!empty($queryArr['out_trade_no'])){
@@ -592,7 +592,7 @@ class Pay
                 $refund_no = $refund_order['refund_no'];
             }
         }
-        
+
         $result = \lib\Order::refund($refund_no, $trade_no, $money, 1, $pid, $out_refund_no);
         if($result['code'] == 0){
             $result['msg'] = '退款成功！退款金额¥'.$result['money'];

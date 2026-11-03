@@ -49,8 +49,8 @@
     var keyboardRoot = document.getElementById('keyboard');
     var payButton = document.getElementById('payBtn');
     var clearButton = document.getElementById('clearBtn');
-    // Pointer taps are handled by the existing payment script's Hammer bindings.
-    // Native keyboard/screen-reader clicks have detail=0 and need the same handlers.
+
+
     keyboardRoot.addEventListener('click', function (event) {
         if (event.detail === 0 && event.target.hasAttribute('data-value') && typeof keypress === 'function') keypress(event);
     });

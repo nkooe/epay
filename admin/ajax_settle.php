@@ -70,7 +70,7 @@ case 'complete_batch':
 	$batch=trim((string)($_POST['batch'] ?? ''));
 	if(!preg_match('/\A[0-9]{11,19}\z/', $batch))exit('{"code":-1,"msg":"批次号无效"}');
 	$DB->exec("UPDATE pre_settle SET status=1 WHERE batch=:batch", [':batch'=>$batch]);
-	exit('{"code":0,"msg":"succ"}');
+	exit('{"code":0,"msg":"操作成功"}');
 break;
 case 'setSettleStatus':
 	$id=intval($_GET['id']);
@@ -172,23 +172,23 @@ case 'settle_save':
 break;
 case 'paypwd_check':
 	if(isset($_SESSION['paypwd']) && $_SESSION['paypwd']==$conf['admin_paypwd'])
-		exit('{"code":0,"msg":"ok"}');
+		exit('{"code":0,"msg":"操作成功"}');
 	else
-		exit('{"code":-1,"msg":"error"}');
+		exit('{"code":-1,"msg":"操作失败"}');
 break;
 case 'paypwd_input':
 	$paypwd=trim($_POST['paypwd']);
 	if(!$conf['admin_paypwd'])exit('{"code":-1,"msg":"你还未设置支付密码"}');
 	if($paypwd == $conf['admin_paypwd']){
 		$_SESSION['paypwd'] = $paypwd;
-		exit('{"code":0,"msg":"ok"}');
+		exit('{"code":0,"msg":"操作成功"}');
 	}else{
 		exit('{"code":-1,"msg":"支付密码错误！"}');
 	}
 break;
 case 'paypwd_reset':
 	unset($_SESSION['paypwd']);
-	exit('{"code":0,"msg":"ok"}');
+	exit('{"code":0,"msg":"操作成功"}');
 break;
 
 case 'transfer':
@@ -248,6 +248,6 @@ case 'transfer':
 break;
 
 default:
-	exit('{"code":-4,"msg":"No Act"}');
+	exit('{"code":-4,"msg":"操作不存在"}');
 break;
 }

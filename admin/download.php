@@ -45,7 +45,7 @@ $remark = text_encoding($conf['transfer_desc']);
 
 if($type == 'mybank'){
 	$data="收款方名称,收款方账号,收款方开户行名称,收款行联行号,金额,附言/用途\r\n";
-	
+
 	$rs=$DB->query("SELECT * from pre_settle where batch=:batch and (type=1 or type=4) order by id asc", [':batch'=>$batch]);
 	$i=0;
 	while($row = $rs->fetch())
@@ -440,7 +440,7 @@ $rs = $DB->query("SELECT * FROM pre_transfer WHERE{$sql} order by biz_no desc li
 
 if($sheet == 'mybank'){
 	$data="收款方名称,收款方账号,收款方开户行名称,收款行联行号,金额,附言/用途\r\n";
-	
+
 	$i=0;
 	while($row = $rs->fetch())
 	{
@@ -630,6 +630,6 @@ case 'proxyapi':
 	echo $content;
 break;
 default:
-	exit('No Act');
+	exit('操作不存在');
 break;
 }

@@ -11,7 +11,7 @@ $payer=daddslashes($_POST['payer']);
 $paytype=$_POST['paytype'];
 $direct=intval($_POST['direct']);
 $param=!empty($_POST['remark'])?htmlspecialchars(daddslashes($_POST['remark'])):null;
-if($_POST['token']!=$_SESSION['paypage_token'])showerrorjson('CSRF TOKEN ERROR');
+if($_POST['token']!=$_SESSION['paypage_token'])showerrorjson('页面校验失败，请刷新重试');
 if(!$uid || $uid!=$_SESSION['paypage_uid'])showerrorjson('收款方信息无效');
 if($money<=0 || !is_numeric($money) || !preg_match('/^[0-9.]+$/', $money))showerrorjson('金额不合法');
 
@@ -118,7 +118,7 @@ if(!empty($paytype) && isset($_SESSION['paypage_typeid']) && isset($_SESSION['pa
 		$order['plugin'] = $channel['plugin'];
 		$order['profits'] = \lib\Payment::updateOrderProfits($order, $channel['plugin']);
 		$order['sub_openid'] = $payer;
-		
+
 		try{
 			$paydata = \lib\Plugin::loadClass($channel['plugin'],'mapi',$trade_no);
 		}catch(Exception $e){

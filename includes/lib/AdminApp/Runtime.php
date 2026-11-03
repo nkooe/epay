@@ -1,8 +1,8 @@
 <?php
 namespace lib\AdminApp;
 
-/** Load the existing plugin runtime only after authentication and validation.
- * Reuses the request PDO; does not execute common.php's session/key generation side effects. */
+
+
 final class Runtime
 {
     private static $sharingLocks=[];
@@ -12,7 +12,7 @@ final class Runtime
         foreach(['db','prefix'] as $key){$p=$r->getProperty($key);$p->setAccessible(true);$values[$key]=$p->getValue($legacy);}
         return new Store($values['db'],rtrim($values['prefix'],'_'));
     }
-    /** Serializes app, cron and callbacks across the gateway I/O boundary. */
+
     public static function sharingLock(Store $db,$id,$call)
     {
         if($db->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME)!=='mysql')return $call();
@@ -55,14 +55,14 @@ final class Runtime
         $GLOBALS['siteurl']=rtrim($base,'/').'/';$GLOBALS['conf']['localurl']=$GLOBALS['siteurl'];
         $GLOBALS['date']=date('Y-m-d H:i:s');$GLOBALS['clientip']=$_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';$GLOBALS['userrow']=['channelinfo'=>null];
         require_once $root.'includes/functions.php';
-        // App authentication is independent of the website cookie/session bootstrap.
+
         if(!isset($_SERVER['HTTP_PHP_VERSION']))$_SERVER['HTTP_PHP_VERSION']=PHP_VERSION;
         self::composer($root.'includes/vendor');
     }
     private static function composer($vendor)
     {
         static $loaded=false;if($loaded||!is_file($vendor.'/composer/ClassLoader.php'))return;
-        // Read Composer's generated maps directly: the website bootstrap also emits a session cookie.
+
         require_once $vendor.'/composer/ClassLoader.php';
         $loader=new \Composer\Autoload\ClassLoader($vendor);
         foreach(require $vendor.'/composer/autoload_psr4.php' as $prefix=>$paths)$loader->setPsr4($prefix,$paths);

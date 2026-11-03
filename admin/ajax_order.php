@@ -446,7 +446,7 @@ case 'apirefund': //API退款操作
 	if(!is_numeric($money) || !preg_match('/^[0-9.]+$/', $money))exit('{"code":-1,"msg":"金额输入错误"}');
 	if($paypwd!=$conf['admin_paypwd'])
 		exit('{"code":-1,"msg":"支付密码输入错误！"}');
-	
+
 	$refund_no = date("YmdHis").rand(11111,99999);
 	$result = \lib\Order::refund($refund_no, $trade_no, $money, 1);
 	if($result['code'] == 0){
@@ -483,7 +483,7 @@ case 'notify':
 	session_write_close();
 	try{$result=\lib\Notification\Delivery::legacy()->send($trade_no,'admin');exit(json_encode(['code'=>$result['delivered']?0:-1,'msg'=>$result['message'],'data'=>$result]));}
 	catch(\lib\AdminApp\ApiError $e){exit(json_encode(['code'=>-1,'msg'=>$e->getMessage()]));}
-	catch(Throwable $e){error_log('Order notify failed: '.get_class($e));exit(json_encode(['code'=>-1,'msg'=>'通知处理异常，请查看发送记录后再重试']));}
+	catch(Throwable $e){error_log('商户通知失败：'.get_class($e));exit(json_encode(['code'=>-1,'msg'=>'通知处理异常，请查看发送记录后再重试']));}
 break;
 case 'fillorder': //手动补单
 	$trade_no=trim((string)($_POST['trade_no'] ?? ''));
@@ -599,6 +599,6 @@ case 'alipayRedPacketTansfer': //支付宝红包转账重试
 	}
 break;
 default:
-	exit('{"code":-4,"msg":"No Act"}');
+	exit('{"code":-4,"msg":"操作不存在"}');
 break;
 }

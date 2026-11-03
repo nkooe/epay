@@ -13,8 +13,8 @@ final class Installer
     public static function directory($value)
     {
         if (preg_match('/[\x00-\x1f\x7f]/',$value) || substr($value,0,1)!=='/') throw new \InvalidArgumentException('工作目录必须为无控制字符的绝对路径');
-        // WorkingDirectory does not unquote or C-unescape. The trailing slash
-        // protects a literal trailing space/backslash from the unit file parser.
+
+
         return str_replace('%','%%',rtrim($value,'/').'/');
     }
     public static function shellQuote($value){return "'".str_replace("'","'\\''",$value)."'";}
@@ -30,51 +30,7 @@ final class Installer
     {
         return SystemdUnits::helper($c);
     }
-    /** Inspect direct commands and panel wrapper files without executing them. */
-    public static function referencesLegacyCron($text, $root, $url, callable $read, $depth = 0)
-    {
-        if ($depth > 2) return false;
-        $parsed=parse_url($url);
-        $address=($parsed['host']??'').(isset($parsed['port'])?':'.$parsed['port']:'').rtrim($parsed['path']??'','/').'/cron.php';
-        foreach (preg_split('/\r?\n/', $text) as $line) {
-            if (trim($line)==='' || preg_match('/^\s*#/', $line)) continue;
-            if (strpos($line,'cron.php')!==false &&
-                (strpos($line,rtrim($root,'/').'/')!==false || preg_match('~https?://'.preg_quote($address,'~').'(?=[?\s\x22\x27#]|$)~i',$line))) return true;
-            // Only inspect literal absolute paths; never evaluate shell variables or substitutions.
-            preg_match_all('~(?:^|[\s\x22\x27])(/[^\s\x22\x27;&|<>]+)~', $line, $paths);
-            foreach (array_unique($paths[1]) as $path) {
-                if (strpos($path,'$')!==false || strpos($path,'`')!==false) continue;
-                $body=$read($path);
-                if (is_string($body) && self::referencesLegacyCron($body,$root,$url,$read,$depth+1)) return true;
-            }
-        }
-        return false;
-    }
-    public static function legacyCron(array $c, $url)
-    {
-        $sources=[];$env=getenv();$env['LC_ALL']='C';
-        $users=['root',$c['user']];
-        foreach(self::fpm() as $pool){$account=posix_getpwuid($pool['uid']);if($account)$users[]=$account['name'];}
-        $users=array_unique($users);
-        foreach($users as $user){
-            $r=Command::run([$c['crontab'],'-u',$user,'-l'],10,1048576,$env);
-            if($r['code']!==0){
-                if($r['code']===1 && strpos($r['stderr'],'no crontab for')!==false)continue;
-                throw new \RuntimeException('无法检查旧计划任务 crontab：'.$user);
-            }
-            $sources['crontab:'.$user]=$r['stdout'];
-        }
-        foreach(array_merge(['/etc/crontab'],glob('/etc/cron.d/*')?:[]) as $path){
-            if(is_file($path)){
-                if(!is_readable($path))throw new \RuntimeException('无法检查旧计划任务：'.$path);
-                $sources[$path]=file_get_contents($path);
-            }
-        }
-        $read=static function($path){return is_file($path)&&is_readable($path)&&filesize($path)<=131072?file_get_contents($path):null;};
-        $found=[];
-        foreach($sources as $name=>$body)if(self::referencesLegacyCron($body,$c['root'],$url,$read))$found[]=$name;
-        return $found;
-    }
+
     private static function fpm()
     {
         $ps=Command::find('ps');if(!$ps)return [];
@@ -125,7 +81,7 @@ final class Installer
         $missing=array_diff(['pdo_mysql','mbstring','curl','openssl','bcmath'],array_map('strtolower',$info['extensions']));
         if($missing||!$info['proc']||!$info['pcntl']||!$info['posix'])throw new \RuntimeException('PHP 缺少扩展或函数：'.implode(',',$missing).'；需要 proc_open/pcntl/posix');
         $commands=[];
-        foreach(['systemctl','systemd-analyze','journalctl','sudo','visudo','sh','runuser','crontab'] as $name){
+        foreach(['systemctl','systemd-analyze','journalctl','sudo','visudo','sh','runuser'] as $name){
             $commands[$name]=Command::find($name);
             if(!$commands[$name])throw new \RuntimeException('缺少服务器工具：'.$name);
         }
@@ -135,7 +91,7 @@ final class Installer
         $controllers=preg_split('/\s+/',trim(file_get_contents('/sys/fs/cgroup/cgroup.controllers')));
         if(array_diff(['memory','pids','cpu'],$controllers))throw new \RuntimeException('cgroup 缺少 memory/pids/cpu 资源控制');
         if(!preg_match('/MemAvailable:\s+(\d+)/',file_get_contents('/proc/meminfo'),$memory)||(int)$memory[1]<524288)throw new \RuntimeException('可用内存不足 512MB，安装已停止');
-        // Cap the whole site at half the currently available memory; per-process caps are not reservations.
+
         $budget=min(1024,(int)floor((int)$memory[1]/2048));
         $id=substr(hash('sha256',$root),0,12);
         return $commands+['root'=>$root,'php'=>$php,'user'=>$user,'uid'=>$account['uid'],'id'=>$id,'service'=>'epay-task-'.$id.'.service',
@@ -183,10 +139,6 @@ final class Installer
             if(!in_array($state['code'],[0,4],true))throw new \RuntimeException('无法确认插件实例实际状态');
             if(in_array(trim($state['stdout']),['active','activating','deactivating','reloading'],true))throw new \RuntimeException('插件进程树尚未退出，安装已停止');
         }
-        $url=$db->value("SELECT v FROM pre_config WHERE k='localurl'");
-        if(!is_string($url)||!preg_match('~^https?://~D',$url))throw new \RuntimeException('请先配置网站地址 localurl');
-        $legacy=self::legacyCron($c,$url);
-        if($legacy)throw new \RuntimeException('请先停用旧计划任务，再安装服务：'.implode('、',$legacy));
         $access=Command::run([$c['runuser'],'-u',$c['user'],'--',$c['php'],'-r','exit(is_readable($argv[1]."/config.php")&&is_readable($argv[1]."/bin/task-worker.php")?0:1);',$c['root']]);
         if($access['code']!==0)throw new \RuntimeException('运行用户无法读取站点配置或 Worker');
         $files=SystemdUnits::files($c);
@@ -200,7 +152,7 @@ final class Installer
         if(!is_dir($logDir)&&!mkdir($logDir,0700))throw new \RuntimeException('创建服务日志目录失败');
         $account=posix_getpwnam($c['user']);
         if(!$account||!chown($logDir,$account['uid'])||!chgrp($logDir,$account['gid'])||!chmod($logDir,0700))throw new \RuntimeException('设置服务日志目录权限失败');
-        // Keep a recoverable snapshot before writing installation state.
+
         $backup=dirname($helperDir).'/backup-'.$c['id'].'-'.date('YmdHis');
         if(!mkdir($backup,0700))throw new \RuntimeException('创建安装备份目录失败');
         $journalDir='/etc/systemd/journald@'.substr($c['service'],0,-8).'.conf.d';
@@ -230,7 +182,7 @@ final class Installer
         if($reload['code']!==0)throw new \RuntimeException('systemd 重载失败：'.$reload['stderr']);
         $journalReload=Command::run([$c['systemctl'],'try-restart','systemd-journald@'.substr($c['service'],0,-8).'.service']);
         if($journalReload['code']!==0)throw new \RuntimeException('独立日志服务重载失败：'.$journalReload['stderr']);
-        $config="<?php\n// Generated by install-task-worker.php; contains no credentials.\nreturn ".var_export($c,true).";\n";
+        $config="<?php\n// 任务安装器生成，不包含业务凭据。\nreturn ".var_export($c,true).";\n";
         self::rootFile($c['root'].'/includes/task-service.php',$config,0644);
         return ['service'=>$c['service'],'backup'=>$backup,'installed'=>true];
     }

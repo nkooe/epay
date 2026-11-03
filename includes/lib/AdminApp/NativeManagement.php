@@ -1,7 +1,7 @@
 <?php
 namespace lib\AdminApp;
 
-/** Transport adapter only: native and web clients share the business services. */
+
 final class NativeManagement
 {
     const READS=['v1/tasks'=>'list','v1/tasks/editor'=>'editor','v1/tasks/history'=>'history',
