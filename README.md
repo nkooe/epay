@@ -28,22 +28,4 @@ php bin/install-task-worker.php --install --user=网站运行用户 --php=/PHP�
 
 ## 易管理 App
 
-App 源码位于 native-admin/android，使用 JDK 17、Android SDK 35 和仓库附带的 Gradle Wrapper。配置本机 Android SDK 路径后执行：
-
-```sh
-cd native-admin/android
-./gradlew :app:testDebugUnitTest :app:assembleDebug
-```
-
-Windows 使用 gradlew.bat。正式构建需要在本机配置签名，证书指纹必须与 release-integrity.properties 一致；签名私钥和本机配置不进入源码包。
-收款通知使用用户主动开启的常驻事件连接，停止连接后不再进行备用后台轮询。
-
-## 源码打包
-
-```sh
-python native-admin/package.py --sources --output native-admin/dist/clean
-```
-
-分别生成支付系统源码包、纯 App 源码包及外部校验文件。App 包不包含服务端、APK 或签名；系统包仅包含运行文件和唯一安装 SQL。源码包排除 Markdown、测试、开发记录、缓存、旧补丁、生产配置与私钥。
-公共支付系统源码使用 --public 参数生成，仅保留 plugins/.htaccess。
-第三方依赖保留运行文件及必要版权、许可证声明。
+搭配[易管理 App](https://github.com/nkooe/epay-admin-app)使用。此仓库仅包含支付系统源码，支付插件需自行配置。
