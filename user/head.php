@@ -29,7 +29,7 @@ $conf = array_merge($conf, $groupconfig);
   <link rel="stylesheet" href="./assets/css/font.css" type="text/css" />
   <link rel="stylesheet" href="./assets/css/app.css" type="text/css" />
   <link rel="stylesheet" href="../assets/css/bootstrap-table.css?v=1"/>
-  <link rel="stylesheet" href="./assets/css/merchant-wechat.css?v=2" />
+  <link rel="stylesheet" href="./assets/css/merchant-wechat.css?v=4" />
 </head>
 <body class="merchant-portal">
 <div class="app app-header-fixed  ">
@@ -37,7 +37,7 @@ $conf = array_merge($conf, $groupconfig);
   <header id="header" class="merchant-topbar" role="banner">
     <button type="button" id="merchantMenuToggle" class="merchant-menu-toggle" aria-label="收起导航菜单" aria-controls="aside" aria-expanded="true"><i class="fa fa-bars" aria-hidden="true"></i></button>
     <a href="./" class="merchant-brand">
-      <span class="merchant-brand-mark"><i class="fa fa-credit-card" aria-hidden="true"></i></span>
+      <span class="merchant-brand-mark"><img src="../assets/img/systemlogo.png" alt="" width="30" height="30"></span>
       <span class="merchant-brand-name"><?php echo htmlspecialchars($conf['sitename'], ENT_QUOTES, 'UTF-8')?></span>
     </a>
     <span class="merchant-portal-label">商户中心</span>

@@ -62,13 +62,12 @@ body.admin-portal {
 
 .admin-portal .navbar-default .navbar-brand::before {
   display: inline-block;
-  width: 4px;
-  height: 17px;
+  width: 28px;
+  height: 26px;
   margin: 0 10px 0 0;
-  border-radius: 2px;
-  background: var(--admin-green);
+  background: url('../img/systemlogo.png') center / contain no-repeat;
   content: "";
-  vertical-align: -3px;
+  vertical-align: -6px;
 }
 
 .admin-portal .navbar-default .navbar-nav > li > a {
@@ -693,7 +692,6 @@ a.dashboard-metric:hover { background: #f7fcf9; }
   .admin-portal .navbar-header { position: relative; float: none; }
   .admin-portal .navbar-toggle { display: block; float: left; margin-right: 0; margin-left: 0; border-color: transparent; }
   .admin-portal .navbar-default .navbar-brand { position: absolute; left: 56px; right: 56px; max-width: none; padding: 15px 0; text-align: center; }
-  .admin-portal .navbar-default .navbar-brand::before { display: none; }
   .admin-portal .navbar-profile { display: flex; position: absolute; right: 0; top: 3px; width: 44px; height: 44px; align-items: center; justify-content: center; color: #536158; font-size: 19px; }
   .admin-portal .navbar-profile:hover { background: var(--admin-green-soft); }
   .admin-portal .admin-page-heading .admin-account { display: none; }

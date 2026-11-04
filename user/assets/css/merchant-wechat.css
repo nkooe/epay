@@ -34,7 +34,14 @@ body.merchant-portal, body.merchant-auth {
 .merchant-menu-toggle { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; border: 0; border-radius: 8px; background: #f3f6f4; color: #59675e; cursor: pointer; }
 .merchant-brand { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 360px; color: var(--merchant-ink) !important; font-size: 17px; font-weight: 650; }
 .merchant-brand-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.merchant-brand-mark { display: grid; place-items: center; flex: 0 0 30px; width: 30px; height: 30px; border-radius: 9px; background: var(--merchant-green); color: #fff; font-size: 17px; }
+.merchant-brand-mark { display: grid; place-items: center; flex: 0 0 30px; width: 30px; height: 30px; }
+.merchant-brand-mark img { display: block; width: 30px; height: 30px; object-fit: contain; }
+.merchant-api-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.merchant-portal .modal-dialog.merchant-qr-dialog { width: calc(100% - 24px); max-width: 360px; margin: 30px auto; }
+.merchant-qr-image { width: max-content; max-width: 100%; margin: 0 auto; padding: 16px; background: #fff; }
+.merchant-qr-image canvas { display: block; max-width: 100%; height: auto; }
+.merchant-qr-actions { display: flex; justify-content: space-between; }
+.merchant-qr-actions::before, .merchant-qr-actions::after { display: none; }
 .merchant-portal-label { margin-left: 4px; padding-left: 16px; border-left: 1px solid var(--merchant-line); color: var(--merchant-muted); font-size: 13px; white-space: nowrap; }
 .merchant-profile { margin-left: auto; flex-shrink: 0; }
 .merchant-profile-toggle { display: flex; align-items: center; gap: 9px; height: 44px; padding: 0 4px; color: var(--merchant-ink) !important; }

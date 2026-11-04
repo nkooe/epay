@@ -28,14 +28,39 @@ final class ServiceSupervisor
         if($count!==1)return false;
         $this->ctl->instance('plugin','start',ServiceRegistry::instance($this->registry->get($row['id'])));return true;
     }
+    private function collect(array $results,$deadline)
+    {
+        foreach($results as $result){
+            if(hrtime(true)>=$deadline)break;
+            $instance=$result['id'];
+            if(!preg_match('/^([a-f0-9]{32})g([1-9][0-9]{0,8})$/D',$instance,$match))throw new \RuntimeException('已完成插件实例编号无效');
+            $unit=$result['unit'];
+            if(!in_array($unit['active_state'],['inactive','failed'],true))throw new \RuntimeException('插件结果尚未结束，拒绝回收');
+            $this->db->pdo->beginTransaction();
+            try{
+                $row=$this->db->row('SELECT * FROM pre_plugin_service WHERE id=?'.$this->db->lockClause(),[$match[1]]);
+                if($row&&(int)$row['generation']===(int)$match[2]){
+                    $success=$unit['result']==='success'&&(int)$unit['exit_status']===0;
+                    $message=$success?null:($row['last_error']?:'本轮任务进程异常退出，下轮继续');
+                    $observed=!(int)$row['desired']?'stopped':($success?'idle':'backoff');
+                    $finished=$row['token']===null&&in_array($row['observed'],['idle','backoff','stopped'],true)&&$row['heartbeat_at']!==null?$row['heartbeat_at']:date('Y-m-d H:i:s');
+                    $this->db->query('UPDATE pre_plugin_service SET observed=?,token=NULL,heartbeat_at=?,last_error=? WHERE id=? AND generation=?',[$observed,$finished,$message,$row['id'],$row['generation']]);
+                    $this->db->query("UPDATE pre_service_operation SET state=?,finished_at=?,message=? WHERE service_id=? AND state='starting'",[$success?'completed':'failed',date('Y-m-d H:i:s'),mb_substr(Controller::redact($message?:'本轮处理完成'),0,1000),$row['id']]);
+                }
+                $this->db->pdo->commit();
+            }catch(\Throwable $e){if($this->db->pdo->inTransaction())$this->db->pdo->rollBack();throw $e;}
+            $this->ctl->instance('plugin','ack',$instance);
+        }
+    }
     public function tick($draining=false)
     {
         $deadline=hrtime(true)+4000000000;
+        $completed=$this->ctl->pluginResults();$this->collect($completed['results'],$deadline);
         $reserved="(token IS NOT NULL OR observed IN ('starting','waiting','running','draining'))";
         $active=$this->db->all('SELECT * FROM pre_plugin_service WHERE '.$reserved.' ORDER BY id LIMIT 33');
         if(count($active)>32)throw new \RuntimeException('活动通道任务超过并发上限');
         $pending=$this->db->all("SELECT * FROM pre_plugin_service s WHERE NOT ".$reserved." AND (desired=1 OR EXISTS (SELECT 1 FROM pre_service_operation o WHERE o.service_id=s.id AND o.state IN ('pending','starting'))) ORDER BY COALESCE(heartbeat_at,started_at,'1970-01-01'),id LIMIT 16");
-        $liveCount=count($active);$this->registry->beginTurn();
+        $liveCount=max((int)$completed['active_count'],count($active));$this->registry->beginTurn();
         try{
             foreach(array_merge($active,$pending) as $row){
                 if(hrtime(true)>=$deadline)break;
@@ -43,10 +68,13 @@ final class ServiceSupervisor
                 $unit=(int)$row['generation']>0?$this->ctl->instance('plugin','status',ServiceRegistry::instance($row)):['active_state'=>'inactive','result'=>'unknown'];
                 $live=in_array($unit['active_state'],['active','activating','deactivating','reloading'],true);
                 $grace=$row['observed']==='starting'&&strtotime($row['started_at']??'1970-01-01')>time()-15;
-                $liveCount+=(($live||$grace)?1:0)-($counted?1:0);
                 $op=$this->db->row("SELECT * FROM pre_service_operation WHERE service_id=? AND state IN ('pending','starting') ORDER BY created_at,id LIMIT 1",[$row['id']]);
                 if($draining)continue;
                 try{
+                    if((int)$row['generation']>0&&in_array($unit['active_state'],['inactive','failed'],true)&&($unit['result']??'unknown')!=='unknown'){
+                        $this->collect([['id'=>ServiceRegistry::instance($row),'unit'=>$unit]],$deadline);
+                        continue;
+                    }
                     if(!(int)$row['desired']){
                         if($live){$this->ctl->instance('plugin','stop',ServiceRegistry::instance($row));$this->db->query("UPDATE pre_plugin_service SET observed='draining' WHERE id=?",[$row['id']]);}
                         else{
@@ -74,15 +102,9 @@ final class ServiceSupervisor
                         continue;
                     }
                     if($grace)continue;
-                    if((int)$row['generation']>0){
-                        $this->ctl->instance('plugin','ack',ServiceRegistry::instance($row));
-                        if($counted){
-                            $message=($unit['result']??'')==='success'?null:($row['last_error']?:'本轮任务进程异常退出，下轮继续');
-                            $this->db->query('UPDATE pre_plugin_service SET observed=?,token=NULL,heartbeat_at=?,last_error=? WHERE id=?',[$message===null?'idle':'backoff',date('Y-m-d H:i:s'),$message,$row['id']]);
-                            if($message!==null)error_log('通道 '.$row['channel_id'].'：'.Controller::redact($message));
-                            if($op)$this->operation($op,$message===null?'completed':'failed',$message?:'本轮处理完成');
-                            continue;
-                        }
+                    if((int)$row['generation']>0&&$counted){
+                        $this->collect([['id'=>ServiceRegistry::instance($row),'unit'=>$unit]],$deadline);
+                        continue;
                     }
                     if(!$changed&&(!$op||$op['state']!=='pending')&&strtotime($row['heartbeat_at']??'1970-01-01')>time()-Automatic::POLL_SECONDS)continue;
                     if($liveCount>=$this->limit)continue;

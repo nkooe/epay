@@ -90,11 +90,12 @@ final class Automatic
         $registry->beginTurn();
         $result = $registry->sync($plugin);
         $catalog = $registry->discover($plugin);
-        $invalid = array_column($catalog['errors'], 'channel_id');
+        $pending=array_fill_keys(array_column($this->db->all("SELECT DISTINCT o.service_id FROM pre_service_operation o INNER JOIN pre_plugin_service s ON s.id=o.service_id WHERE s.plugin=? AND o.state IN ('pending','starting')",[$plugin]),'service_id'),true);
         foreach ($this->db->all('SELECT * FROM pre_plugin_service WHERE plugin=? ORDER BY id', [$plugin]) as $before) {
             $item = $catalog['services'][$before['id']] ?? null;
 
             $enabled = $item && $item['channel_enabled'];
+            if((bool)$before['desired']===(bool)$enabled&&(!$enabled||hash_equals($before['digest'],$item['digest']))&&!isset($pending[$before['id']]))continue;
             $this->db->pdo->beginTransaction();
             try {
                 $row = $this->db->row('SELECT * FROM pre_plugin_service WHERE id=?'.$this->db->lockClause(), [$before['id']]);

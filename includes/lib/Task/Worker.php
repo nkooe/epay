@@ -53,7 +53,7 @@ final class Worker
                         if(!$probeBusy&&!$this->reapBacklog&&hrtime(true)<$deadline&&count($this->children)<$this->config['concurrency'])$this->dispatch($deadline);
                         if(hrtime(true)<$deadline&&time()-$this->lastSync>=Automatic::POLL_SECONDS){
                             $syncEnd=min($deadline,hrtime(true)+2000000000);
-                            for($i=0;$i<32&&hrtime(true)<$syncEnd;$i++){$this->syncChannel();if($this->syncCursor===0)break;}
+                            for($i=0;$i<128&&hrtime(true)<$syncEnd;$i++){$this->syncChannel();if($this->syncCursor===0)break;}
                         }
                     }
 

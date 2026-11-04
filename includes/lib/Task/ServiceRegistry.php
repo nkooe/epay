@@ -16,6 +16,7 @@ final class ServiceRegistry
         $groups=[];$errors=[];$manifests=[];$digests=[];$children=[];
         $channels=$plugin===null?$this->db->all('SELECT id,name,plugin,status,config FROM pre_channel ORDER BY id'):
             $this->db->all('SELECT id,name,plugin,status,config FROM pre_channel WHERE plugin=? ORDER BY id',[$plugin]);
+        $childRows=null;$byChannel=[];$byPlugin=[];$pluginsByChannel=array_column($channels,'plugin','id');
         foreach($channels as $channel){
             try{
                 $directory=Manifest::directory($this->plugins,$channel['plugin']);
@@ -23,8 +24,13 @@ final class ServiceRegistry
                 if(!$manifest['services'])continue;
                 $code=$digests[$channel['plugin']]??($digests[$channel['plugin']]=Manifest::digest($directory));$config=json_decode($channel['config']?:'{}',true);if(!is_array($config))$config=[];
                 foreach($manifest['services'] as $spec){
+                    if($childRows===null&&in_array($spec['scope'],['target','plugin'],true)){
+                        $childRows=$plugin===null?$this->db->all('SELECT id,channel,name,status,info FROM pre_subchannel ORDER BY channel,id'):
+                            $this->db->all('SELECT B.id,B.channel,B.name,B.status,B.info FROM pre_subchannel B INNER JOIN pre_channel A ON B.channel=A.id WHERE A.plugin=? ORDER BY B.channel,B.id',[$plugin]);
+                        foreach($childRows as $child){$byChannel[$child['channel']][]=$child;if(isset($pluginsByChannel[$child['channel']]))$byPlugin[$pluginsByChannel[$child['channel']]][]=$child;}
+                    }
                     if($spec['scope']==='target'){
-                        $subchannels=$this->db->all('SELECT id,channel,name,status,info FROM pre_subchannel WHERE channel=? ORDER BY id',[$channel['id']]);
+                        $subchannels=$byChannel[$channel['id']]??[];
                         foreach(self::targets([$channel],$subchannels) as $target){
                             $resource='target:'.$target['channel_id'].':'.$target['subchannel_id'];
                             $id=substr(hash('sha256',$channel['plugin'].':'.$spec['key'].':'.$resource),0,32);
@@ -39,7 +45,7 @@ final class ServiceRegistry
                     $resource='plugin:'.$channel['id'];
                     if($spec['scope']==='plugin'){
                         $resource='plugin-group:'.$channel['plugin'];
-                        if(!isset($children[$channel['plugin']]))$children[$channel['plugin']]=$this->db->all('SELECT B.id,B.channel,B.name,B.status,B.info FROM pre_subchannel B INNER JOIN pre_channel A ON B.channel=A.id WHERE A.plugin=? ORDER BY B.channel,B.id',[$channel['plugin']]);
+                        if(!isset($children[$channel['plugin']]))$children[$channel['plugin']]=$byPlugin[$channel['plugin']]??[];
                     }
                     if($spec['scope']==='shared'){
                         $value=$config[$spec['resource_field']]??null;
@@ -102,8 +108,9 @@ final class ServiceRegistry
     public function sync($plugin=null)
     {
         $catalog=$this->discover($plugin);$created=0;
+        $existing=array_fill_keys(array_column($plugin===null?$this->db->all('SELECT id FROM pre_plugin_service'):$this->db->all('SELECT id FROM pre_plugin_service WHERE plugin=?',[$plugin]),'id'),true);
         foreach($catalog['services'] as $item){
-            if($this->db->row('SELECT id FROM pre_plugin_service WHERE id=?',[$item['id']]))continue;
+            if(isset($existing[$item['id']]))continue;
             $this->db->insert('plugin_service',array_intersect_key($item,array_flip(['id','channel_id','plugin','service_key','name','resource_key','digest'])));$created++;
         }
         return ['created'=>$created,'errors'=>$catalog['errors']];

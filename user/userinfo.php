@@ -89,7 +89,8 @@ if(!$conf['apiurl'])$conf['apiurl'] = $siteurl;
 					</div>
 				</div>
 				<div class="form-group">
-				  <div class="col-sm-offset-2 col-sm-4"><a href="/doc_old.html" class="btn btn-sm btn-info" target="_blank">查看V1开发文档</a>&nbsp;&nbsp;<a href="javascript:resetKey()" class="btn btn-sm btn-danger">重置商户MD5密钥</a>
+				  <div class="col-sm-offset-2 col-sm-9 merchant-api-actions"><a href="/doc_old.html" class="btn btn-sm btn-info" target="_blank">查看V1开发文档</a><a href="javascript:resetKey()" class="btn btn-sm btn-danger">重置商户MD5密钥</a>
+                    <button type="button" id="viewMerchantQr" class="btn btn-sm btn-default" data-configuration="<?php echo base64_encode(json_encode(['site'=>rtrim($conf['apiurl'],'/'),'pid'=>(int)$uid,'key'=>$userrow['key']], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR)); ?>"><i class="fa fa-qrcode" aria-hidden="true"></i> 查看商户二维码</button>
 				 </div>
 				</div>
 				<div class="line line-dashed b-b line-lg pull-in"></div>
@@ -158,11 +159,60 @@ if(!$conf['apiurl'])$conf['apiurl'] = $siteurl;
 </div>
     </div>
   </div>
+<?php if($mod==='api'){?>
+<div class="modal fade" id="merchantQrModal" tabindex="-1" role="dialog" aria-labelledby="merchantQrTitle" aria-hidden="true">
+  <div class="modal-dialog merchant-qr-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="关闭"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="merchantQrTitle">商户二维码</h4>
+      </div>
+      <div class="modal-body">
+        <div id="merchantQrImage" class="merchant-qr-image" role="img" aria-label="商户信息二维码，内容为 Base64 格式"></div>
+        <p id="merchantQrError" class="text-danger text-center" role="alert" hidden></p>
+      </div>
+      <div class="modal-footer merchant-qr-actions">
+        <button type="button" id="merchantQrCopy" class="btn btn-success">复制</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+<?php }?>
 <?php include 'foot.php';?>
 <script src="<?php echo $cdnpublic?>layer/3.1.1/layer.js"></script>
 <script src="<?php echo $cdnpublic?>clipboard.js/1.7.1/clipboard.min.js"></script>
+<?php if($mod==='api'){?>
+<script src="<?php echo $cdnpublic?>jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
+<?php }?>
 <script>
 $(document).ready(function(){
+    <?php if($mod==='api'){?>
+    var merchantQrModal = $('#merchantQrModal');
+    $('#viewMerchantQr').on('click', function() {
+        var image = $('#merchantQrImage').empty();
+        $('#merchantQrError').prop('hidden', true).text('');
+        $('#merchantQrCopy').prop('disabled', true);
+        try {
+            image.qrcode({width: 248, height: 248, text: $(this).attr('data-configuration')});
+            $('#merchantQrCopy').prop('disabled', false);
+        } catch (error) {
+            image.empty();
+            $('#merchantQrError').text('二维码生成失败，请刷新页面后重试').prop('hidden', false);
+        }
+        merchantQrModal.modal('show');
+    });
+    var merchantQrClipboard = new Clipboard('#merchantQrCopy', {
+        container: document.getElementById('merchantQrModal'),
+        text: function() { return $('#viewMerchantQr').attr('data-configuration'); }
+    });
+    merchantQrClipboard.on('success', function() { layer.msg('复制成功！', {icon: 1}); });
+    merchantQrClipboard.on('error', function() { layer.msg('复制失败，请允许浏览器访问剪贴板后重试', {icon: 2}); });
+    merchantQrModal.on('hidden.bs.modal', function() {
+        $('#merchantQrImage').empty();
+        $('#viewMerchantQr').focus();
+    });
+    <?php }?>
 	var items = $("select[default]");
 	for (i = 0; i < items.length; i++) {
 		$(items[i]).val($(items[i]).attr("default")||0);

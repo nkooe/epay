@@ -100,6 +100,16 @@ final class ProcessManager
     {
         if(($message['action']??'')==='status')return $this->status();
         if(($message['action']??'')==='drain'){$this->drain();return ['accepted'=>true];}
+        if(($message['action']??'')==='plugin-results'){
+            $active=0;$results=[];
+            foreach($this->children as $child)if($child['kind']==='plugin')$active++;
+            foreach($this->finished as $key=>$result){
+                if(strpos($key,'plugin:')!==0||isset($result['retry_at']))continue;
+                $results[]=['id'=>substr($key,7),'unit'=>$result];
+                if(count($results)===32)break;
+            }
+            return ['active_count'=>$active,'results'=>$results];
+        }
         if(!preg_match('/^(job|plugin)-(start|stop|status|ack)$/D',$message['action']??'',$match))throw new \InvalidArgumentException('不支持的进程控制操作');
         $kind=$match[1];$action=$match[2];$id=$message['id']??null;
         if($kind==='job')Execution::id($id);

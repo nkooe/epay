@@ -22,6 +22,12 @@ final class Controller
     {
         return $this->config&&!empty(call_user_func($this->transport,$this->config,'status')['accepting']);
     }
+    public function pluginResults()
+    {
+        if($this->configError)throw new \RuntimeException($this->configError);
+        if(!$this->config)throw new \RuntimeException('请先在进程管理器启动本站主进程');
+        return call_user_func($this->transport,$this->config,'plugin-results');
+    }
     public function instance($kind,$action,$id)
     {
         if(!in_array($kind,['job','plugin'],true)||!in_array($action,['start','stop','status','logs','ack'],true))throw new \InvalidArgumentException('实例操作无效');
