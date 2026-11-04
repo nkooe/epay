@@ -561,6 +561,8 @@ case 'getSuccessRate':
 break;
 
 case 'testpay':
+    $testUid=(int)($conf['test_pay_uid']??0);
+    if($testUid<1||!$DB->getColumn('SELECT uid FROM pre_user WHERE uid=:uid LIMIT 1',[':uid'=>$testUid]))exit('{"code":-1,"msg":"测试收款商户不存在，请先创建商户并配置测试支付收款商户编号"}');
 	$channel=intval($_POST['channel']);
 	$subchannel=intval($_POST['subchannel']);
 	$param=!empty($_POST['param'])?trim($_POST['param']):null;

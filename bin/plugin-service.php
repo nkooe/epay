@@ -19,7 +19,7 @@ try{
     pcntl_signal(SIGALRM,static function(){throw new \lib\Task\ServiceFault('插件就绪、心跳或停止期限已超时');});
     pcntl_alarm($spec['ready_seconds']);
     \lib\Task\CliRuntime::business($db);
-    if($spec['scope']==='plugin'){
+    if(in_array($spec['scope'],['plugin','target'],true)){
         foreach($item['targets'] as $target){$value=$target['subchannel_id']?\lib\Channel::getSub($target['subchannel_id']):\lib\Channel::get($target['channel_id']);if(!$value)throw new \lib\Task\ServiceFault('通道配置无法加载');$channels[]=$value;}
     }else foreach($item['channels'] as $channel){$value=\lib\Channel::get($channel['id']);if(!$value)throw new \lib\Task\ServiceFault('通道配置无法加载');$channels[]=$value;}
     if(!$channels)throw new \lib\Task\ServiceFault('没有可监控的启用通道');
@@ -35,13 +35,15 @@ try{
     $GLOBALS['channel']=$channels[0];$stopMethod=$spec['on_stop'];$started=true;
     $class::{$spec['on_start']}($channels,$context);
     $class::{$spec['run']}($channels,$context);
-    if(!$context->stopRequested())throw new RuntimeException('插件持续运行入口意外返回');
+    if(!$context->isRound()&&!$context->stopRequested())throw new RuntimeException('插件持续运行入口意外返回');
+    if($context->businessError()!==null)throw new RuntimeException($context->businessError());
+    $db->query('UPDATE pre_plugin_service SET last_error=NULL WHERE id=? AND token=?',[$row['id'],$row['token']]);
     $exit=0;
 }catch(Throwable $e){
-    $exit=$e instanceof \lib\Task\ServiceStopped?0:($e instanceof \lib\Task\ServiceFault?78:1);
+    $exit=$e instanceof \lib\Task\ServiceStopped?0:1;
     if($exit!==0&&$row&&isset($db)){
-        try{$db->query("UPDATE pre_plugin_service SET observed=?,last_error=?,desired=? WHERE id=? AND token=?",
-            [$exit===78?'attention':'backoff',mb_substr(\lib\Task\Controller::redact($e->getMessage()),0,1000),$exit===78?0:$row['desired'],$row['id'],$row['token']]);}catch(Throwable $ignored){}
+        try{$db->query("UPDATE pre_plugin_service SET observed='backoff',last_error=? WHERE id=? AND token=?",
+            [mb_substr(\lib\Task\Controller::redact($e->getMessage()),0,1000),$row['id'],$row['token']]);}catch(Throwable $ignored){}
     }
     if($exit!==0)error_log('[epay-plugin] '.\lib\Task\Controller::redact($e->getMessage()));
 }finally{
@@ -49,10 +51,10 @@ try{
         pcntl_alarm($stopSeconds);
         try{if($started&&$stopMethod)$class::$stopMethod($channels,$context);}
         catch(Throwable $e){
-            $exit=78;error_log('[epay-plugin-stop] '.\lib\Task\Controller::redact($e->getMessage()));
-            try{$db->query("UPDATE pre_plugin_service SET desired=0,last_error=? WHERE id=? AND token=?",[mb_substr(\lib\Task\Controller::redact($e->getMessage()),0,1000),$row['id'],$row['token']]);}catch(Throwable $ignored){}
+            $exit=1;error_log('[epay-plugin-stop] '.\lib\Task\Controller::redact($e->getMessage()));
+            try{$db->query("UPDATE pre_plugin_service SET last_error=? WHERE id=? AND token=?",[mb_substr(\lib\Task\Controller::redact($e->getMessage()),0,1000),$row['id'],$row['token']]);}catch(Throwable $ignored){}
         }
-        if($row&&isset($db)){try{$db->query("UPDATE pre_plugin_service SET token=NULL,observed=CASE WHEN observed='attention' THEN observed ELSE ? END WHERE id=? AND token=?",[$exit===0?'stopped':($exit===78?'attention':'backoff'),$row['id'],$row['token']]);}catch(Throwable $ignored){}}
+        if($row&&isset($db)){try{$db->query("UPDATE pre_plugin_service SET token=NULL,observed=?,heartbeat_at=? WHERE id=? AND token=?",[$exit===0?'idle':'backoff',date('Y-m-d H:i:s'),$row['id'],$row['token']]);}catch(Throwable $ignored){}}
         $context->release();pcntl_alarm(0);
     }
 }

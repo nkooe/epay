@@ -635,7 +635,7 @@ function processOrderAccounting(&$srow){
 		}else{
 			changeUserMoney($srow['uid'], $addmoney, true, '在线收款', $srow['trade_no']);
 		}
-		if($conf['black_payact'] == 2){
+		if(($conf['black_payact']??0) == 2){
 			$black = $DB->find('blacklist', '*', ['type'=>0, 'content'=>$srow['buyer']], null, 1);
 			if($black){
 				$srow['black'] = true;
@@ -670,7 +670,7 @@ function processOrderAccounting(&$srow){
 		}else{
 			changeUserMoney($srow['uid'], $addmoney, true, '订单收入', $srow['trade_no']);
 		}
-		if($conf['black_payact'] > 0){
+		if(($conf['black_payact']??0) > 0){
 			$black = $DB->find('blacklist', '*', ['type'=>0, 'content'=>$srow['buyer']], null, 1);
 			if($black){
 				$srow['black'] = true;
@@ -683,7 +683,7 @@ function processOrderAccounting(&$srow){
 	}
 	if($srow['tid']==0 || $srow['tid']==3){
 		//邀请返现
-		if(!$conf['invite_mode']){
+		if(!($conf['invite_mode']??0)){
 			$upid = $DB->findColumn('user', 'upid', ['uid'=>$srow['uid']]);
 			if($upid > 0){
 				$upgid = $DB->findColumn('user', 'gid', ['uid'=>$upid]);
@@ -768,7 +768,7 @@ function sendOrderReceipt(array $srow){
 function processOrderAfterCommit(array $srow){
 	global $conf;
 	if(!empty($srow['black'])){
-		if($conf['black_payact'] == 2){
+		if(($conf['black_payact']??0) == 2){
 			$params = ['trade_no'=>$srow['trade_no'], 'money'=>$srow['realmoney'], 'key'=>md5($srow['trade_no'].SYS_KEY.$srow['trade_no'])];
 			get_curl($conf['localurl'].'api.php?act=refundapi', http_build_query($params));
 		}

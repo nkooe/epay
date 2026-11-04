@@ -39,9 +39,9 @@ final class SyncState
     public function status(array $account,$task=null)
     {
         $row=$this->get($account['id']);
-        $labels=['pending'=>'等待同步','running'=>'正在同步','waiting'=>'等待重试','blocked'=>'等待修复配置或权限','success'=>'同步成功'];
+        $labels=['pending'=>'等待同步','running'=>'正在同步','waiting'=>'等待重试','blocked'=>'等待下次同步','success'=>'同步成功'];
         $state=!(int)$account['enabled']?'paused':($row['state']??'pending');
-        if($state!=='paused'&&$task&&$task['last_status']==='failed')$state='attention';
+        if($state!=='paused'&&$task&&$task['last_status']==='failed')$state='waiting';
         return ['state'=>$state,'label'=>$state==='paused'?'已暂停':($state==='attention'?'同步任务需恢复':($labels[$state]??'等待同步')),
             'last_success_at'=>$row['last_success_at']??null,'last_count'=>(int)($row['last_count']??0),
             'processed'=>(int)($row['processed']??0),'failures'=>(int)($row['failures']??0),
@@ -53,9 +53,10 @@ final class SyncState
     public function failed($id,\Throwable $error,$local=false)
     {
         $row=$this->get($id);$failures=(int)$row['failures']+1;
-        $transient=$error instanceof TransientFailure||($error instanceof \lib\AdminApp\ApiError&&$error->status===409);
-        $delays=[60,300,900];$retry=$transient&&$failures<=count($delays);
-        $next=$retry?date('Y-m-d H:i:s',time()+$delays[$failures-1]):($local?date('Y-m-d H:i:s',time()+300):null);
-        $this->update($id,['state'=>$transient?'waiting':'blocked','failures'=>$failures,'last_error'=>self::message($error),'next_at'=>$next]);
+        $account=$this->db->row('SELECT channel FROM pre_complaint_account WHERE id=?',[$id]);
+        $task=$account?$this->db->row("SELECT * FROM pre_task WHERE action='complain' AND channel_id=?",[$account['channel']]):null;
+        $schedule=$task?:['schedule_type'=>'daily','interval_seconds'=>null,'daily_at'=>\lib\Task\Automatic::COMPLAINT_TIME];
+        $next=\lib\Task\Schedule::next($schedule,new \DateTimeImmutable('now',new \DateTimeZone('Asia/Shanghai')));
+        $this->update($id,['state'=>'waiting','failures'=>$failures,'last_error'=>self::message($error),'next_at'=>$next]);
     }
 }

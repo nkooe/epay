@@ -62,10 +62,6 @@ final class ProcessManager
             $kind=$child['kind'];$id=$child['id'];$stopped=$child['stopping'];$attempts=$child['attempts'];unset($child,$this->children[$key]);
             $this->finished[$key]=['active_state'=>$exit===0?'inactive':'failed','sub_state'=>'dead','result'=>$exit===0?'success':'exit-code','exit_status'=>$exit,'pid'=>0,'restarts'=>count($attempts),'at'=>time()];
             if($kind==='worker')$this->drain(!$this->stopping||$exit!==0);
-            if($kind==='plugin'&&!$this->stopping&&!$stopped&&$exit!==0&&$exit!==78){
-                $attempts=array_values(array_filter($attempts,static function($time){return $time>time()-120;}));
-                if(count($attempts)<5){$attempts[]=time();$this->finished[$key]+=['retry_at'=>time()+5,'attempts'=>$attempts,'kind'=>$kind,'id'=>$id];$this->finished[$key]['active_state']='activating';$this->finished[$key]['sub_state']='auto-restart';}
-            }
             $this->persist();
         }
         foreach($this->finished as $key=>$item){

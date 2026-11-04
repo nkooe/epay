@@ -56,6 +56,7 @@ final class Management
                 'data'=>json_encode(['service_id'=>$input['id'],'action'=>$input['action'],'operation_id'=>$data['operation_id']],JSON_UNESCAPED_UNICODE)]);
         } elseif ($method === 'GET' && $act === 'plugin_service_detail') {
             $row=$pluginServices->get($input['id']??null);
+            $listing=array_column($pluginServices->listing(),null,'id');$row=$listing[$row['id']]??$row;
             $row['automatic']=true;
             $row['poll_interval_seconds']=Automatic::POLL_SECONDS;
             $data=['service'=>array_diff_key($row,['token'=>true]),'unit'=>null,'text'=>'尚未启动'];

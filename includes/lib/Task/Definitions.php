@@ -3,6 +3,7 @@ namespace lib\Task;
 
 final class Definitions
 {
+    public static function automatic($task){return in_array(is_array($task)?$task['action']:$task,['plugin','complain'],true);}
     public static function all()
     {
         return [

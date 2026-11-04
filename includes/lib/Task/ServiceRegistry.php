@@ -21,8 +21,21 @@ final class ServiceRegistry
                 $directory=Manifest::directory($this->plugins,$channel['plugin']);
                 $manifest=$manifests[$channel['plugin']]??($manifests[$channel['plugin']]=Manifest::read($directory));
                 if(!$manifest['services'])continue;
-                $code=$digests[$channel['plugin']]??($digests[$channel['plugin']]=Manifest::digest($directory));$config=json_decode($channel['config']?:'{}',true,32,JSON_THROW_ON_ERROR);
+                $code=$digests[$channel['plugin']]??($digests[$channel['plugin']]=Manifest::digest($directory));$config=json_decode($channel['config']?:'{}',true);if(!is_array($config))$config=[];
                 foreach($manifest['services'] as $spec){
+                    if($spec['scope']==='target'){
+                        $subchannels=$this->db->all('SELECT id,channel,name,status,info FROM pre_subchannel WHERE channel=? ORDER BY id',[$channel['id']]);
+                        foreach(self::targets([$channel],$subchannels) as $target){
+                            $resource='target:'.$target['channel_id'].':'.$target['subchannel_id'];
+                            $id=substr(hash('sha256',$channel['plugin'].':'.$spec['key'].':'.$resource),0,32);
+                            $concrete=array_values(array_filter($subchannels,static function($child)use($target){return (int)$child['id']===$target['subchannel_id'];}));
+                            $groups[$id]=['id'=>$id,'channel_id'=>(int)$channel['id'],'plugin'=>$channel['plugin'],'service_key'=>$spec['key'],
+                                'name'=>mb_substr($spec['name'],0,35).' · 通道 '.$channel['id'].($target['subchannel_id']?' / '.$target['subchannel_id']:''),
+                                'resource_key'=>$resource,'spec'=>$spec,'channels'=>[$channel],'subchannels'=>$concrete,'targets'=>[$target],
+                                'channel_enabled'=>true,'code_digest'=>$code,'configuration_digest'=>self::configurationDigest([$channel],$concrete)];
+                        }
+                        continue;
+                    }
                     $resource='plugin:'.$channel['id'];
                     if($spec['scope']==='plugin'){
                         $resource='plugin-group:'.$channel['plugin'];
@@ -61,7 +74,7 @@ final class ServiceRegistry
         foreach($channels as $channel){
             if((int)$channel['status']!==1)continue;
             $enabled[(int)$channel['id']]=true;
-            $config=json_decode($channel['config']?:'{}',true,32,JSON_THROW_ON_ERROR);$template=false;
+            $config=json_decode($channel['config']?:'{}',true);if(!is_array($config))$config=[];$template=false;
             foreach($config as $value)if(is_string($value)&&preg_match('/^\[[^\[\]]+\]$/D',$value)){$template=true;break;}
 
             if(!$template)$targets[]=['channel_id'=>(int)$channel['id'],'subchannel_id'=>0];
@@ -73,8 +86,14 @@ final class ServiceRegistry
     {
         return hash('sha256',json_encode([$channels,$children],JSON_THROW_ON_ERROR));
     }
-    public function currentConfigurationDigest($plugin)
+    public function currentConfigurationDigest($plugin,$resource=null)
     {
+        if($resource!==null&&preg_match('/^target:([0-9]+):([0-9]+)$/D',$resource,$match)){
+            return self::configurationDigest(
+                $this->db->all('SELECT id,name,plugin,status,config FROM pre_channel WHERE plugin=? AND id=? ORDER BY id',[$plugin,$match[1]]),
+                $this->db->all('SELECT id,channel,name,status,info FROM pre_subchannel WHERE channel=? AND id=? ORDER BY id',[$match[1],$match[2]])
+            );
+        }
         return self::configurationDigest(
             $this->db->all('SELECT id,name,plugin,status,config FROM pre_channel WHERE plugin=? ORDER BY id',[$plugin]),
             $this->db->all('SELECT B.id,B.channel,B.name,B.status,B.info FROM pre_subchannel B INNER JOIN pre_channel A ON B.channel=A.id WHERE A.plugin=? ORDER BY B.channel,B.id',[$plugin])
@@ -114,7 +133,9 @@ final class ServiceRegistry
         foreach($rows as &$row){
             $item=$catalog['services'][$row['id']]??null;
             $row['changed']=!$item||!hash_equals($row['digest'],$item['digest']);
-            $row['healthy']=$row['observed']==='running'&&$row['ready_at']!==null&&$item&&$item['channel_enabled']&&strtotime($row['heartbeat_at']??'1970-01-01')>=time()-$item['spec']['heartbeat_seconds'];
+            $row['healthy']=(int)$row['desired']===1&&$item&&$item['channel_enabled'];
+            $row['last_result']=$row['last_error']!==null?'failed':($row['heartbeat_at']!==null?'success':'pending');
+            $row['next_run_at']=$row['healthy']&&$row['observed']!=='running'?date('Y-m-d H:i:s',max(time(),strtotime($row['heartbeat_at']??'1970-01-01')+Automatic::POLL_SECONDS)):null;
             $row['channels']=$item?array_map(static function($c){return ['id'=>$c['id'],'name'=>$c['name']];},$item['channels']):[];
             $row['automatic']=true;
             $row['channel_enabled']=$item ? $item['channel_enabled'] : false;
@@ -122,7 +143,7 @@ final class ServiceRegistry
             $row['operation']=$this->db->row('SELECT id,action,state,message FROM pre_service_operation WHERE service_id=? ORDER BY created_at DESC,id DESC LIMIT 1',[$row['id']]);
             unset($row['token']);
         }
-        unset($row);return $rows;
+        unset($row);return array_values(array_filter($rows,static function($r){return $r['channel_enabled']||in_array($r['observed'],['running','starting','draining','waiting'],true)||(int)$r['desired']===1;}));
     }
     public function submit(array $input)
     {
@@ -143,9 +164,10 @@ final class ServiceRegistry
             if(!$row)throw new ApiError('插件服务不存在',404);
             if((int)$row['revision']!==$revision)throw new ApiError('服务配置已更新，请刷新',409);
             if($this->db->row("SELECT id FROM pre_service_operation WHERE service_id=? AND state IN ('pending','starting')",[$id]))throw new ApiError('上次启停尚未完成',409);
+            if(strpos($row['resource_key'],'target:')===0&&in_array($action,['start','stop'],true))throw new ApiError('请在支付通道管理中启用或关闭通道',409);
             if($action!=='stop'){
                 $this->resolve($row,$action==='refresh');
-                if($row['observed']==='attention'&&$action!=='refresh')throw new ApiError('请先核查故障，再应用配置恢复',409);
+
             }
             $this->db->insert('service_operation',['id'=>$operation,'service_id'=>$id,'revision'=>$revision,'action'=>$action,'state'=>'pending','created_at'=>date('Y-m-d H:i:s')]);
             $this->db->query('UPDATE pre_plugin_service SET revision=revision+1,desired=? WHERE id=? AND revision=?',[$action==='stop'?0:1,$id,$revision]);

@@ -41,7 +41,7 @@ final class Worker
         $this->log('调度启动 '.$this->config['service']);
         try{
             do{
-                if(hrtime(true)-$this->lastBeat>=2000000000){
+                if(hrtime(true)-$this->lastBeat>=1000000000){
                     $deadline=hrtime(true)+8000000000;
                     $this->reap($deadline);
 
@@ -51,7 +51,10 @@ final class Worker
                     if(!$this->stopping&&$accepting){
                         $probeBusy=Health::tick($this->db,$this->controller,$this->token,!$this->reapBacklog&&count($this->children)<$this->config['concurrency']);
                         if(!$probeBusy&&!$this->reapBacklog&&hrtime(true)<$deadline&&count($this->children)<$this->config['concurrency'])$this->dispatch($deadline);
-                        if(hrtime(true)<$deadline&&time()-$this->lastSync>=Automatic::POLL_SECONDS)$this->syncChannel();
+                        if(hrtime(true)<$deadline&&time()-$this->lastSync>=Automatic::POLL_SECONDS){
+                            $syncEnd=min($deadline,hrtime(true)+2000000000);
+                            for($i=0;$i<32&&hrtime(true)<$syncEnd;$i++){$this->syncChannel();if($this->syncCursor===0)break;}
+                        }
                     }
 
 
@@ -95,13 +98,14 @@ final class Worker
             $this->db->query("INSERT INTO pre_config(k,v) VALUES ('task_channel_scan',?) ON DUPLICATE KEY UPDATE v=VALUES(v)",[$this->token]);
             $this->syncCursor=0;$this->syncedPlugins=[];$this->retiredTaskCursor=0;$this->retiredPluginCursor='';$this->lastSync=time();return;
         }
-        $synced=$automatic->channel($channel);
-        $errors=$synced['errors'];
-        if(!isset($this->syncedPlugins[$channel['plugin']])){
-            $services=$automatic->services($channel['plugin']);
-            $errors=array_merge($errors,$services['errors']);$this->syncedPlugins[$channel['plugin']]=true;
-        }
-        foreach($errors as $error)$this->log('plugin channel='.$error['channel_id'].': '.$error['error']);
+        try{
+            $synced=$automatic->channel($channel);$errors=$synced['errors'];
+            if(!isset($this->syncedPlugins[$channel['plugin']])){
+                $services=$automatic->services($channel['plugin']);$errors=array_merge($errors,$services['errors']);$this->syncedPlugins[$channel['plugin']]=true;
+            }
+            foreach($errors as $error)$this->log('通道 '.$error['channel_id'].'：'.$error['error']);
+        }catch(\PDOException $e){throw $e;}
+        catch(\Throwable $e){$this->log('通道 '.$channel['id'].' 自动接管失败：'.$e->getMessage().'；下轮继续');}
         $this->syncCursor=(int)$channel['id'];
     }
     private function dispatch($deadline)
@@ -114,13 +118,13 @@ final class Worker
         foreach($requests as $request){
             if(++$examined>8||hrtime(true)>=$deadline)return;
             $task=$this->db->row('SELECT * FROM pre_task WHERE id=?',[$request['task_id']]);
-            if(!$task||(int)$task['revision']!==(int)$request['revision']||$task['lock_token']!==null||$task['last_status']==='failed'){
+            if(!$task||(int)$task['revision']!==(int)$request['revision']||$task['lock_token']!==null||($task['last_status']==='failed'&&!Definitions::automatic($task))){
                 $this->db->query("UPDATE pre_task_request SET state='rejected',finished_at=?,message='任务已更新或需核查' WHERE id=? AND state='pending'",[date('Y-m-d H:i:s'),$request['id']]);continue;
             }
             if(!$this->resourceFree($task)||isset($this->children[$task['id']]))continue;
             $this->spawn($task,$request,$tasks,$registry);return;
         }
-        $due=$this->db->all("SELECT * FROM pre_task WHERE enabled=1 AND next_run_at<=? AND lock_token IS NULL AND last_status<>'failed'
+        $due=$this->db->all("SELECT * FROM pre_task WHERE enabled=1 AND next_run_at<=? AND lock_token IS NULL AND (last_status<>'failed' OR action IN ('plugin','complain'))
             ORDER BY CASE WHEN action IN ('notify','notify2') THEN 0 ELSE 1 END,next_run_at,id LIMIT 16",[date('Y-m-d H:i:s')]);
         $examined=0;
         foreach($due as $task){
@@ -139,8 +143,10 @@ final class Worker
             }
         }catch(\PDOException $e){throw $e;}
         catch(\Throwable $e){
-            $this->db->query("UPDATE pre_task SET enabled=0,next_run_at=NULL,last_status='failed',last_error=? WHERE id=? AND revision=?",
-                [mb_substr(Controller::redact($e->getMessage()),0,1000),$task['id'],$task['revision']]);
+            $enabled=Definitions::automatic($task)&&(int)$this->db->value('SELECT status FROM pre_channel WHERE id=?',[$task['channel_id']])===1;
+            $next=$enabled?Schedule::next($task,new \DateTimeImmutable('now',new \DateTimeZone('Asia/Shanghai'))):null;
+            $this->db->query("UPDATE pre_task SET enabled=?,next_run_at=?,last_status='failed',last_error=? WHERE id=? AND revision=?",
+                [(int)$enabled,$next,mb_substr(Controller::redact($e->getMessage()),0,1000),$task['id'],$task['revision']]);
             if($request)$this->db->query("UPDATE pre_task_request SET state='rejected',finished_at=?,message='能力校验失败，请核查' WHERE id=?",[date('Y-m-d H:i:s'),$request['id']]);
             return;
         }

@@ -27,7 +27,7 @@ final class Dispatch
         $task=$tasks->get($id);
         $tasks->assertAvailable($task);
         if((int)$task['revision']!==$revision)throw new ApiError('任务已更新，请刷新',409);
-        if($task['lock_token']!==null||$task['last_status']==='failed')throw new ApiError('请先核查执行状态后恢复',409);
+        if($task['lock_token']!==null||($task['last_status']==='failed'&&!Definitions::automatic($task)))throw new ApiError('请先核查执行状态后恢复',409);
         $this->db->pdo->beginTransaction();
         try{
             if($this->db->row("SELECT id FROM pre_task_request WHERE task_id=? AND revision=?",[$id,$revision]))throw new ApiError('该版本任务已提交，请刷新查看结果',409);

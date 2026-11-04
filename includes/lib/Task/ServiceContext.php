@@ -6,7 +6,7 @@ use lib\AdminApp\Store;
 
 final class ServiceContext
 {
-    private $db;private $row;private $spec;private $stop=false;private $ready=false;private $locks=[];private $namespace;private $configurationDigest;private $channels;private $children;private $codeDigest;
+    private $businessError;private $db;private $row;private $spec;private $stop=false;private $ready=false;private $locks=[];private $namespace;private $configurationDigest;private $channels;private $children;private $codeDigest;
     public function __construct(Store $db,array $row,array $item)
     {
         $this->db=$db;$this->row=$row;$this->spec=$item['spec'];
@@ -14,7 +14,7 @@ final class ServiceContext
         $this->channels=$item['channels'];$this->children=$item['subchannels']??[];$this->codeDigest=$item['code_digest']??null;
         $this->namespace=$db->value('SELECT DATABASE()').':'.$db->tablePrefix();
         $resources=[$row['resource_key']];
-        foreach($item['channels'] as $channel)$resources[]='plugin:'.$channel['id'];
+        if($this->spec['scope']!=='target')foreach($item['channels'] as $channel)$resources[]='plugin:'.$channel['id'];
         $resources=array_unique($resources);sort($resources);
         try{
             foreach($resources as $resource){
@@ -32,12 +32,15 @@ final class ServiceContext
         if(!$row||!(int)$row['desired']||(int)$row['revision']!==(int)$this->row['revision']||$row['token']!==$this->row['token']||!$worker['healthy'])$this->requestStop();
         return $this->stop;
     }
+    public function businessError(){return $this->businessError;}
+    public function recordFailure($message){$this->businessError=mb_substr(Controller::redact($message),0,1000);$this->write('last_error=?',[$this->businessError]);}
+    public function isRound(){return $this->spec['scope']==='target';}
     public function requestStop(){if(!$this->stop){$this->stop=true;pcntl_alarm($this->spec['stop_seconds']);}}
 
     public function checkpoint()
     {
         if($this->stopRequested())throw new ServiceStopped('服务正在停止');
-        if($this->configurationDigest!==null&&!hash_equals($this->configurationDigest,(new ServiceRegistry($this->db))->currentConfigurationDigest($this->row['plugin'])))throw new ServiceFault('主通道或子通道配置已变化，请应用配置后重新启动');
+        if($this->configurationDigest!==null&&!hash_equals($this->configurationDigest,(new ServiceRegistry($this->db))->currentConfigurationDigest($this->row['plugin'],$this->row['resource_key'])))throw new ServiceStopped('通道配置已变化，下轮使用新配置');
     }
 
     public function saveCredentials(array $target,array $updates,array $allowed,$childOverrides=false)
@@ -71,7 +74,7 @@ final class ServiceContext
                 if($count!==1)throw new ServiceFault('凭据刷新期间配置发生变化');
             }
 
-            if(!hash_equals(ServiceRegistry::configurationDigest($channels,$children),(new ServiceRegistry($this->db))->currentConfigurationDigest($this->row['plugin'])))throw new ServiceFault('凭据刷新期间其他通道配置发生变化');
+            if(!hash_equals(ServiceRegistry::configurationDigest($channels,$children),(new ServiceRegistry($this->db))->currentConfigurationDigest($this->row['plugin'],$this->row['resource_key'])))throw new ServiceFault('凭据刷新期间其他通道配置发生变化');
             if($digest!==$this->row['digest']){
                 $count=$this->db->query('UPDATE pre_plugin_service SET digest=? WHERE id=? AND token=? AND revision=? AND desired=1 AND digest=?',[$digest,$this->row['id'],$this->row['token'],$this->row['revision'],$this->row['digest']])->rowCount();
                 if($count!==1)throw new ServiceFault('凭据刷新期间服务代次发生变化');

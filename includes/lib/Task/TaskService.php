@@ -46,6 +46,7 @@ final class TaskService
 
     public function assertAvailable(array $task)
     {
+        if(Definitions::automatic($task)&&(int)$this->db->value('SELECT status FROM pre_channel WHERE id=?',[$task['channel_id']])!==1)throw new ApiError('通道已关闭，不再处理任务',409);
         if($reason=Definitions::unavailable($task['action']))throw new ApiError($reason,409);
         if($task['action']==='plugin' && $this->registry){
             try{$job=$this->registry->resolve($task['channel_id'],$task['job_key'],$task['plugin']);}
@@ -144,7 +145,7 @@ final class TaskService
         $identity = ['action'=>$input['action'], 'channel_id'=>$definition['channel'] ? $params['channel'] : 0,
             'source'=>$input['action'] === 'complain' ? $params['source'] : 0];
         $identity['job_key'] = $input['action'] === 'plugin' ? $params['job'] : '';
-        $identity['plugin'] = '';
+        $identity['plugin'] = !$enabled&&$id?($this->get($id)['plugin']??''):'';
         if ($input['action'] === 'plugin' && $this->registry !== null) {
             $existing = $id ? $this->get($id) : null;
             if ($existing && !$enabled) $identity['plugin'] = $existing['plugin'];
@@ -244,7 +245,7 @@ final class TaskService
             $task = $this->get($id);
             if ($revision !== null && (int)$task['revision'] !== $revision) throw new ApiError('任务已执行或配置已更新，请刷新', 409);
             if ($task['lock_token'] !== null) throw new ApiError('上次执行未正常结束，请核查后恢复；不能自动重试', 409);
-            if ($task['last_status'] === 'failed') throw new ApiError('任务上次执行失败，请核查后恢复', 409);
+            if (($task['last_status'] === 'failed' && !Definitions::automatic($task))) throw new ApiError('任务上次执行失败，请核查后恢复', 409);
             $now = self::now();
             if ($origin === 'scheduler' && (!(int)$task['enabled'] || $task['next_run_at'] === null || $task['next_run_at'] > $now->format('Y-m-d H:i:s'))) {
                 return ['status'=>'not_due', 'task_id'=>(int)$id];
@@ -304,11 +305,12 @@ final class TaskService
         $now = self::now();
         $summary = self::text($this->output, 2000);
         $status = $error === null ? 'success' : 'failed';
-        $next = $error === null && (int)$active['task']['enabled'] ? Schedule::next($active['task'], $now) : null;
+        if(Definitions::automatic($active['task'])&&(int)$this->db->value('SELECT status FROM pre_channel WHERE id=?',[$active['task']['channel_id']])!==1)$active['task']['enabled']=0;
+        $next = ($error === null || Definitions::automatic($active['task'])) && (int)$active['task']['enabled'] ? Schedule::next($active['task'], $now) : null;
         if($next!==null&&$active['task']['action']==='complain')$next=(new \lib\Complaint\SyncState($this->db))->nextForChannel($active['task']['channel_id'],$next);
         $this->transaction(function () use ($active, $now, $summary, $status, $error, $next) {
             $changed = $this->db->query('UPDATE pre_task SET last_status=?,finished_at=?,last_summary=?,last_error=?,enabled=?,next_run_at=?,lock_token=NULL,lock_expires_at=NULL,revision=revision+1 WHERE id=? AND lock_token=?',
-                [$status, $now->format('Y-m-d H:i:s'), $summary, $error, $error === null ? $active['task']['enabled'] : 0, $next, $active['id'], $active['token']])->rowCount();
+                [$status, $now->format('Y-m-d H:i:s'), $summary, $error, ($error === null || Definitions::automatic($active['task'])) ? $active['task']['enabled'] : 0, $next, $active['id'], $active['token']])->rowCount();
             if ($changed !== 1) throw new \RuntimeException('执行锁归属已变化，拒绝覆盖任务结果');
             $changed = $this->db->query("UPDATE pre_task_run SET status=?,finished_at=?,summary=?,error=? WHERE task_id=? AND token=? AND status='running'",
                 [$status, $now->format('Y-m-d H:i:s'), $summary, $error, $active['id'], $active['token']])->rowCount();

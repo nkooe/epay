@@ -23,7 +23,7 @@ final class PaymentMonitor
         global $DB;
         if((int)$DB->getColumn('SELECT 1')!==1)throw new \RuntimeException('监控数据库检查失败');
         $context->checkpoint();$context->ready();
-        echo $plugin.' 监控就绪，目标='.count(self::$targets).'；空闲时不探测支付接口'.PHP_EOL;
+        if(!$context->isRound())echo $plugin.' 监控就绪，目标='.count(self::$targets).PHP_EOL;
     }
     public static function targets(array $channels)
     {
@@ -35,7 +35,7 @@ final class PaymentMonitor
         while(!$context->stopRequested()){
             $started=microtime(true);$context->checkpoint();
             $cycle(self::targets($channels),$state);
-            $context->checkpoint();if(!$context->heartbeat())break;
+            $context->checkpoint();if(!$context->heartbeat()||$context->isRound())break;
             $until=$started+$interval;
             while(microtime(true)<$until&&!$context->stopRequested())usleep(100000);
         }
@@ -85,12 +85,19 @@ final class PaymentMonitor
             if($DB->getColumn('SELECT trade_no FROM pre_order WHERE api_trade_no=:flow AND status=1 LIMIT 1',[':flow'=>$flow]))return;
             $channel=(int)$fresh['subchannel']?\lib\Channel::getSub((int)$fresh['subchannel']):\lib\Channel::get((int)$fresh['channel']);
             if(!$channel||$channel['plugin']!==self::$plugin)throw new ServiceFault('订单插件归属已变化');
-            \processNotify($order,...$args);
+            try{\processNotify($order,...$args);}
+            catch(ServiceStopped $e){throw $e;}
+            catch(\Throwable $e){
+                self::$context->recordFailure('订单 '.$order['trade_no'].' 入账失败：'.$e->getMessage());
+                error_log('通道 '.(int)$order['channel'].' 订单 '.$order['trade_no'].' 入账失败：'.Controller::redact($e->getMessage()).'；后续订单继续处理');
+                return false;
+            }
+            return true;
         }finally{$DB->getColumn('SELECT RELEASE_LOCK(:lock_name)',[':lock_name'=>$lock]);}
     }
     public static function stop(array $channels,ServiceContext $context)
     {
-        echo self::$plugin.' 监控已停止'.PHP_EOL;
+        if(!$context->isRound())echo self::$plugin.' 监控已停止'.PHP_EOL;
         self::$context=null;self::$plugin=null;self::$targets=[];self::$activeTarget=null;
     }
     public static function requireFields(array $config,array $fields)

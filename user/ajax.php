@@ -23,6 +23,8 @@ case 'sysinfo':
 	exit(json_encode(['code'=>0, 'data'=>$data]));
 break;
 case 'testpay':
+    $testUid=(int)($conf['test_pay_uid']??0);
+    if($testUid<1||!$DB->getColumn('SELECT uid FROM pre_user WHERE uid=:uid LIMIT 1',[':uid'=>$testUid]))exit('{"code":-1,"msg":"测试收款商户不存在，请先创建商户并配置测试支付收款商户编号"}');
 	if(!$conf['test_open'])exit('{"code":-1,"msg":"未开启测试支付"}');
 	$money=trim($_POST['money']);
 	$typeid=intval($_POST['typeid']);

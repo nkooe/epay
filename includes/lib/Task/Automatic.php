@@ -39,8 +39,8 @@ final class Automatic
     public function complaints($channelId)
     {
         $states=new \lib\Complaint\SyncState($this->db);
-        foreach($this->db->all('SELECT a.*,c.plugin,c.config FROM pre_complaint_account a INNER JOIN pre_channel c ON c.id=a.channel WHERE a.channel=? AND a.enabled=1',[$channelId]) as $binding)$states->reconcile($binding);
-        $account = $this->db->row('SELECT id FROM pre_complaint_account WHERE channel=? AND enabled=1 LIMIT 1', [$channelId]);
+        foreach($this->db->all('SELECT a.*,c.plugin,c.config FROM pre_complaint_account a INNER JOIN pre_channel c ON c.id=a.channel WHERE a.channel=? AND a.enabled=1 AND c.status=1',[$channelId]) as $binding)$states->reconcile($binding);
+        $account = $this->db->row('SELECT a.id FROM pre_complaint_account a INNER JOIN pre_channel c ON c.id=a.channel WHERE a.channel=? AND a.enabled=1 AND c.status=1 LIMIT 1', [$channelId]);
         $row = $this->db->row("SELECT * FROM pre_task WHERE action='complain' AND channel_id=? AND source=1 AND job_key=''", [$channelId]);
         $tasks = new TaskService($this->db, [CronHandlers::class, 'execute']);
         if (!$row) {
@@ -57,7 +57,7 @@ final class Automatic
         if(!$row)return;
         $this->task($tasks, $row, $account ? 1 : 0);
         $row=$tasks->get($row['id']);
-        if($account&&(int)$row['enabled']&&$row['lock_token']===null&&$row['last_status']!=='failed'&&!$this->db->row('SELECT id FROM pre_task_execution WHERE active_task_id=?',[$row['id']])){
+        if($account&&(int)$row['enabled']&&$row['lock_token']===null&&!$this->db->row('SELECT id FROM pre_task_execution WHERE active_task_id=?',[$row['id']])){
             $next=$states->nextForChannel($channelId,Schedule::next($row,new \DateTimeImmutable('now',new \DateTimeZone('Asia/Shanghai'))));
             if($row['next_run_at']===null||$next<$row['next_run_at'])$this->db->query('UPDATE pre_task SET next_run_at=?,revision=revision+1 WHERE id=? AND revision=? AND lock_token IS NULL',[$next,$row['id'],$row['revision']]);
         }
@@ -75,12 +75,12 @@ final class Automatic
     {
         if ((int)$row['enabled'] === $enabled || $row['lock_token'] !== null) return;
 
-        if ($enabled && in_array($row['last_status'], ['failed', 'interrupted'], true)) return;
+
         if ($this->db->row('SELECT id FROM pre_task_execution WHERE active_task_id=?', [$row['id']])) return;
         try {
             $tasks->save(['id'=>$row['id'], 'revision'=>$row['revision'], 'action'=>$row['action'],
                 'params'=>Definitions::storedParams($row), 'enabled'=>$enabled, 'schedule_type'=>$row['schedule_type'],
-                'interval_seconds'=>$row['interval_seconds'], 'daily_at'=>$row['daily_at'], 'acknowledge_failure'=>0]);
+                'interval_seconds'=>$row['interval_seconds'], 'daily_at'=>$row['daily_at'], 'acknowledge_failure'=>1]);
         } catch (\lib\AdminApp\ApiError $e) { if ($e->status !== 409) throw $e; }
     }
 
@@ -94,7 +94,7 @@ final class Automatic
         foreach ($this->db->all('SELECT * FROM pre_plugin_service WHERE plugin=? ORDER BY id', [$plugin]) as $before) {
             $item = $catalog['services'][$before['id']] ?? null;
 
-            $enabled = $item && $item['channel_enabled'] && !$invalid;
+            $enabled = $item && $item['channel_enabled'];
             $this->db->pdo->beginTransaction();
             try {
                 $row = $this->db->row('SELECT * FROM pre_plugin_service WHERE id=?'.$this->db->lockClause(), [$before['id']]);
@@ -103,7 +103,7 @@ final class Automatic
                     $this->db->query("UPDATE pre_service_operation SET state='completed',finished_at=?,message='通道已停用，取消启动并停止旧实例' WHERE service_id=? AND state IN ('pending','starting')", [date('Y-m-d H:i:s'), $row['id']]);
                 } elseif (!$this->db->row("SELECT id FROM pre_service_operation WHERE service_id=? AND state IN ('pending','starting')", [$row['id']])) {
                     $changed = !hash_equals($row['digest'], $item['digest']);
-                    if ($changed || (!(int)$row['desired'] && $row['observed'] !== 'attention')) {
+                    if ($changed || !(int)$row['desired']) {
 
                         $this->db->insert('service_operation', ['id'=>bin2hex(random_bytes(16)), 'service_id'=>$row['id'],
                             'revision'=>$row['revision'], 'action'=>'refresh', 'state'=>'pending',

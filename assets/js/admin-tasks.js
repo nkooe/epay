@@ -22,7 +22,7 @@
   let serviceLogSequence = 0;
   let serviceLogDeleting = false;
   const expandedGroups = new Set();
-  const serviceNames = {stopped:'已停止',starting:'启动中',waiting:'等待业务就绪',running:'业务运行中',draining:'停止中',backoff:'重试等待',attention:'需人工核查'};
+  const serviceNames = {stopped:'已停止',starting:'启动中',waiting:'准备处理',running:'本轮处理中',idle:'等待下轮',draining:'停止中',backoff:'本轮失败，下轮继续',attention:'等待下轮'};
 
   function groupHeading(body, key, label, count, colspan) {
     const tr = node('tr', 'task-group');
@@ -38,7 +38,7 @@
     const operationId = Array.from(crypto.getRandomValues(new Uint8Array(16)), value => value.toString(16).padStart(2,'0')).join('');
     try {
       await request('plugin_service', {id:row.id,revision:row.revision,action,operation_id:operationId});
-      feedback('操作已排队，业务就绪后才显示运行正常。', false);
+      feedback('操作已排队，通道任务将自动处理。', false);
     } catch (error) { feedback(error.message, true); }
     await loadList();
   }
@@ -165,10 +165,11 @@
         if (row.automatic) info.append(node('span','task-secondary','随通道启停自动接管 · 默认每 3 秒处理'));
         const state = node('div','task-resident-state');
         state.append(node('span','task-status task-status-'+(row.healthy ? 'success' : row.observed === 'attention' ? 'failed':'idle'),
-          row.observed === 'running' && !row.healthy ? '业务心跳异常' : (serviceNames[row.observed] || '状态未知')));
+          serviceNames[row.observed] || '状态未知'));
         state.append(node('span','task-secondary',Number(row.desired) ? '期望：启用' : '期望：停用'));
         if (row.changed) state.append(node('span','task-secondary task-lock','配置或插件版本有变化'));
-        if (row.operation && ['pending','starting'].includes(row.operation.state)) state.append(node('span','task-secondary',row.operation.state === 'pending' ? '操作已排队' : '等待业务就绪'));
+        if (row.operation && ['pending','starting'].includes(row.operation.state)) state.append(node('span','task-secondary',row.operation.state === 'pending' ? '操作已排队' : '准备处理'));
+        if (row.next_run_at) state.append(node('span','task-secondary','下次处理：'+row.next_run_at));
         if (row.last_error) state.append(node('span','task-secondary task-error-excerpt',row.last_error));
         const buttons = node('div','task-row-actions');
         const pending = row.operation && ['pending','starting'].includes(row.operation.state);
@@ -177,7 +178,7 @@
           () => pluginAction(row,Number(row.desired) ? 'stop':'start'),unavailable || (!Number(row.desired) && (row.changed || row.observed === 'attention'))));
         const more = node('details','task-resident-more'); more.append(node('summary','','更多'));
         const menu = node('div','task-resident-menu');
-        [['重启','restart'],['应用配置 / 核查恢复','refresh']].forEach(([label,action]) => {
+        [['重新读取配置','refresh']].forEach(([label,action]) => {
           const button = node('button','',label);button.type='button';button.disabled=unavailable;
           button.addEventListener('click',() => { more.open=false;pluginAction(row,action); });menu.append(button);
         });
@@ -186,7 +187,7 @@
       });
       target.append(group);
     });
-    if(view==='services')byId('task-overview').textContent=pluginServices.length+' 项服务 · 运行 '+pluginServices.filter(row=>row.healthy).length+' · 需处理 '+pluginServices.filter(row=>row.observed==='attention').length;
+    if(view==='services')byId('task-overview').textContent=pluginServices.length+' 项服务 · 运行 '+pluginServices.filter(row=>row.healthy).length+' · 最近失败 '+pluginServices.filter(row=>row.last_error).length;
   }
 
   function node(tag, className, text) {

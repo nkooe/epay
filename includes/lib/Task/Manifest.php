@@ -43,7 +43,7 @@ final class Manifest
                     if(!in_array($item['idempotency'],['read_only','gateway_key','manual_review'],true))throw new \RuntimeException('任务必须声明幂等方式');
                 }else{
                     foreach(['on_start','run','on_stop'] as $key)self::method($item[$key]);
-                    if(!in_array($item['scope'],['channel','shared','plugin'],true)||!is_string($item['resource_field']))throw new \RuntimeException('服务范围无效');
+                    if(!in_array($item['scope'],['channel','shared','plugin','target'],true)||!is_string($item['resource_field']))throw new \RuntimeException('服务范围无效');
                     if($item['scope']==='shared'&&!preg_match('/^[a-zA-Z][a-zA-Z0-9_]{0,47}$/D',$item['resource_field']))throw new \RuntimeException('共享服务必须声明资源配置字段');
                     if($item['scope']!=='shared'&&$item['resource_field']!=='')throw new \RuntimeException('非共享服务不能声明共享资源字段');
                     foreach(['ready_seconds'=>[5,120],'heartbeat_seconds'=>[5,120],'stop_seconds'=>[1,25]] as $key=>$range)$item[$key]=Definitions::integer($item[$key],$range[0],$range[1],$key);

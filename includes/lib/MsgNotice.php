@@ -22,25 +22,28 @@ class MsgNotice
             }
         }else{
             $userrow = $DB->find('user', 'phone,email,wx_uid,codename,msgconfig,voice_order,voice_devid,print_order,print_config', ['uid'=>$uid]);
-            $userrow['msgconfig'] = unserialize($userrow['msgconfig']);
+            if(!$userrow){error_log('通知接收商户不存在：'.(int)$uid);return false;}
+            $raw=$userrow['msgconfig'];
+            $userrow['msgconfig']=$raw===null||$raw===''?[]:unserialize($raw,['allowed_classes'=>false]);
+            if(!is_array($userrow['msgconfig']))throw new \RuntimeException('商户通知配置格式错误');
 
-            if($conf['voicenotice'] == 1 && $scene == 'order' && $userrow['voice_order'] == 1 && $param['name']!='付款码收款'){
+            if(($conf['voicenotice']??0) == 1 && $scene == 'order' && $userrow['voice_order'] == 1 && $param['name']!='付款码收款'){
                 self::send_voice($userrow['voice_devid'], $param['type'], $param['money']);
             }
-            if($conf['orderprint'] == 1 && $scene == 'order' && ($userrow['print_order'] == 2 || $userrow['print_order'] == 1 && $param['tid']==3)){
+            if(($conf['orderprint']??0) == 1 && $scene == 'order' && ($userrow['print_order'] == 2 || $userrow['print_order'] == 1 && $param['tid']==3)){
                 $param['codename'] = $userrow['codename'];
                 $print_config = unserialize($userrow['print_config']);
                 (new Printer($conf['print_appid'], $conf['print_appsecret']))->print($print_config['devid'], $param, $print_config['count'], $print_config['voice']==1, true);
             }
 
-            if($scene == 'order' && $userrow['msgconfig']['order_money']>0 && $param['money']<$userrow['msgconfig']['order_money']) return false;
-            if($scene == 'balance') $param['msgmoney'] = $userrow['msgconfig']['balance_money'];
+            if($scene == 'order' && ($userrow['msgconfig']['order_money']??0)>0 && $param['money']<$userrow['msgconfig']['order_money']) return false;
+            if($scene == 'balance') $param['msgmoney'] = $userrow['msgconfig']['balance_money']??0;
 
-            if($userrow['msgconfig'][$scene] == 1 && !empty($userrow['wx_uid'])){
+            if(($userrow['msgconfig'][$scene]??0) == 1 && !empty($userrow['wx_uid'])){
                 self::send_wechat_tplmsg($scene, $userrow['wx_uid'], $param);
-            }elseif($userrow['msgconfig'][$scene] == 2 && !empty($userrow['email']) && self::getMessageSwitch($scene) == 1){
+            }elseif(($userrow['msgconfig'][$scene]??0) == 2 && !empty($userrow['email']) && self::getMessageSwitch($scene) == 1){
                 self::send_mail_msg($scene, $userrow['email'], $param);
-            }elseif($userrow['msgconfig'][$scene] == 3 && !empty($userrow['phone'])){
+            }elseif(($userrow['msgconfig'][$scene]??0) == 3 && !empty($userrow['phone'])){
                 if($scene == 'balance'){
                     $tpl_code = $conf['sms_tpl_balance'];
                     $tpl_param = ['code'=>$param['msgmoney']];
@@ -51,7 +54,7 @@ class MsgNotice
                 if(!empty($tpl_code)){
                     send_sms_common($userrow['phone'], $tpl_code, $tpl_param);
                 }
-            }elseif($userrow['msgconfig'][$scene] == 4 && !empty($userrow['msgconfig']['msgrobot_url']) && self::getMessageSwitch($scene) == 1){
+            }elseif(($userrow['msgconfig'][$scene]??0) == 4 && !empty($userrow['msgconfig']['msgrobot_url']) && self::getMessageSwitch($scene) == 1){
                 self::send_robot_msg($scene, $userrow['msgconfig']['msgrobot_url'], $param);
             }
             if($scene == 'group' && $conf['msgconfig_group'] == 1 && !empty($userrow['email'])){

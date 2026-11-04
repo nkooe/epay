@@ -327,6 +327,7 @@ final class Service
     public function syncChannel($channel,$source)
     {
         if((int)$source!==1)throw new \RuntimeException('当前投诉模块仅接入微信、支付宝标准投诉接口，来源请选择 1');
+        if((int)$this->db->value('SELECT status FROM pre_channel WHERE id=?',[(int)$channel])!==1)return '通道已关闭，停止投诉同步';
         $accounts=$this->db->all('SELECT * FROM pre_complaint_account WHERE channel=? AND enabled=1',[(int)$channel]);
         if(!$accounts)throw new \RuntimeException('该通道尚未配置已启用的投诉接口');
         $messages=[];
@@ -344,6 +345,7 @@ final class Service
         try{
             $gateway=$this->open($account);$local=false;$deadline=hrtime(true)+5000000000;$steps=0;$done=false;
             do{
+                if((int)$this->db->value('SELECT status FROM pre_channel WHERE id=?',[$account['channel']])!==1||(int)$this->db->value('SELECT enabled FROM pre_complaint_account WHERE id=?',[$account['id']])!==1){$states->update($account['id'],['state'=>'pending']);return '通道或投诉绑定已关闭，停止同步';}
                 if($cursor['phase']==='list'){
                     if($cursor['ids']===null){
                         $batch=$gateway->listing($cursor['from'],$cursor['to'],$cursor['page']);

@@ -34,7 +34,7 @@ final class Execution
         $this->db->pdo->beginTransaction();
         try {
             $current=$this->db->row('SELECT * FROM pre_task WHERE id=?'.$this->db->lockClause(),[$task['id']]);
-            if(!$current||(int)$current['revision']!==(int)$task['revision']||$current['lock_token']!==null||$current['last_status']==='failed')throw new ApiError('任务已变更或需核查',409);
+            if(!$current||(int)$current['revision']!==(int)$task['revision']||$current['lock_token']!==null||($current['last_status']==='failed'&&!Definitions::automatic($current)))throw new ApiError('任务已变更或需核查',409);
             if($this->db->row('SELECT id FROM pre_task_execution WHERE active_task_id=?',[$task['id']]))throw new ApiError('任务已派发',409);
             $this->db->insert('task_execution',['id'=>$id,'task_id'=>$task['id'],'active_task_id'=>$task['id'],'revision'=>$task['revision'],
                 'origin'=>$request?'admin':'scheduler','request_id'=>$request['id']??null,'resource_key'=>Definitions::resource($task),
@@ -65,12 +65,19 @@ final class Execution
         $success=$run['state']==='success'&&$history&&$history['status']==='success'&&($unit['result']??'')==='success'&&(int)($unit['exit_status']??-1)===0;
         $state=$success?'success':($run['state']==='rejected'?'rejected':'interrupted');
         if(!$success&&$run['state']==='failed')$state='failed';
-        $message=$run['message']?:'进程结束但结果未完整确认，已暂停；请核查业务结果';
+        $message=$run['message']?:'本轮任务进程异常退出，结果未完整确认';
         $this->db->pdo->beginTransaction();
         try {
             if(!$success&&$state!=='rejected'&&$task){
 
+                if(Definitions::automatic($task)){
+                    $enabled=(int)$task['enabled']&&(int)$this->db->value('SELECT status FROM pre_channel WHERE id=?',[$task['channel_id']])===1;
+                    $next=$enabled?Schedule::next($task,new \DateTimeImmutable('now',new \DateTimeZone('Asia/Shanghai'))):null;
+                    $this->db->query("UPDATE pre_task SET enabled=?,next_run_at=?,last_status='failed',last_error=?,lock_token=NULL,lock_expires_at=NULL,finished_at=?,revision=revision+1 WHERE id=? AND revision>=? AND (lock_token IS NULL OR lock_token=?)",[(int)$enabled,$next,mb_substr($message,0,1000),date('Y-m-d H:i:s'),$run['task_id'],$run['revision'],$run['id']]);
+                    $this->db->query("UPDATE pre_task_run SET status='interrupted',finished_at=?,error=? WHERE token=? AND status='running'",[date('Y-m-d H:i:s'),mb_substr($message,0,1000),$run['id']]);
+                }else{
                 $this->db->query("UPDATE pre_task SET enabled=0,next_run_at=NULL,last_status='failed',last_error=? WHERE id=? AND revision>=?",[mb_substr($message,0,1000),$run['task_id'],$run['revision']]);
+                }
             }
             $this->db->query('UPDATE pre_task_execution SET state=?,active_task_id=NULL,finished_at=?,message=? WHERE id=? AND active_task_id IS NOT NULL',[$state,date('Y-m-d H:i:s'),$success?'业务执行成功':$message,$run['id']]);
             if($run['request_id'])$this->db->query("UPDATE pre_task_request SET state=?,finished_at=?,message=? WHERE id=? AND state='running'",[$success?'completed':($state==='rejected'?'rejected':'failed'),date('Y-m-d H:i:s'),$success?'业务执行成功':$message,$run['request_id']]);

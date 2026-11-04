@@ -53,16 +53,7 @@ final class Health
         if(!$beat||$beat['state']!=='running'||strtotime($beat['heartbeat_at'])<time()-10)$faults[]=['code'=>'heartbeat','message'=>'调度心跳未就绪','action'=>'检查进程管理器是否启动，以及数据库连接和服务日志。'];
         if(!$beat||!$p||($p['worker']??'')!==$beat['token']||$p['state']!=='passed')$faults[]=['code'=>'child','message'=>'真实子任务尚未验收通过','action'=>'等待当前任务排空；若超过一分钟，检查命令行 PHP、子进程权限和服务日志后重新验收。'];
         if(!$beat||$db->value("SELECT v FROM pre_config WHERE k='task_channel_scan'")!==$beat['token'])$faults[]=['code'=>'catalog','message'=>'通道自动接管尚未完成首轮检查','action'=>'等待首轮通道检查完成；通道较多时请稍后重新验收。'];
-        $registry=new ServiceRegistry($db);$catalog=$registry->discover();
-        foreach($catalog['errors'] as $error)if((int)$db->value('SELECT status FROM pre_channel WHERE id=?',[$error['channel_id']])===1)$faults[]=['code'=>'channel','message'=>'通道 #'.$error['channel_id'].' 配置异常','action'=>$error['error']];
-        $plugins=array_column($db->all('SELECT id,name,desired,observed,ready_at,heartbeat_at,last_error,digest FROM pre_plugin_service'),null,'id');
-        foreach($catalog['services'] as $id=>$item){
-            if(!$item['channel_enabled'])continue;
-            $plugin=$plugins[$id]??null;
-            $healthy=$plugin&&$plugin['observed']==='running'&&$plugin['ready_at']!==null&&hash_equals($plugin['digest'],$item['digest'])&&strtotime($plugin['heartbeat_at']??'1970-01-01')>=time()-$item['spec']['heartbeat_seconds'];
-            if(!$healthy)$faults[]=['code'=>'plugin','message'=>'插件 '.$item['name'].' 未就绪','action'=>($plugin['last_error']??'')?:'检查对应通道凭据、网络连接和插件日志；并发不足时调整 --service-limit。'];
-        }
-        return ['healthy'=>!$faults,'message'=>$faults?$faults[0]['message']:'调度心跳、真实子任务与插件就绪已确认','faults'=>$faults,'checked_at'=>date('Y-m-d H:i:s')];
+        return ['healthy'=>!$faults,'message'=>$faults?$faults[0]['message']:'进程运行正常，调度心跳与子任务验收通过','faults'=>$faults,'checked_at'=>date('Y-m-d H:i:s')];
     }
     public static function verify(Store $db,$seconds=60)
     {
