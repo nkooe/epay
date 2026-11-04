@@ -17,11 +17,11 @@ final class ProcessChild
         if(!is_resource($process))throw new \RuntimeException('无法创建任务子进程');
         $status=proc_get_status($process);$pid=$status['pid'];
         foreach($pipes as $pipe)stream_set_blocking($pipe,false);
-        $logs->append($source,'进程启动');
         fwrite(STDOUT,json_encode(['pid'=>$pid])."\n");
         $stop=false;$termSent=false;$stopAt=null;$exit=null;$last=hrtime(true);$started=$last;$buffers=[1=>'',2=>'',3=>''];$discard=[1=>false,2=>false];
         pcntl_async_signals(true);pcntl_signal(SIGTERM,static function()use(&$stop){$stop=true;});pcntl_signal(SIGINT,static function()use(&$stop){$stop=true;});
         try{
+            $logs->append($source,'进程启动');
             while(true){
                 $status=proc_get_status($process);
                 if(!$status['running']){$exit=$status['signaled']?128+$status['termsig']:$status['exitcode'];break;}
