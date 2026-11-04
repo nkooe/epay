@@ -9,6 +9,7 @@ final class Worker
     private $lock;private $lastSync=0;private $lastBeat=0;
     private $controller;private $executions;private $services;private $progress;private $reapBacklog=false;private $reapCursor='';private $activeCount=0;
     private $syncCursor=0;private $syncedPlugins=[];private $retiredTaskCursor=0;private $retiredPluginCursor='';
+    private $dispatchCursors=[];
     public function __construct(Store $db,array $config,Controller $controller=null)
     {
         $this->db=$db;$this->config=$config;$this->token=bin2hex(random_bytes(16));
@@ -112,25 +113,35 @@ final class Worker
     {
         $registry=new PluginRegistry($this->db,$this->config['root'].'/plugins');
         $tasks=new TaskService($this->db,[CronHandlers::class,'execute'],$registry);
-        $requests=$this->db->all("SELECT r.*,t.action FROM pre_task_request r LEFT JOIN pre_task t ON t.id=r.task_id WHERE r.state='pending'
-            ORDER BY CASE WHEN t.action IN ('notify','notify2') THEN 0 ELSE 1 END,r.created_at,r.id LIMIT 16");
-        $examined=0;
-        foreach($requests as $request){
-            if(++$examined>8||hrtime(true)>=$deadline)return;
-            $task=$this->db->row('SELECT * FROM pre_task WHERE id=?',[$request['task_id']]);
-            if(!$task||(int)$task['revision']!==(int)$request['revision']||$task['lock_token']!==null||($task['last_status']==='failed'&&!Definitions::automatic($task))){
-                $this->db->query("UPDATE pre_task_request SET state='rejected',finished_at=?,message='任务已更新或需核查' WHERE id=? AND state='pending'",[date('Y-m-d H:i:s'),$request['id']]);continue;
+        foreach(['request_notify','due_notify','request_other','due_other'] as $lane){
+            if(hrtime(true)>=$deadline)return;
+            $manual=strpos($lane,'request_')===0;
+            $notify=substr($lane,-6)==='notify';
+            $field=$manual?'r.created_at':'next_run_at';
+            $id=$manual?'r.id':'id';
+            $action=$manual?'t.action':'action';
+            $where=$manual?"r.state='pending'":"enabled=1 AND next_run_at<=? AND lock_token IS NULL AND (last_status<>'failed' OR action IN ('plugin','complain'))";
+            $where.=$notify?" AND $action IN ('notify','notify2')":" AND ($action NOT IN ('notify','notify2') OR $action IS NULL)";
+            $select=$manual?'SELECT r.* FROM pre_task_request r LEFT JOIN pre_task t ON t.id=r.task_id':'SELECT * FROM pre_task';
+            $params=$manual?[]:[date('Y-m-d H:i:s')];
+            $cursor=$this->dispatchCursors[$lane]??null;
+            $after=$cursor?" AND ($field>? OR ($field=? AND $id>?))":'';
+            $rows=$this->db->all("$select WHERE $where$after ORDER BY $field,$id LIMIT 8",$cursor?array_merge($params,[$cursor[0],$cursor[0],$cursor[1]]):$params);
+            if(!$rows&&$cursor){
+                $this->dispatchCursors[$lane]=null;
+                $rows=$this->db->all("$select WHERE $where ORDER BY $field,$id LIMIT 8",$params);
             }
-            if(!$this->resourceFree($task)||isset($this->children[$task['id']]))continue;
-            $this->spawn($task,$request,$tasks,$registry);return;
-        }
-        $due=$this->db->all("SELECT * FROM pre_task WHERE enabled=1 AND next_run_at<=? AND lock_token IS NULL AND (last_status<>'failed' OR action IN ('plugin','complain'))
-            ORDER BY CASE WHEN action IN ('notify','notify2') THEN 0 ELSE 1 END,next_run_at,id LIMIT 16",[date('Y-m-d H:i:s')]);
-        $examined=0;
-        foreach($due as $task){
-            if(++$examined>8||hrtime(true)>=$deadline)return;
-            if(isset($this->children[$task['id']])||!$this->resourceFree($task))continue;
-            $this->spawn($task,null,$tasks,$registry);return;
+            foreach($rows as $row){
+                if(hrtime(true)>=$deadline)return;
+                $this->dispatchCursors[$lane]=[$row[$manual?'created_at':'next_run_at'],$row['id']];
+                $request=$manual?$row:null;
+                $task=$manual?$this->db->row('SELECT * FROM pre_task WHERE id=?',[$row['task_id']]):$row;
+                if($manual&&(!$task||(int)$task['revision']!==(int)$request['revision']||$task['lock_token']!==null||($task['last_status']==='failed'&&!Definitions::automatic($task)))){
+                    $this->db->query("UPDATE pre_task_request SET state='rejected',finished_at=?,message='任务已更新或需核查' WHERE id=? AND state='pending'",[date('Y-m-d H:i:s'),$request['id']]);continue;
+                }
+                if(isset($this->children[$task['id']])||!$this->resourceFree($task))continue;
+                $this->spawn($task,$request,$tasks,$registry);return;
+            }
         }
     }
     private function spawn(array $task,$request,TaskService $tasks,PluginRegistry $registry)

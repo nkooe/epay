@@ -24,53 +24,66 @@ final class CronHandlers
         global $DB, $conf, $date;
         $settle_time=getSetting('settle_time', true);
         if(strtotime($settle_time)>=strtotime(date("Y-m-d").' 00:00:00'))return ('自动生成结算列表今日已完成');
+        $store=\lib\AdminApp\Runtime::legacyStore($DB);
+        $settlementDay=date('Ymd');
         $rs=$DB->query("SELECT * from pre_user where money>={$conf['settle_money']} and settle=1 and status=1 and account is not null and username is not null");
         $i=0;
         $allmoney=0;
         while($row = $rs->fetch())
         {
-            if($conf['cert_force']==1 && $row['cert']==0){
-                continue;
-            }
-            $i++;
-            $settle_rate = $conf['settle_rate'];
-            $group = getGroupConfig($row['gid']);
-            if(isset($group['settle_open']) && $group['settle_open'] > 0){
-                if($group['settle_open'] == 2) continue;
-            }elseif($conf['settle_open']!=1 && $conf['settle_open']!=3) continue;
-            if(isset($group['settle_rate'])) $settle_rate = $group['settle_rate'];
-            if($row['remain_money'] > 0){
-                if(strpos($row['remain_money'], '%') !== false){
-                    $remain_rate = floatval(str_replace('%', '', $row['remain_money']));
-                    if($remain_rate > 0 && $remain_rate < 100){
-                        $row['money'] = round($row['money'] * (1 - $remain_rate / 100), 2);
+            $store->pdo->beginTransaction();
+            try {
+                $row=$store->row('SELECT * FROM pre_user WHERE uid=?'.$store->lockClause(),[$row['uid']]);
+                if(!$row||!(int)$row['settle']||!(int)$row['status']||$row['account']===null||$row['username']===null)continue;
+                $reference='settle-'.$settlementDay.'-'.$row['uid'];
+                // 同一天已提交的商户不会因其他商户失败而再次结算。
+                if($store->value("SELECT id FROM pre_record WHERE uid=? AND type='自动结算' AND trade_no=? LIMIT 1",[$row['uid'],$reference]))continue;
+                if($conf['cert_force']==1 && $row['cert']==0){
+                    continue;
+                }
+                $settle_rate = $conf['settle_rate'];
+                $group = getGroupConfig($row['gid']);
+                if(isset($group['settle_open']) && $group['settle_open'] > 0){
+                    if($group['settle_open'] == 2) continue;
+                }elseif($conf['settle_open']!=1 && $conf['settle_open']!=3) continue;
+                if(isset($group['settle_rate'])) $settle_rate = $group['settle_rate'];
+                if($row['remain_money'] > 0){
+                    if(strpos($row['remain_money'], '%') !== false){
+                        $remain_rate = floatval(str_replace('%', '', $row['remain_money']));
+                        if($remain_rate > 0 && $remain_rate < 100){
+                            $row['money'] = round($row['money'] * (1 - $remain_rate / 100), 2);
+                        }else{
+                            $row['money'] = round($row['money'] - $row['remain_money'], 2);
+                        }
                     }else{
                         $row['money'] = round($row['money'] - $row['remain_money'], 2);
                     }
+                }
+                if($row['money']<$conf['settle_money']) continue;
+                if($settle_rate>0){
+                    $fee=round($row['money']*$settle_rate/100,2);
+                    if(!empty($conf['settle_fee_min']) && $fee<$conf['settle_fee_min'])$fee=$conf['settle_fee_min'];
+                    if(!empty($conf['settle_fee_max']) && $fee>$conf['settle_fee_max'])$fee=$conf['settle_fee_max'];
+                    $realmoney=$row['money']-$fee;
                 }else{
-                    $row['money'] = round($row['money'] - $row['remain_money'], 2);
+                    $realmoney=$row['money'];
                 }
-            }
-            if($row['money']<$conf['settle_money']) continue;
-            if($settle_rate>0){
-                $fee=round($row['money']*$settle_rate/100,2);
-                if(!empty($conf['settle_fee_min']) && $fee<$conf['settle_fee_min'])$fee=$conf['settle_fee_min'];
-                if(!empty($conf['settle_fee_max']) && $fee>$conf['settle_fee_max'])$fee=$conf['settle_fee_max'];
-                $realmoney=$row['money']-$fee;
-            }else{
-                $realmoney=$row['money'];
-            }
-            $data = ['uid'=>$row['uid'], 'type'=>$row['settle_id'], 'account'=>$row['account'], 'username'=>$row['username'], 'money'=>$row['money'], 'realmoney'=>$realmoney, 'addtime'=>'NOW()', 'status'=>0];
-            if($DB->insert('settle', $data)){
-                if(changeUserMoney($row['uid'], $row['money'], false, '自动结算') !== 1) {
-                    throw new \RuntimeException('结算记录已生成但余额扣减失败，商户'.$row['uid'].'须人工核查');
+                $data = ['uid'=>$row['uid'], 'type'=>$row['settle_id'], 'account'=>$row['account'], 'username'=>$row['username'], 'money'=>$row['money'], 'realmoney'=>$realmoney, 'addtime'=>date('Y-m-d H:i:s'), 'status'=>0];
+                if($store->insert('settle', $data)){
+                    if(changeUserMoney($row['uid'], $row['money'], false, '自动结算', $reference) !== 1) {
+                        throw new \RuntimeException('结算余额扣减失败，商户'.$row['uid'].'本轮结算已回滚');
+                    }
+                    $store->pdo->commit();
+                    $i++;
+                    $allmoney+=$realmoney;
+                }else{
+                    throw new \RuntimeException('生成结算记录失败，商户'.$row['uid']);
                 }
-                $allmoney+=$realmoney;
-            }else{
-                throw new \RuntimeException('生成结算记录失败，商户'.$row['uid']);
+            }finally{
+                if($store->pdo->inTransaction())$store->pdo->rollBack();
             }
         }
-        saveSetting('settle_time', $date);
+        $store->setting('settle_time', $date);
         return ('自动生成结算列表成功 allmony='.$allmoney.' num='.$i);
     }
 
@@ -99,105 +112,122 @@ final class CronHandlers
             return;
         }
 
-        $thtime=date("Y-m-d H:i:s",time()-3600*48);
-
-        $CACHE->clean();
-        $DB->exec("delete from pre_order where status=0 and addtime<'{$thtime}'");
-        $DB->exec("delete from pre_regcode where `time`<'".(time()-3600*24)."'");
-        $DB->exec("delete from pre_blacklist where endtime is not null and endtime<NOW()");
-        $DB->exec("delete from pre_wxkflog where addtime<'".date("Y-m-d H:i:s", strtotime('-48 hours'))."'");
-
-        $day = date("Ymd", strtotime("-1 day"));
-
-        $paytype = [];
-        $rs = $DB->getAll("SELECT id,name,showname FROM pre_type WHERE status=1");
-        foreach($rs as $row){
-            $paytype[$row['id']] = $row['showname'];
-        }
-        unset($rs);
-
-        $channel = [];
-        $rs = $DB->getAll("SELECT id,name FROM pre_channel WHERE status=1");
-        foreach($rs as $row){
-            $channel[$row['id']] = $row['name'];
-        }
-        unset($rs);
-
-        $lastday=date("Y-m-d",strtotime("-1 day"));
-        $today=date("Y-m-d");
-
-        $rs=$DB->query("SELECT type,channel,realmoney,profitmoney from pre_order where (status=1 OR status=3) and date>='$lastday' and date<'$today'");
-        foreach($paytype as $id=>$type){
-            $order_paytype[$id]=0;
-            $profit_paytype[$id]=0;
-        }
-        foreach($channel as $id=>$type){
-            $order_channel[$id]=0;
-        }
-        while($row = $rs->fetch())
-        {
-            $order_paytype[$row['type']]+=$row['realmoney'];
-            $order_channel[$row['channel']]+=$row['realmoney'];
-            if(!empty($row['profitmoney'])){
-                $profit_paytype[$row['type']]+=$row['profitmoney'];
+        $store=\lib\AdminApp\Runtime::legacyStore($DB);
+        $notices=[];
+        $store->pdo->beginTransaction();
+        try {
+            $completed=$store->value("SELECT v FROM pre_config WHERE k='order_time'".$store->lockClause());
+            if(strtotime($completed)>=strtotime(date('Y-m-d').' 00:00:00')){
+                $store->pdo->commit();return '订单统计与清理任务今日已完成';
             }
-        }
-        foreach($order_paytype as $k=>$v){
-            $order_paytype[$k] = round($v,2);
-        }
-        foreach($order_channel as $k=>$v){
-            $order_channel[$k] = round($v,2);
-        }
-        foreach($profit_paytype as $k=>$v){
-            $profit_paytype[$k] = round($v,2);
-        }
-        $allmoney=0;
-        foreach($order_paytype as $money){
-            $allmoney+=$money;
-        }
-        $allprofit=0;
-        foreach($profit_paytype as $money){
-            $allprofit+=$money;
-        }
+            $order_paytype=[];$profit_paytype=[];$order_channel=[];
+            $thtime=date("Y-m-d H:i:s",time()-3600*48);
 
-        $order_lastday['all']=round($allmoney,2);
-        $order_lastday['profit_all']=round($allprofit,2);
-        $order_lastday['paytype']=$order_paytype;
-        $order_lastday['channel']=$order_channel;
-        $order_lastday['profit_paytype']=$profit_paytype;
+            $CACHE->clean();
+            $DB->exec("delete from pre_order where status=0 and addtime<'{$thtime}'");
+            $DB->exec("delete from pre_regcode where `time`<'".(time()-3600*24)."'");
+            $DB->exec("delete from pre_blacklist where endtime is not null and endtime<NOW()");
+            $DB->exec("delete from pre_wxkflog where addtime<'".date("Y-m-d H:i:s", strtotime('-48 hours'))."'");
 
-        $CACHE->save('order_'.$day, serialize($order_lastday), 604830);
+            $day = date("Ymd", strtotime("-1 day"));
 
-        saveSetting('order_time', $date);
+            $paytype = [];
+            $rs = $DB->getAll("SELECT id,name,showname FROM pre_type WHERE status=1");
+            foreach($rs as $row){
+                $paytype[$row['id']] = $row['showname'];
+            }
+            unset($rs);
 
-        $DB->exec("update pre_channel set daystatus=0");
+            $channel = [];
+            $rs = $DB->getAll("SELECT id,name FROM pre_channel WHERE status=1");
+            foreach($rs as $row){
+                $channel[$row['id']] = $row['name'];
+            }
+            unset($rs);
 
-        if($conf['invite_mode'] == 1){
-            $moneylist = $DB->getAll("SELECT uid,SUM(realmoney) money FROM pre_order WHERE (status=1 OR status=3) AND `date`='$lastday' GROUP BY uid");
-            foreach($moneylist as $row){
-                $upid = $DB->findColumn('user', 'upid', ['uid'=>$row['uid']]);
-                if($upid > 0){
-                    $upgid = $DB->findColumn('user', 'gid', ['uid'=>$upid]);
-                    $groupconfig = getGroupConfig($upgid);
-                    $conf_n = array_merge($conf, $groupconfig);
-                    if($conf_n['invite_open'] == 1 && !empty($conf_n['invite_rate'])){
-                        $invite_money = round($row['money'] * $conf_n['invite_rate'] / 100, 2);
-                        if($invite_money > 0){
-                            changeUserMoney($upid, $invite_money, true, '邀请返现', $row['uid']);
+            $lastday=date("Y-m-d",strtotime("-1 day"));
+            $today=date("Y-m-d");
+
+            $rs=$DB->query("SELECT type,channel,realmoney,profitmoney from pre_order where (status=1 OR status=3) and date>='$lastday' and date<'$today'");
+            foreach($paytype as $id=>$type){
+                $order_paytype[$id]=0;
+                $profit_paytype[$id]=0;
+            }
+            foreach($channel as $id=>$type){
+                $order_channel[$id]=0;
+            }
+            while($row = $rs->fetch())
+            {
+                $order_paytype[$row['type']]+=$row['realmoney'];
+                $order_channel[$row['channel']]+=$row['realmoney'];
+                if(!empty($row['profitmoney'])){
+                    $profit_paytype[$row['type']]+=$row['profitmoney'];
+                }
+            }
+            foreach($order_paytype as $k=>$v){
+                $order_paytype[$k] = round($v,2);
+            }
+            foreach($order_channel as $k=>$v){
+                $order_channel[$k] = round($v,2);
+            }
+            foreach($profit_paytype as $k=>$v){
+                $profit_paytype[$k] = round($v,2);
+            }
+            $allmoney=0;
+            foreach($order_paytype as $money){
+                $allmoney+=$money;
+            }
+            $allprofit=0;
+            foreach($profit_paytype as $money){
+                $allprofit+=$money;
+            }
+
+            $order_lastday['all']=round($allmoney,2);
+            $order_lastday['profit_all']=round($allprofit,2);
+            $order_lastday['paytype']=$order_paytype;
+            $order_lastday['channel']=$order_channel;
+            $order_lastday['profit_paytype']=$profit_paytype;
+
+            $CACHE->save('order_'.$day, serialize($order_lastday), 604830);
+
+            $DB->exec("update pre_channel set daystatus=0");
+
+            if($conf['invite_mode'] == 1){
+                $moneylist = $DB->getAll("SELECT uid,SUM(realmoney) money FROM pre_order WHERE (status=1 OR status=3) AND `date`='$lastday' GROUP BY uid");
+                foreach($moneylist as $row){
+                    $upid = $DB->findColumn('user', 'upid', ['uid'=>$row['uid']]);
+                    if($upid > 0){
+                        $upgid = $DB->findColumn('user', 'gid', ['uid'=>$upid]);
+                        $groupconfig = getGroupConfig($upgid);
+                        $conf_n = array_merge($conf, $groupconfig);
+                        if($conf_n['invite_open'] == 1 && !empty($conf_n['invite_rate'])){
+                            $invite_money = round($row['money'] * $conf_n['invite_rate'] / 100, 2);
+                            if($invite_money > 0){
+                                if(changeUserMoney($upid, $invite_money, true, '邀请返现', $row['uid'])!==1)throw new \RuntimeException('邀请返现入账失败，商户'.$upid);
+                            }
                         }
                     }
                 }
             }
-        }
 
-        $expire_users = $DB->getAll("SELECT uid,gid,status,endtime FROM pre_user WHERE gid>0 AND endtime>0 AND endtime<NOW()");
-        foreach($expire_users as $row){
-            $group = $DB->getRow("SELECT * FROM pre_group WHERE gid='{$row['gid']}'");
-            $gid = $group['orig'] > 0 ? $group['orig'] : 0;
-            $DB->exec("UPDATE pre_user SET gid={$gid},endtime=NULL WHERE uid='{$row['uid']}'");
-            if($row['status'] == 1){
-                \lib\MsgNotice::send('group', $row['uid'], ['uid'=>$row['uid'], 'group'=>$group['name'], 'endtime'=>$row['endtime']]);
+            $expire_users = $DB->getAll("SELECT uid,gid,status,endtime FROM pre_user WHERE gid>0 AND endtime>0 AND endtime<NOW()");
+            foreach($expire_users as $row){
+                $group = $DB->getRow("SELECT * FROM pre_group WHERE gid='{$row['gid']}'");
+                $gid = 0;
+                $DB->exec("UPDATE pre_user SET gid={$gid},endtime=NULL WHERE uid='{$row['uid']}'");
+                if($row['status'] == 1){
+                    $notices[]=['uid'=>$row['uid'],'group'=>$group['name'],'endtime'=>$row['endtime']];
+                }
             }
+            $store->setting('order_time', $date);
+            $store->pdo->commit();
+        }catch(\Throwable $e){
+            if($store->pdo->inTransaction())$store->pdo->rollBack();
+            throw $e;
+        }
+        foreach($notices as $notice){
+            try{\lib\MsgNotice::send('group',$notice['uid'],$notice);}
+            catch(\Throwable $e){error_log('会员到期提醒发送失败，商户'.$notice['uid'].'：'.Controller::redact($e->getMessage()));}
         }
         return ($day.'订单统计与清理任务执行成功');
     }
@@ -250,7 +280,8 @@ final class CronHandlers
         global $DB;
         $limit = 20; //每次重试的订单数量
         $delivery = \lib\Notification\Delivery::legacy();
-        $rows=$DB->getAll("SELECT * FROM pre_order WHERE (TO_DAYS(NOW()) - TO_DAYS(endtime) <= 1) AND notify=-1 ORDER BY trade_no LIMIT {$limit}");
+        $rows=$DB->getAll("SELECT o.* FROM pre_order o WHERE (TO_DAYS(NOW()) - TO_DAYS(o.endtime) <= 1) AND o.notify=-1
+            ORDER BY COALESCE((SELECT a.id FROM pre_order_notify_attempt a WHERE a.trade_no=o.trade_no ORDER BY a.id DESC LIMIT 1),0),o.trade_no LIMIT {$limit}");
         foreach($rows as $srow){
 
             try { $result = $delivery->send($srow['trade_no'], 'cron_exhausted', 'exhausted'); }
