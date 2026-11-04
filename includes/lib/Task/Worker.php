@@ -38,7 +38,7 @@ final class Worker
         $this->db->query("UPDATE pre_task_request SET state='interrupted',finished_at=?,message='旧执行器请求缺少运行编号，需核查；不自动重放'
             WHERE state='running' AND NOT EXISTS (SELECT 1 FROM pre_task_execution e WHERE e.request_id=pre_task_request.id)",[date('Y-m-d H:i:s')]);
         Health::request($this->db,$this->token);
-        $this->log('started '.$this->config['service']);
+        $this->log('调度启动 '.$this->config['service']);
         try{
             do{
                 if(hrtime(true)-$this->lastBeat>=2000000000){
@@ -46,9 +46,9 @@ final class Worker
                     $this->reap($deadline);
 
 
-                    $targetReady=$this->stopping||$this->controller->targetReady();
-                    $this->services->tick($this->stopping||!$targetReady);
-                    if(!$this->stopping&&$targetReady){
+                    $accepting=$this->stopping||$this->controller->accepting();
+                    $this->services->tick($this->stopping||!$accepting);
+                    if(!$this->stopping&&$accepting){
                         $probeBusy=Health::tick($this->db,$this->controller,$this->token,!$this->reapBacklog&&count($this->children)<$this->config['concurrency']);
                         if(!$probeBusy&&!$this->reapBacklog&&hrtime(true)<$deadline&&count($this->children)<$this->config['concurrency'])$this->dispatch($deadline);
                         if(hrtime(true)<$deadline&&time()-$this->lastSync>=Automatic::POLL_SECONDS)$this->syncChannel();
@@ -66,9 +66,9 @@ final class Worker
             $this->beat('stopped');
         }catch(\Throwable $e){
 
-            $this->log('stopped scheduling: '.$e->getMessage());throw $e;
+            $this->log('调度已停止：'.$e->getMessage());throw $e;
         }finally{try{$this->db->value('SELECT RELEASE_LOCK(?)',[$this->lock]);}catch(\Throwable $ignored){}}
-        $this->log('stopped after draining');
+        $this->log('在途任务已结束，调度退出');
     }
     private function resourceFree(array $task)
     {
@@ -92,7 +92,7 @@ final class Worker
             if($retired){$automatic->retireChannel($retired['channel_id']);$this->retiredTaskCursor=(int)$retired['channel_id'];return;}
             $retired=$this->db->row('SELECT DISTINCT s.plugin FROM pre_plugin_service s WHERE s.plugin>? AND NOT EXISTS (SELECT 1 FROM pre_channel c WHERE c.plugin=s.plugin) ORDER BY s.plugin LIMIT 1',[$this->retiredPluginCursor]);
             if($retired){$automatic->services($retired['plugin']);$this->retiredPluginCursor=$retired['plugin'];return;}
-            $this->db->query("INSERT INTO pre_config(k,v) VALUES ('task_hosting_catalog',?) ON DUPLICATE KEY UPDATE v=VALUES(v)",[$this->token]);
+            $this->db->query("INSERT INTO pre_config(k,v) VALUES ('task_channel_scan',?) ON DUPLICATE KEY UPDATE v=VALUES(v)",[$this->token]);
             $this->syncCursor=0;$this->syncedPlugins=[];$this->retiredTaskCursor=0;$this->retiredPluginCursor='';$this->lastSync=time();return;
         }
         $synced=$automatic->channel($channel);
@@ -166,7 +166,10 @@ final class Worker
             if(hrtime(true)>=$deadline){$this->reapBacklog=true;break;}
             $unit=$this->controller->instance('job','status',$run['id']);
             if($run['state']==='running'&&$run['claimed_at']&&strtotime($run['claimed_at'])<time()-(int)$run['timeout_seconds']-5&&$unit['active_state']==='active')$this->controller->instance('job','stop',$run['id']);
-            if($this->executions->reap($run,$unit))unset($this->children[$run['task_id']]);
+            if($this->executions->reap($run,$unit)){
+                $this->controller->instance('job','ack',$run['id']);
+                unset($this->children[$run['task_id']]);
+            }
             $lastProcessed=$run['id'];
         }
 

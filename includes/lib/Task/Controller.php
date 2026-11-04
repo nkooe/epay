@@ -18,13 +18,13 @@ final class Controller
         if(!$this->config)return ['available'=>false,'installed'=>false,'mode'=>'process','managed_externally'=>true,'active_state'=>'not_installed','service'=>'','message'=>'请在进程管理器添加网站根目录和启动命令，使用 root，单实例运行并开启自动重启和开机自启。首次启动会自动初始化。'];
         return call_user_func($this->transport,$this->config,'status');
     }
-    public function targetReady()
+    public function accepting()
     {
         return $this->config&&!empty(call_user_func($this->transport,$this->config,'status')['accepting']);
     }
     public function instance($kind,$action,$id)
     {
-        if(!in_array($kind,['job','plugin'],true)||!in_array($action,['start','stop','status','logs'],true))throw new \InvalidArgumentException('实例操作无效');
+        if(!in_array($kind,['job','plugin'],true)||!in_array($action,['start','stop','status','logs','ack'],true))throw new \InvalidArgumentException('实例操作无效');
         if($kind==='job')Execution::id($id);
         elseif(!is_string($id)||!preg_match('/^[a-f0-9]{32}g[1-9][0-9]{0,8}$/D',$id))throw new \InvalidArgumentException('插件实例编号无效');
         if($action==='logs')return $this->logStore()->recent($kind.':'.$id);
@@ -67,9 +67,5 @@ final class Controller
     public static function redact($text)
     {
         return preg_replace('/([\x22\x27]?(?:password|pwd|token|secret|key|sign|authorization)[\x22\x27]?\s*[=:]\s*)(?:\x22[^\x22]*\x22|\x27[^\x27]*\x27|(?:Bearer\s+)?[^\s,;&]+)/i','$1[已隐藏]',$text);
-    }
-    public function control($action)
-    {
-        throw new \RuntimeException('请在进程管理器中启动、停止、重启和设置开机自启');
     }
 }

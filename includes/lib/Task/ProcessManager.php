@@ -72,13 +72,12 @@ final class ProcessManager
             if(isset($item['retry_at'])&&!$this->stopping&&$item['retry_at']<=time())$this->start($item['kind'],$item['id'],$item['attempts']);
             elseif(!isset($item['retry_at'])&&$item['at']<time()-3600)unset($this->finished[$key]);
         }
-        if(count($this->finished)>2048)throw new \RuntimeException('待回收进程记录超出上限，停止并核查');
     }
     private function status()
     {
         return ['available'=>true,'installed'=>true,'mode'=>'process','managed_externally'=>true,'service'=>$this->c['service'],'active_state'=>$this->stopping?'deactivating':($this->workerState==='starting'?'activating':'active'),
             'sub_state'=>'running','pid'=>getmypid(),'watchdog_seconds'=>self::WATCHDOG_SECONDS,'accepting'=>!$this->stopping,
-            'unit_file_state'=>'external','target_state'=>$this->stopping?'deactivating':'active','budget'=>['MemoryCurrent'=>(string)$this->memory,'MemoryMax'=>(string)($this->c['memory_max_mb']*1048576),'TasksCurrent'=>(string)$this->tasks,'TasksMax'=>'192'],'message'=>'由进程管理器负责启动、停止、重启和开机自启'];
+            'retained_results'=>count($this->finished),'budget'=>['MemoryCurrent'=>(string)$this->memory,'MemoryMax'=>(string)($this->c['memory_max_mb']*1048576),'TasksCurrent'=>(string)$this->tasks,'TasksMax'=>'192'],'message'=>'由进程管理器负责启动、停止、重启和开机自启'];
     }
     private function resources()
     {
@@ -105,11 +104,15 @@ final class ProcessManager
     {
         if(($message['action']??'')==='status')return $this->status();
         if(($message['action']??'')==='drain'){$this->drain();return ['accepted'=>true];}
-        if(!preg_match('/^(job|plugin)-(start|stop|status)$/D',$message['action']??'',$match))throw new \InvalidArgumentException('不支持的进程控制操作');
+        if(!preg_match('/^(job|plugin)-(start|stop|status|ack)$/D',$message['action']??'',$match))throw new \InvalidArgumentException('不支持的进程控制操作');
         $kind=$match[1];$action=$match[2];$id=$message['id']??null;
         if($kind==='job')Execution::id($id);
         elseif(!is_string($id)||!preg_match('/^[a-f0-9]{32}g[1-9][0-9]{0,8}$/D',$id))throw new \InvalidArgumentException('插件实例编号无效');
         $key=$kind.':'.$id;
+        if($action==='ack'){
+            if(isset($this->children[$key])||isset($this->finished[$key]['retry_at']))throw new \RuntimeException('实例尚未结束，不能回收结果');
+            unset($this->finished[$key]);return ['accepted'=>true];
+        }
         if($action==='start'){$this->start($kind,$id);return ['accepted'=>true];}
         if($action==='stop'){
             $this->stop($key);

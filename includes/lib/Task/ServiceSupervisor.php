@@ -22,6 +22,7 @@ final class ServiceSupervisor
     }
     private function launch(array $row)
     {
+        if((int)$row['generation']>0)$this->ctl->instance('plugin','ack',ServiceRegistry::instance($row));
         $changed=$this->db->query("UPDATE pre_plugin_service SET generation=generation+1,token=NULL,observed='starting',ready_at=NULL,heartbeat_at=NULL,started_at=?,last_error=NULL WHERE id=? AND revision=? AND generation=?",
             [date('Y-m-d H:i:s'),$row['id'],$row['revision'],$row['generation']])->rowCount();
         if($changed!==1)throw new \RuntimeException('插件配置代次变化，拒绝启动');
@@ -74,7 +75,7 @@ final class ServiceSupervisor
                     }
                     $item=$this->registry->resolve($row,$op['action']==='refresh');
                     if($liveCount>=$this->limit){
-                        $message='插件服务并发已达上限 '.$this->limit.'，请先停止其他插件，或通过安装器 --service-limit 调整容量后重试';
+                        $message='插件服务并发已达上限 '.$this->limit.'，请先停止其他插件，或在进程管理器的启动命令中添加 --service-limit=数量 后重启';
                         if ($op['message']==='随通道配置自动接管') {
                             if ($row['last_error']!==$message) $this->db->query('UPDATE pre_plugin_service SET last_error=? WHERE id=?',[$message,$row['id']]);
                             continue;

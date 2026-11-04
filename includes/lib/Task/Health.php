@@ -8,17 +8,17 @@ final class Health
     public static function request(Store $db,$token)
     {
         $probe=['id'=>bin2hex(random_bytes(16)),'worker'=>$token,'state'=>'pending','created'=>time()];
-        $db->query("INSERT INTO pre_config(k,v) VALUES ('task_hosting_probe',?) ON DUPLICATE KEY UPDATE v=VALUES(v)",[json_encode($probe,JSON_THROW_ON_ERROR)]);
+        $db->query("INSERT INTO pre_config(k,v) VALUES ('task_process_probe',?) ON DUPLICATE KEY UPDATE v=VALUES(v)",[json_encode($probe,JSON_THROW_ON_ERROR)]);
         return $probe;
     }
     public static function probe(Store $db)
     {
-        $raw=$db->value("SELECT v FROM pre_config WHERE k='task_hosting_probe'");
+        $raw=$db->value("SELECT v FROM pre_config WHERE k='task_process_probe'");
         return $raw===false?null:json_decode($raw,true,8,JSON_THROW_ON_ERROR);
     }
     public static function update(Store $db,array $old,array $changes)
     {
-        return $db->query("UPDATE pre_config SET v=? WHERE k='task_hosting_probe' AND v=?",[json_encode(array_merge($old,$changes),JSON_THROW_ON_ERROR),json_encode($old,JSON_THROW_ON_ERROR)])->rowCount()===1;
+        return $db->query("UPDATE pre_config SET v=? WHERE k='task_process_probe' AND v=?",[json_encode(array_merge($old,$changes),JSON_THROW_ON_ERROR),json_encode($old,JSON_THROW_ON_ERROR)])->rowCount()===1;
     }
     public static function execute(Store $db,$id)
     {
@@ -42,8 +42,8 @@ final class Health
             return true;
         }
         $unit=$ctl->instance('job','status',$p['id']);
-        if($p['state']==='executed'&&$unit['active_state']==='inactive'&&$unit['result']==='success'&&$unit['exit_status']===0){self::update($db,$p,['state'=>'passed','finished'=>time()]);return false;}
-        if($unit['active_state']==='failed'){self::update($db,$p,['state'=>'failed']);return false;}
+        if($p['state']==='executed'&&$unit['active_state']==='inactive'&&$unit['result']==='success'&&$unit['exit_status']===0){self::update($db,$p,['state'=>'passed','finished'=>time()]);$ctl->instance('job','ack',$p['id']);return false;}
+        if($unit['active_state']==='failed'){self::update($db,$p,['state'=>'failed']);$ctl->instance('job','ack',$p['id']);return false;}
         return true;
     }
     public static function status(Store $db)
@@ -52,7 +52,7 @@ final class Health
         $p=self::probe($db);$faults=[];
         if(!$beat||$beat['state']!=='running'||strtotime($beat['heartbeat_at'])<time()-10)$faults[]=['code'=>'heartbeat','message'=>'调度心跳未就绪','action'=>'检查进程管理器是否启动，以及数据库连接和服务日志。'];
         if(!$beat||!$p||($p['worker']??'')!==$beat['token']||$p['state']!=='passed')$faults[]=['code'=>'child','message'=>'真实子任务尚未验收通过','action'=>'等待当前任务排空；若超过一分钟，检查命令行 PHP、子进程权限和服务日志后重新验收。'];
-        if(!$beat||$db->value("SELECT v FROM pre_config WHERE k='task_hosting_catalog'")!==$beat['token'])$faults[]=['code'=>'catalog','message'=>'通道自动接管尚未完成首轮检查','action'=>'等待首轮通道检查完成；通道较多时请稍后重新验收。'];
+        if(!$beat||$db->value("SELECT v FROM pre_config WHERE k='task_channel_scan'")!==$beat['token'])$faults[]=['code'=>'catalog','message'=>'通道自动接管尚未完成首轮检查','action'=>'等待首轮通道检查完成；通道较多时请稍后重新验收。'];
         $registry=new ServiceRegistry($db);$catalog=$registry->discover();
         foreach($catalog['errors'] as $error)if((int)$db->value('SELECT status FROM pre_channel WHERE id=?',[$error['channel_id']])===1)$faults[]=['code'=>'channel','message'=>'通道 #'.$error['channel_id'].' 配置异常','action'=>$error['error']];
         $plugins=array_column($db->all('SELECT id,name,desired,observed,ready_at,heartbeat_at,last_error,digest FROM pre_plugin_service'),null,'id');

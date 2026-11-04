@@ -7,7 +7,7 @@ final class NativeManagement
     const READS=['v1/tasks'=>'list','v1/tasks/editor'=>'editor','v1/tasks/history'=>'history',
         'v1/tasks/logs'=>'logs','v1/tasks/plugin'=>'plugin_service_detail',
         'v1/complaints'=>'list','v1/complaints/detail'=>'detail','v1/complaints/schema'=>'schema','v1/complaints/image'=>'image'];
-    const WRITES=['v1/tasks/service'=>'service','v1/tasks/save'=>'save','v1/tasks/run'=>'run',
+    const WRITES=['v1/tasks/save'=>'save','v1/tasks/run'=>'run',
         'v1/tasks/rebind'=>'rebind','v1/tasks/plugin'=>'plugin_service','v1/tasks/sync'=>'sync_plugins',
         'v1/tasks/log-delete'=>'service_log_delete','v1/complaints/account'=>'save-account',
         'v1/complaints/sync'=>'sync','v1/complaints/refresh'=>'refresh','v1/complaints/action'=>'action',

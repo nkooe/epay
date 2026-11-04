@@ -59,7 +59,7 @@ final class ProcessRuntime
         self::trusted($dir,$uid);
         $c=['mode'=>'process','protocol'=>4,'root'=>realpath($root),'php'=>PHP_BINARY,'uid'=>$uid,'runtime'=>$dir,
             'service'=>'epay-task-'.substr(hash('sha256',realpath($root)),0,12).'.process','helper'=>$dir.'/control',
-            'concurrency'=>2,'service_limit'=>Definitions::integer($limit,1,32,'插件服务并发上限'),'memory_max_mb'=>1024,'memory_high_mb'=>819];
+            'concurrency'=>2,'service_limit'=>Definitions::integer($limit,1,32,'插件服务并发上限'),'memory_max_mb'=>1024];
         if(!is_dir($dir.'/logs')&&!mkdir($dir.'/logs',0700))throw new \RuntimeException('无法创建服务日志目录');
         self::trusted($dir.'/logs',$uid);
         return $c;

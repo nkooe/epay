@@ -118,4 +118,4 @@ if (!defined('IN_CRONLITE')) { http_response_code(404); exit; }
     </div>
   </div></div>
 </div>
-<script src="../assets/js/admin-tasks.js?v=14"></script>
+<script src="../assets/js/admin-tasks.js?v=15"></script>

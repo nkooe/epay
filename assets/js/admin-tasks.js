@@ -232,7 +232,7 @@
     byId('task-service-pid').textContent = '当前 PID：' + (currentPid === null ? '—' : currentPid);
     const failures = {watchdog:'30秒无主循环进度，已触发看门狗',timeout:'服务启动或停止超时','start-limit-hit':'连续异常达到重试上限，请查看服务日志','exit-code':'进程异常退出，请查看服务日志',signal:'进程被信号终止','oom-kill':'超过内存限制'};
     const reason = retrying ? '5秒后重试；连续异常达到上限后暂停' : (s.active_state === 'failed' ? (failures[s.result] || '服务异常，请查看服务日志后恢复') : (active && !w.healthy ? w.reason : ''));
-    byId('task-service-detail').textContent = modeName+' · '+(s.message || [s.service, s.unit_file_state === 'enabled' ? '开机自启' : '自启关闭',reason].filter(Boolean).join(' · '))+(s.health?' · '+s.health.message:'');
+    byId('task-service-detail').textContent = modeName+' · '+(s.message || [s.service, '启停和自启由进程管理器负责',reason].filter(Boolean).join(' · '))+(s.health?' · '+s.health.message:'');
     byId('task-health-detail').textContent = s.health ? s.health.faults.map(f=>f.message+'：'+f.action).join('；') : '';
     const activeIds = (w.active || []).map(item => '#' + item.task_id).join('、');
     const memory = s.budget && /^\d+$/.test(s.budget.MemoryCurrent) ? ' · 内存 '+Math.ceil(Number(s.budget.MemoryCurrent)/1048576)+' MB' : '';

@@ -73,6 +73,9 @@ if (!$locked && ($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
         }
         $stmt=$db->prepare('INSERT INTO `'.$fields['dbqz'].'_config` (k,v) VALUES (?,?)');
         foreach (['syskey'=>bin2hex(random_bytes(16)),'build'=>date('Y-m-d'),'localurl'=>(!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS']!=='off' ? 'https://' : 'http://').($_SERVER['HTTP_HOST'] ?? 'localhost').'/'] as $key=>$value) $stmt->execute([$key,$value]);
+        $now=new DateTimeImmutable('now');$cleanupAt=$now->setTime(3,30);
+        if($cleanupAt<=$now)$cleanupAt=$cleanupAt->modify('+1 day');
+        $db->prepare("UPDATE `".$fields['dbqz']."_task` SET enabled=1,next_run_at=? WHERE action='cleanup_logs'")->execute([$cleanupAt->format('Y-m-d H:i:s')]);
         $config=['host'=>$fields['host'],'port'=>(int)$fields['port'],'user'=>$fields['user'],'pwd'=>$password,'dbname'=>$fields['dbname'],'dbqz'=>$fields['dbqz']];
         $content="<?php\n// 数据库连接配置。\n\$dbconfig = ".var_export($config,true).";\n";
         if (file_put_contents($configFile,$content,LOCK_EX)!==strlen($content)) throw new RuntimeException('数据库已导入，但配置保存失败，请检查根目录写入权限后恢复配置。');
