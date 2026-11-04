@@ -21,8 +21,16 @@ final class CliRuntime
         $pdo->exec("SET time_zone='+08:00'");
 
 
-        if (stripos((string)$pdo->query('SELECT VERSION()')->fetchColumn(), 'MariaDB') === false) throw new \RuntimeException('任务服务要求支持 max_statement_time 的 MariaDB');
-        $pdo->exec('SET SESSION max_statement_time='.($scheduler ? '5' : '30').', innodb_lock_wait_timeout=3, lock_wait_timeout=3');
+        $limits = $pdo->query("SHOW SESSION VARIABLES WHERE Variable_name IN ('max_statement_time','max_execution_time')")->fetchAll(\PDO::FETCH_KEY_PAIR);
+        // 两种数据库的查询超时变量及单位不同，按实际能力设置。
+        if (array_key_exists('max_statement_time', $limits)) {
+            $pdo->exec('SET SESSION max_statement_time='.($scheduler ? '5' : '30'));
+        } elseif (array_key_exists('max_execution_time', $limits)) {
+            $pdo->exec('SET SESSION max_execution_time='.($scheduler ? '5000' : '30000'));
+        } else {
+            throw new \RuntimeException('当前数据库缺少查询超时控制，请使用支持 max_execution_time 的 MySQL 或支持 max_statement_time 的 MariaDB');
+        }
+        $pdo->exec('SET SESSION innodb_lock_wait_timeout=3, lock_wait_timeout=3');
         $db = new Store($pdo, $dbconfig['dbqz']);
         Store::assertSchemaVersion($db->value("SELECT v FROM pre_config WHERE k='version'"));
         return $db;
