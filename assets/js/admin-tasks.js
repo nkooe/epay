@@ -240,10 +240,10 @@
     byId('task-service-dot').className = 'task-service-dot ' + (healthy ? 'is-running' : (s.installed ? 'is-stopped' : 'is-unknown'));
     const main = byId('task-service-main');
     main.dataset.serviceAction = active ? 'stop' : 'start';
-    main.textContent = s.managed_externally ? '由进程管理器托管' : (serviceBusy ? '提交中…' : (active ? '停止服务' : '启动服务'));
+    main.textContent = serviceBusy ? '提交中…' : (active ? '停止服务' : '启动服务');
     document.querySelectorAll('[data-service-action]').forEach(button => {
       const action = button.dataset.serviceAction;
-      button.disabled = s.managed_externally || serviceBusy || transitioning || !s.available || !s.installed ||
+      button.disabled = serviceBusy || transitioning || !s.available || !s.installed ||
         (action === 'enable' && s.unit_file_state === 'enabled') ||
         (action === 'disable' && s.unit_file_state !== 'enabled');
     });

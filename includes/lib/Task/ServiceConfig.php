@@ -13,7 +13,7 @@ final class ServiceConfig
     {
         $root = $root ?: self::root();
         $path = $root.'/includes/task-service.php';
-        if (!is_file($path)) return ProcessRuntime::read($root);
+        if (!is_file($path)) return null;
         $config = require $path;
         if (!is_array($config) || (!$allowMoved && ($config['protocol']??null)!==4) || (! $allowMoved && ($config['root'] ?? '') !== realpath($root)) ||
             !preg_match('/^epay-task-[a-f0-9]{12}\.service$/D', $config['service'] ?? '') ||

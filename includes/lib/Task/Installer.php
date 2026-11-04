@@ -87,8 +87,7 @@ final class Installer
         }
         if(!is_dir('/run/systemd/system'))throw new \RuntimeException('systemd 不是当前服务器的服务管理器');
         $version=Command::run([$commands['systemctl'],'--version']);
-        if(!preg_match('/systemd (\d+)/',$version['stdout'],$match)||(int)$match[1]<250)throw new \RuntimeException('systemd 模式需要 250 或更新版本；当前服务器可选择进程管理器，使用站点用户运行 php bin/task-process.php');
-        if(!is_file('/sys/fs/cgroup/cgroup.controllers'))throw new \RuntimeException('systemd 模式需要 cgroup v2；当前服务器可选择进程管理器，使用站点用户运行 php bin/task-process.php');
+        if(!preg_match('/systemd (\d+)/',$version['stdout'],$match)||(int)$match[1]<250||!is_file('/sys/fs/cgroup/cgroup.controllers'))throw new \RuntimeException('需要 systemd 250+ 与 cgroup v2，不降级运行');
         $controllers=preg_split('/\s+/',trim(file_get_contents('/sys/fs/cgroup/cgroup.controllers')));
         if(array_diff(['memory','pids','cpu'],$controllers))throw new \RuntimeException('cgroup 缺少 memory/pids/cpu 资源控制');
         if(!preg_match('/MemAvailable:\s+(\d+)/',file_get_contents('/proc/meminfo'),$memory)||(int)$memory[1]<524288)throw new \RuntimeException('可用内存不足 512MB，安装已停止');
@@ -122,16 +121,10 @@ final class Installer
     {
         if(posix_geteuid()!==0)throw new \RuntimeException('--install 需要以 root 运行');
         $old=ServiceConfig::read($c['root'],true);
-        if($old&&($old['mode']??'systemd')==='process')throw new \RuntimeException('本站已初始化进程管理器，请先停止托管进程并清理该站点进程运行目录后切换 systemd');
         if($old){
             $status=Command::run([$c['systemctl'],'show','--property=ActiveState','--value',$old['service']]);
             if($status['code']!==0)throw new \RuntimeException('无法确认原调度服务状态，安装已停止');
-            if(in_array(trim($status['stdout']),['active','activating','deactivating','reloading'],true)){
-                foreach(['root','php','user','protocol','service_limit','concurrency'] as $key)if(($old[$key]??null)!==($c[$key]??null))throw new \RuntimeException('服务正在运行且安装参数有变化，请先在后台停止服务再安装');
-                if(trim($status['stdout'])!=='active')throw new \RuntimeException('服务正在切换状态，请等待后重试');
-                self::activate($old);
-                return ['service'=>$old['service'],'installed'=>true,'started'=>true,'enabled'=>true,'existing'=>true];
-            }
+            if(in_array(trim($status['stdout']),['active','activating','deactivating','reloading'],true))throw new \RuntimeException('请先停止现有调度服务，再重新安装');
             if($old['service']!==$c['service'])throw new \RuntimeException('项目已移动：请先卸载原服务 '.$old['service'].' 及其 sudoers/控制程序，再删除复制来的 includes/task-service.php 后安装');
         }
         $db=CliRuntime::connect($c['root']);
@@ -191,23 +184,6 @@ final class Installer
         if($journalReload['code']!==0)throw new \RuntimeException('独立日志服务重载失败：'.$journalReload['stderr']);
         $config="<?php\n// 任务安装器生成，不包含业务凭据。\nreturn ".var_export($c,true).";\n";
         self::rootFile($c['root'].'/includes/task-service.php',$config,0644);
-        self::activate($c);
-        return ['service'=>$c['service'],'backup'=>$backup,'installed'=>true,'started'=>true,'enabled'=>true];
-    }
-    private static function activate(array $c)
-    {
-        $target=SystemdUnits::names($c)['target'];
-        $result=Command::run([$c['systemctl'],'enable','--now',$target],50);
-        if($result['code']!==0)throw new \RuntimeException('服务已安装，但自动启动或开启自启失败：'.$result['stderr'].'；请检查服务日志');
-        $result=Command::run([$c['systemctl'],'start',$c['service']],50);
-        if($result['code']!==0)throw new \RuntimeException('任务主进程启动失败：'.$result['stderr'].'；请检查服务日志');
-        $deadline=hrtime(true)+15000000000;$db=CliRuntime::connect($c['root']);
-        do{
-            $status=(new SystemdController($c))->status();
-            $beat=$db->row('SELECT state,heartbeat_at FROM pre_task_worker WHERE id=1');
-            if($status['active_state']==='active'&&$status['target_state']==='active'&&$status['unit_file_state']==='enabled'&&$status['pid']>0&&$beat&&$beat['state']==='running'&&strtotime($beat['heartbeat_at'])>=time()-10)return;
-            usleep(200000);
-        }while(hrtime(true)<$deadline);
-        throw new \RuntimeException('服务已安装，但调度心跳尚未确认，请检查后台任务状态及服务日志');
+        return ['service'=>$c['service'],'backup'=>$backup,'installed'=>true];
     }
 }

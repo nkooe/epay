@@ -36,7 +36,6 @@ final class SystemdController
     {
         if($this->configError)return ['available'=>false,'installed'=>false,'active_state'=>'invalid_config','message'=>$this->configError];
         if(!$this->config)return ['available'=>false,'installed'=>false,'active_state'=>'not_installed','service'=>'','message'=>'未安装服务；在服务器运行 php bin/install-task-worker.php --print 检查环境'];
-        if(($this->config['mode']??'systemd')==='process')return ProcessRuntime::request($this->config,'status');
         $output=$this->invoke('status');$values=[];
         foreach(explode("\n",$output) as $line){$pair=explode('=',$line,2);if(count($pair)===2)$values[$pair[0]]=$pair[1];}
         if(!isset($values['LoadState'],$values['ActiveState']))throw new \RuntimeException('systemd 返回状态不完整');
@@ -55,18 +54,12 @@ final class SystemdController
     }
     public function targetReady()
     {
-        if(($this->config['mode']??'systemd')==='process')return !empty(ProcessRuntime::request($this->config,'status')['accepting']);
         return (self::properties($this->invoke('target-status'))['ActiveState']??'')==='active';
     }
     public function instance($kind,$action,$id)
     {
         if(!in_array($kind,['job','plugin'],true)||!in_array($action,['start','stop','status','logs'],true))throw new \InvalidArgumentException('实例操作无效');
         if($action==='logs')return $this->logStore()->recent($kind.':'.$id);
-        if(($this->config['mode']??'systemd')==='process'){
-            if($kind==='job')Execution::id($id);
-            elseif(!is_string($id)||!preg_match('/^[a-f0-9]{32}g[1-9][0-9]{0,8}$/D',$id))throw new \InvalidArgumentException('插件实例编号无效');
-            return ProcessRuntime::request($this->config,$kind.'-'.$action,$id);
-        }
         $output=$this->invoke($kind.'-'.$action,$id);
         if($action!=='status')return ['accepted'=>true];
         $p=self::properties($output);
@@ -117,7 +110,6 @@ final class SystemdController
     public function control($action)
     {
         if(!in_array($action,['start','stop','restart','enable','disable'],true))throw new \InvalidArgumentException('不支持的服务操作');
-        if(($this->config['mode']??'systemd')==='process')throw new \RuntimeException('本站使用进程管理器，请在进程管理器中启动、停止、重启和设置开机自启');
         $this->invoke($action);
         return ['action'=>$action,'accepted'=>true,'status'=>$this->status()];
     }

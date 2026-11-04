@@ -51,8 +51,7 @@ if (!defined('IN_CRONLITE')) { http_response_code(404); exit; }
   </section>
   <details class="task-connection">
     <summary><i class="fa fa-terminal" aria-hidden="true"></i> 安装与运行说明</summary>
-    <p>系统安装完成后，选择一种托管方式。systemd：在网站根目录以 root 运行 <code>php bin/install-task-worker.php --install</code>，自动检测、安装、启动、开启自启并确认调度心跳。</p>
-    <p>进程管理器：运行目录选择网站根目录，运行用户选择站点用户，启动命令填写 <code>命令行PHP绝对路径 bin/task-process.php</code>，进程数设为 1，开启自动重启和开机启动，停止等待时间设为 940 秒。首次启动自动初始化，不依赖 systemd 和 cgroup v2；两种托管方式不能同时使用。</p>
+    <p>服务器先升级数据库，再从项目根目录运行 <code>php bin/install-task-worker.php --print</code> 检测环境，确认后以 root 运行 <code>php bin/install-task-worker.php --install</code> 安装。</p>
     <p>项目目录、PHP CLI、运行用户自动识别；环境存在歧义时明确报错，可用 <code>--php=绝对路径</code>、<code>--user=用户</code> 指定。旧 cron 必须停用，定时 URL 不再执行业务。</p>
     <p>停止或重启会先停止领取新任务，等待执行中的任务结束。支付插件随通道启停自动接管，默认每 3 秒处理；投诉管理中启用的接口自动生成每日 03:00 同步任务，时间均为北京时间。</p>
   </details>
@@ -124,4 +123,4 @@ if (!defined('IN_CRONLITE')) { http_response_code(404); exit; }
     </div>
   </div></div>
 </div>
-<script src="../assets/js/admin-tasks.js?v=12"></script>
+<script src="../assets/js/admin-tasks.js?v=11"></script>
