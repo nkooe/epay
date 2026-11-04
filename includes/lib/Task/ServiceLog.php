@@ -19,7 +19,7 @@ final class ServiceLog
     public function __construct(array $config) { $this->directory = self::directory($config); }
     private function locked(callable $operation)
     {
-        if (is_link($this->directory) || !is_dir($this->directory)) throw new \RuntimeException('服务日志目录未安装，请重新运行任务服务安装器');
+        if (is_link($this->directory) || !is_dir($this->directory)) throw new \RuntimeException('服务日志目录缺失，请在进程管理器重启本站主进程');
         $path = $this->directory.'/.lock';
         if (is_link($path)) throw new \RuntimeException('日志锁不能为符号链接');
         $lock = fopen($path, 'c+b');
@@ -37,7 +37,7 @@ final class ServiceLog
     }
     private function path($day)
     {
-        $path = $this->directory.'/'.SystemdController::validateLogDate($day).'.log';
+        $path = $this->directory.'/'.Controller::validateLogDate($day).'.log';
         if (is_link($path) || (file_exists($path) && !is_file($path))) throw new \RuntimeException('日志文件类型不正确');
         return $path;
     }
@@ -57,7 +57,7 @@ final class ServiceLog
     public function days() { return $this->locked(function () { return array_keys($this->files()); }); }
     public function delete($day)
     {
-        SystemdController::validateLogDate($day);
+        Controller::validateLogDate($day);
         $this->locked(function () use ($day) {
             $path = $this->path($day);
             if (!is_file($path)) throw new \lib\AdminApp\ApiError('日志日期不存在', 404);
@@ -78,7 +78,7 @@ final class ServiceLog
         if ($text === '') return;
         $now = ($now ?? new \DateTimeImmutable('now'))->setTimezone(new \DateTimeZone('Asia/Shanghai'));
         $prefix = $now->format('Y-m-d\TH:i:sP').' ['.$source.'] ';
-        $text = SystemdController::redact(mb_convert_encoding($text, 'UTF-8', 'UTF-8'));
+        $text = Controller::redact(mb_convert_encoding($text, 'UTF-8', 'UTF-8'));
         $text = str_replace(["\r\n", "\r"], "\n", $text);
         $lines = explode("\n", rtrim($text, "\n"));
         $record = $prefix.implode("\n".$prefix, $lines)."\n";
@@ -123,7 +123,7 @@ final class ServiceLog
     }
     public function read($day, $source = null, $limit = 131072)
     {
-        SystemdController::validateLogDate($day);
+        Controller::validateLogDate($day);
         if ($source !== null) self::source($source);
         return $this->locked(function () use ($day, $source, $limit) {
             $path = $this->path($day);
@@ -149,7 +149,7 @@ final class ServiceLog
                 $newline = strpos($text, "\n");
                 $text = $newline === false ? '' : substr($text, $newline + 1);
             }
-            return SystemdController::redact(mb_convert_encoding($text, 'UTF-8', 'UTF-8'));
+            return Controller::redact(mb_convert_encoding($text, 'UTF-8', 'UTF-8'));
         });
     }
     public function recent($source = null)

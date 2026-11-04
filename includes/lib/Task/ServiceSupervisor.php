@@ -7,17 +7,17 @@ use lib\AdminApp\Store;
 final class ServiceSupervisor
 {
     private $db;private $registry;private $ctl;private $limit;private $pendingCursor='';private $attentionCursor='';
-    public function __construct(Store $db,ServiceRegistry $registry,SystemdController $ctl,$limit)
+    public function __construct(Store $db,ServiceRegistry $registry,Controller $ctl,$limit)
     {$this->db=$db;$this->registry=$registry;$this->ctl=$ctl;$this->limit=$limit;}
     private function operation(array $op,$state,$message='')
     {
         $this->db->query('UPDATE pre_service_operation SET state=?,finished_at=?,message=? WHERE id=?',
-            [$state,in_array($state,['completed','failed'],true)?date('Y-m-d H:i:s'):null,mb_substr(SystemdController::redact($message),0,1000),$op['id']]);
+            [$state,in_array($state,['completed','failed'],true)?date('Y-m-d H:i:s'):null,mb_substr(Controller::redact($message),0,1000),$op['id']]);
     }
     private function fault(array $row,$message,$live)
     {
         $this->db->query("UPDATE pre_plugin_service SET desired=0,observed='attention',last_error=? WHERE id=?",
-            [mb_substr(SystemdController::redact($message),0,1000),$row['id']]);
+            [mb_substr(Controller::redact($message),0,1000),$row['id']]);
         if($live)$this->ctl->instance('plugin','stop',ServiceRegistry::instance($row));
     }
     private function launch(array $row)

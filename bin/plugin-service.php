@@ -41,16 +41,16 @@ try{
     $exit=$e instanceof \lib\Task\ServiceStopped?0:($e instanceof \lib\Task\ServiceFault?78:1);
     if($exit!==0&&$row&&isset($db)){
         try{$db->query("UPDATE pre_plugin_service SET observed=?,last_error=?,desired=? WHERE id=? AND token=?",
-            [$exit===78?'attention':'backoff',mb_substr(\lib\Task\SystemdController::redact($e->getMessage()),0,1000),$exit===78?0:$row['desired'],$row['id'],$row['token']]);}catch(Throwable $ignored){}
+            [$exit===78?'attention':'backoff',mb_substr(\lib\Task\Controller::redact($e->getMessage()),0,1000),$exit===78?0:$row['desired'],$row['id'],$row['token']]);}catch(Throwable $ignored){}
     }
-    if($exit!==0)error_log('[epay-plugin] '.\lib\Task\SystemdController::redact($e->getMessage()));
+    if($exit!==0)error_log('[epay-plugin] '.\lib\Task\Controller::redact($e->getMessage()));
 }finally{
     if($context){
         pcntl_alarm($stopSeconds);
         try{if($started&&$stopMethod)$class::$stopMethod($channels,$context);}
         catch(Throwable $e){
-            $exit=78;error_log('[epay-plugin-stop] '.\lib\Task\SystemdController::redact($e->getMessage()));
-            try{$db->query("UPDATE pre_plugin_service SET desired=0,last_error=? WHERE id=? AND token=?",[mb_substr(\lib\Task\SystemdController::redact($e->getMessage()),0,1000),$row['id'],$row['token']]);}catch(Throwable $ignored){}
+            $exit=78;error_log('[epay-plugin-stop] '.\lib\Task\Controller::redact($e->getMessage()));
+            try{$db->query("UPDATE pre_plugin_service SET desired=0,last_error=? WHERE id=? AND token=?",[mb_substr(\lib\Task\Controller::redact($e->getMessage()),0,1000),$row['id'],$row['token']]);}catch(Throwable $ignored){}
         }
         if($row&&isset($db)){try{$db->query("UPDATE pre_plugin_service SET token=NULL,observed=CASE WHEN observed='attention' THEN observed ELSE ? END WHERE id=? AND token=?",[$exit===0?'stopped':($exit===78?'attention':'backoff'),$row['id'],$row['token']]);}catch(Throwable $ignored){}}
         $context->release();pcntl_alarm(0);

@@ -224,41 +224,23 @@
     const transitioning = ['activating', 'deactivating', 'reloading'].includes(s.active_state);
     const retrying = s.sub_state === 'auto-restart';
     const names = {active:'服务运行中',inactive:'服务已停止',failed:'需人工核查',activating:'服务启动中',deactivating:'正在等待任务结束',reloading:'服务重载中'};
-    const healthy = active && w.healthy;
+    const healthy = active && w.healthy && (!s.health || s.health.healthy);
+    const modeName='进程管理器';
     byId('task-service-state').textContent = !s.installed ? '服务未安装' :
       (!s.available ? '无法读取服务状态' : (retrying ? '重试等待' : (active && !w.healthy ? (w.state === 'draining' ? '正在等待任务结束' : '心跳超时') : (names[s.active_state] || '服务状态未知'))));
     const currentPid = s.available && s.installed && (active || transitioning) && Number.isSafeInteger(s.pid) && s.pid > 0 ? s.pid : null;
     byId('task-service-pid').textContent = '当前 PID：' + (currentPid === null ? '—' : currentPid);
     const failures = {watchdog:'30秒无主循环进度，已触发看门狗',timeout:'服务启动或停止超时','start-limit-hit':'连续异常达到重试上限，请查看服务日志','exit-code':'进程异常退出，请查看服务日志',signal:'进程被信号终止','oom-kill':'超过内存限制'};
     const reason = retrying ? '5秒后重试；连续异常达到上限后暂停' : (s.active_state === 'failed' ? (failures[s.result] || '服务异常，请查看服务日志后恢复') : (active && !w.healthy ? w.reason : ''));
-    byId('task-service-detail').textContent = s.message || [s.service, s.unit_file_state === 'enabled' ? '开机自启' : '自启关闭',reason].filter(Boolean).join(' · ');
+    byId('task-service-detail').textContent = modeName+' · '+(s.message || [s.service, s.unit_file_state === 'enabled' ? '开机自启' : '自启关闭',reason].filter(Boolean).join(' · '))+(s.health?' · '+s.health.message:'');
+    byId('task-health-detail').textContent = s.health ? s.health.faults.map(f=>f.message+'：'+f.action).join('；') : '';
     const activeIds = (w.active || []).map(item => '#' + item.task_id).join('、');
     const memory = s.budget && /^\d+$/.test(s.budget.MemoryCurrent) ? ' · 内存 '+Math.ceil(Number(s.budget.MemoryCurrent)/1048576)+' MB' : '';
     const recovery = Number(s.restarts) > 0 ? ' · 已重启 '+s.restarts+' 次' : '';
     const watchdog = Number(s.watchdog_seconds) > 0 ? ' · 看门狗 '+s.watchdog_seconds+'秒' : '';
     byId('task-worker-detail').textContent = (w.heartbeat_at ? '心跳 ' + w.heartbeat_at + (activeIds ? ' · 执行中 ' + activeIds : ' · 当前空闲') : '尚无调度心跳')+memory+watchdog+recovery;
     byId('task-service-dot').className = 'task-service-dot ' + (healthy ? 'is-running' : (s.installed ? 'is-stopped' : 'is-unknown'));
-    const main = byId('task-service-main');
-    main.dataset.serviceAction = active ? 'stop' : 'start';
-    main.textContent = serviceBusy ? '提交中…' : (active ? '停止服务' : '启动服务');
-    document.querySelectorAll('[data-service-action]').forEach(button => {
-      const action = button.dataset.serviceAction;
-      button.disabled = serviceBusy || transitioning || !s.available || !s.installed ||
-        (action === 'enable' && s.unit_file_state === 'enabled') ||
-        (action === 'disable' && s.unit_file_state !== 'enabled');
-    });
     byId('task-service-logs').disabled = serviceBusy || !s.available || !s.installed;
-  }
-  async function serviceAction(action) {
-    if (serviceBusy) return;
-    serviceBusy = true;
-    renderService();
-    try {
-      const data = await request('service', {action});
-      renderService(data.status);
-      feedback('服务指令已提交，正在读取实际状态。停止或重启会等待当前任务结束。', false);
-    } catch (error) { feedback(error.message, true); }
-    finally { serviceBusy = false; renderService(); await loadList(); }
   }
   function updatePluginJobs() {
     const select = byId('task-job');
@@ -665,7 +647,6 @@
     byId('task-filter').hidden = view === 'services';byId('task-add').hidden = view === 'services';
     renderRows();renderPluginServices();
   }));
-  document.querySelectorAll('[data-service-action]').forEach(button => button.addEventListener('click', () => serviceAction(button.dataset.serviceAction)));
   byId('task-service-refresh').addEventListener('click', () => loadList(true));
   byId('task-channel').addEventListener('input', updatePluginJobs);
   byId('task-service-logs').addEventListener('click', async () => {

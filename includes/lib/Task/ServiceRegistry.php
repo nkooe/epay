@@ -40,7 +40,7 @@ final class ServiceRegistry
                     if($spec['scope']!=='plugin')$groups[$id]['channel_enabled']=$groups[$id]['channel_enabled']&&(int)$channel['status']===1;
                 }
             }catch(\PDOException $e){throw $e;}
-            catch(\Throwable $e){$errors[]=['channel_id'=>$channel['id'],'error'=>SystemdController::redact($e->getMessage())];}
+            catch(\Throwable $e){$errors[]=['channel_id'=>$channel['id'],'error'=>Controller::redact($e->getMessage())];}
         }
         foreach($groups as &$group){
             if($group['spec']['scope']==='plugin'){

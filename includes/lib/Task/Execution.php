@@ -53,7 +53,7 @@ final class Execution
     {
         if(!in_array($state,['success','failed','rejected'],true))throw new \InvalidArgumentException('运行结果无效');
         return $this->db->query("UPDATE pre_task_execution SET state=?,finished_at=?,message=? WHERE id=? AND state='running'",
-            [$state,date('Y-m-d H:i:s'),mb_substr(SystemdController::redact($message),0,2000),self::id($id)])->rowCount();
+            [$state,date('Y-m-d H:i:s'),mb_substr(Controller::redact($message),0,2000),self::id($id)])->rowCount();
     }
 
     public function reap(array $run,array $unit)

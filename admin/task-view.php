@@ -15,16 +15,11 @@ if (!defined('IN_CRONLITE')) { http_response_code(404); exit; }
     </div>
   </div>
   <section class="task-service-bar" id="task-service" aria-label="调度服务">
-    <div class="task-service-info"><span class="task-service-dot" id="task-service-dot" aria-hidden="true"></span><div><div class="task-service-heading"><strong id="task-service-state">读取调度服务…</strong><span class="task-service-pid" id="task-service-pid" aria-live="polite">当前 PID：—</span></div><span class="task-service-detail" id="task-service-detail"></span><span class="task-service-detail" id="task-worker-detail"></span></div></div>
+    <div class="task-service-info"><span class="task-service-dot" id="task-service-dot" aria-hidden="true"></span><div><div class="task-service-heading"><strong id="task-service-state">读取调度服务…</strong><span class="task-service-pid" id="task-service-pid" aria-live="polite">当前 PID：—</span></div><span class="task-service-detail" id="task-service-detail"></span><span class="task-service-detail" id="task-worker-detail"></span><span class="task-service-detail" id="task-health-detail" aria-live="polite"></span></div></div>
     <div class="task-service-actions">
-      <button type="button" class="btn btn-primary btn-sm" id="task-service-main" data-service-action="start" disabled>启动服务</button>
       <div class="dropdown">
         <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">更多 <span class="caret"></span></button>
         <ul class="dropdown-menu dropdown-menu-right">
-          <li><button type="button" data-service-action="restart">重启服务</button></li>
-          <li><button type="button" data-service-action="enable">开机自启</button></li>
-          <li><button type="button" data-service-action="disable">取消自启</button></li>
-          <li role="separator" class="divider"></li>
           <li><button type="button" id="task-service-logs">服务日志</button></li>
           <li><button type="button" id="task-plugin-sync">同步插件任务</button></li>
         </ul>
@@ -51,8 +46,8 @@ if (!defined('IN_CRONLITE')) { http_response_code(404); exit; }
   </section>
   <details class="task-connection">
     <summary><i class="fa fa-terminal" aria-hidden="true"></i> 安装与运行说明</summary>
-    <p>服务器先升级数据库，再从项目根目录运行 <code>php bin/install-task-worker.php --print</code> 检测环境，确认后以 root 运行 <code>php bin/install-task-worker.php --install</code> 安装。</p>
-    <p>项目目录、PHP CLI、运行用户自动识别；环境存在歧义时明确报错，可用 <code>--php=绝对路径</code>、<code>--user=用户</code> 指定。旧 cron 必须停用，定时 URL 不再执行业务。</p>
+    <p>安装完成后，在进程管理器添加网站根目录，启动命令填写 <code>命令行PHP绝对路径 bin/task-process.php</code>，运行用户选择 root，进程数 1，开启自动重启和开机自启，停止等待时间 940 秒。首次启动自动初始化，内部自动使用站点用户运行任务。</p>
+    <p>主进程与所有子任务统一使用启动命令指定的 PHP，无需额外配置或安装服务。整体启停、自启由进程管理器负责。</p>
     <p>停止或重启会先停止领取新任务，等待执行中的任务结束。支付插件随通道启停自动接管，默认每 3 秒处理；投诉管理中启用的接口自动生成每日 03:00 同步任务，时间均为北京时间。</p>
   </details>
 </main>
@@ -123,4 +118,4 @@ if (!defined('IN_CRONLITE')) { http_response_code(404); exit; }
     </div>
   </div></div>
 </div>
-<script src="../assets/js/admin-tasks.js?v=11"></script>
+<script src="../assets/js/admin-tasks.js?v=14"></script>

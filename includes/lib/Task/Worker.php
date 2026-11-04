@@ -9,14 +9,14 @@ final class Worker
     private $lock;private $lastSync=0;private $lastBeat=0;
     private $controller;private $executions;private $services;private $progress;private $reapBacklog=false;private $reapCursor='';private $activeCount=0;
     private $syncCursor=0;private $syncedPlugins=[];private $retiredTaskCursor=0;private $retiredPluginCursor='';
-    public function __construct(Store $db,array $config,SystemdController $controller=null)
+    public function __construct(Store $db,array $config,Controller $controller=null)
     {
         $this->db=$db;$this->config=$config;$this->token=bin2hex(random_bytes(16));
-        $this->controller=$controller??new SystemdController($config);$this->executions=new Execution($db);
+        $this->controller=$controller??new Controller($config);$this->executions=new Execution($db);
         $this->services=new ServiceSupervisor($db,new ServiceRegistry($db,$config['root'].'/plugins'),$this->controller,$config['service_limit']);
         $this->lock='epay.worker.'.substr(hash('sha256',$db->value('SELECT DATABASE()').':'.$db->tablePrefix()),0,48);
     }
-    private function log($message){error_log('[epay-task-worker] '.SystemdController::redact($message));}
+    private function log($message){error_log('[epay-task-worker] '.Controller::redact($message));}
     private function beat($state)
     {
         $active=[];foreach($this->children as $run)$active[]=['task_id'=>(int)$run['task_id'],'run_id'=>$run['id'],'state'=>$run['state']];
@@ -37,6 +37,7 @@ final class Worker
             [$this->token,getmypid(),date('Y-m-d H:i:s'),date('Y-m-d H:i:s')]);
         $this->db->query("UPDATE pre_task_request SET state='interrupted',finished_at=?,message='旧执行器请求缺少运行编号，需核查；不自动重放'
             WHERE state='running' AND NOT EXISTS (SELECT 1 FROM pre_task_execution e WHERE e.request_id=pre_task_request.id)",[date('Y-m-d H:i:s')]);
+        Health::request($this->db,$this->token);
         $this->log('started '.$this->config['service']);
         try{
             do{
@@ -48,7 +49,8 @@ final class Worker
                     $targetReady=$this->stopping||$this->controller->targetReady();
                     $this->services->tick($this->stopping||!$targetReady);
                     if(!$this->stopping&&$targetReady){
-                        if(!$this->reapBacklog&&hrtime(true)<$deadline&&count($this->children)<$this->config['concurrency'])$this->dispatch($deadline);
+                        $probeBusy=Health::tick($this->db,$this->controller,$this->token,!$this->reapBacklog&&count($this->children)<$this->config['concurrency']);
+                        if(!$probeBusy&&!$this->reapBacklog&&hrtime(true)<$deadline&&count($this->children)<$this->config['concurrency'])$this->dispatch($deadline);
                         if(hrtime(true)<$deadline&&time()-$this->lastSync>=Automatic::POLL_SECONDS)$this->syncChannel();
                     }
 
@@ -90,6 +92,7 @@ final class Worker
             if($retired){$automatic->retireChannel($retired['channel_id']);$this->retiredTaskCursor=(int)$retired['channel_id'];return;}
             $retired=$this->db->row('SELECT DISTINCT s.plugin FROM pre_plugin_service s WHERE s.plugin>? AND NOT EXISTS (SELECT 1 FROM pre_channel c WHERE c.plugin=s.plugin) ORDER BY s.plugin LIMIT 1',[$this->retiredPluginCursor]);
             if($retired){$automatic->services($retired['plugin']);$this->retiredPluginCursor=$retired['plugin'];return;}
+            $this->db->query("INSERT INTO pre_config(k,v) VALUES ('task_hosting_catalog',?) ON DUPLICATE KEY UPDATE v=VALUES(v)",[$this->token]);
             $this->syncCursor=0;$this->syncedPlugins=[];$this->retiredTaskCursor=0;$this->retiredPluginCursor='';$this->lastSync=time();return;
         }
         $synced=$automatic->channel($channel);
@@ -137,7 +140,7 @@ final class Worker
         }catch(\PDOException $e){throw $e;}
         catch(\Throwable $e){
             $this->db->query("UPDATE pre_task SET enabled=0,next_run_at=NULL,last_status='failed',last_error=? WHERE id=? AND revision=?",
-                [mb_substr(SystemdController::redact($e->getMessage()),0,1000),$task['id'],$task['revision']]);
+                [mb_substr(Controller::redact($e->getMessage()),0,1000),$task['id'],$task['revision']]);
             if($request)$this->db->query("UPDATE pre_task_request SET state='rejected',finished_at=?,message='能力校验失败，请核查' WHERE id=?",[date('Y-m-d H:i:s'),$request['id']]);
             return;
         }

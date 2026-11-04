@@ -278,7 +278,7 @@ final class TaskService
                     echo $result;
                 }
             } catch (\Throwable $e) {
-                $error = self::text(SystemdController::redact($e->getMessage()), 1000);
+                $error = self::text(Controller::redact($e->getMessage()), 1000);
                 error_log('任务 '.$task['id'].' 执行失败：'.$error);
             } finally {
                 unset($GLOBALS['epay_task_context']);

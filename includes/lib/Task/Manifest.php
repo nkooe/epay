@@ -27,7 +27,7 @@ final class Manifest
         self::fields($data,['schema_version','tasks','services']);
         if($data['schema_version']!==1)throw new \RuntimeException('不支持的后台能力协议版本');
         foreach(['tasks','services'] as $kind){
-            if(!is_array($data[$kind])||!array_is_list($data[$kind]))throw new \RuntimeException('后台能力必须为数组');
+            if(!is_array($data[$kind])||!($data[$kind]===[]||array_keys($data[$kind])===range(0,count($data[$kind])-1)))throw new \RuntimeException('后台能力必须为数组');
             $result=[];
             foreach($data[$kind] as $item){
                 if(!is_array($item))throw new \RuntimeException('后台能力必须为对象');

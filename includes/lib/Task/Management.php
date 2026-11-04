@@ -11,8 +11,8 @@ final class Management
     private $db;
     private $ip;
     private $controller;
-    public function __construct(Store $db, $ip, SystemdController $controller=null)
-    { $this->db=$db; $this->ip=$ip; $this->controller=$controller??new SystemdController(); }
+    public function __construct(Store $db, $ip, Controller $controller=null)
+    { $this->db=$db; $this->ip=$ip; $this->controller=$controller??new Controller(); }
     public function handle($method, $act, array $input=[])
     {
         $store=$this->db; $clientip=$this->ip;
@@ -27,32 +27,25 @@ final class Management
             unset($definition);
             try { $serviceState = $service->status(); }
             catch (Throwable $e) { $serviceState = ['available'=>false,'installed'=>true,'message'=>$e->getMessage()]; }
+            $serviceState['health']=Health::status($store);
             $data = ['rows'=>$tasks->listing(), 'definitions'=>$definitions, 'service'=>$serviceState,
                 'worker'=>$dispatch->heartbeat(), 'plugin_jobs'=>$registry->catalog(), 'plugin_services'=>$pluginServices->listing(),
                 'executions'=>$store->all('SELECT id,task_id,state,created_at,claimed_at FROM pre_task_execution WHERE active_task_id IS NOT NULL ORDER BY created_at'),
                 'requests'=>$store->all("SELECT id,task_id,state,message FROM pre_task_request WHERE state IN ('pending','running') ORDER BY created_at")];
         } elseif ($method === 'GET' && $act === 'service') {
             $data = $service->status();
-        } elseif ($method === 'POST' && $act === 'service') {
-            if (count($input) !== 1 || !isset($input['action']) || !is_string($input['action'])) {
-                throw new InvalidArgumentException('服务操作参数不正确');
-            }
-            if (!in_array($input['action'], ['start','stop','restart','enable','disable'], true)) throw new InvalidArgumentException('不支持的服务操作');
-            $store->insert('log', ['uid'=>0,'type'=>'任务服务控制','date'=>date('Y-m-d H:i:s'),'ip'=>$clientip,
-                'data'=>json_encode(['action'=>$input['action']],JSON_UNESCAPED_UNICODE)]);
-            $data = $service->control($input['action']);
         } elseif ($method === 'GET' && $act === 'service_logs') {
             $data = ['text'=>$service->logs()];
         } elseif ($method === 'GET' && $act === 'service_log_days') {
             $data = ['days'=>$service->logDays(), 'today'=>date('Y-m-d')];
         } elseif ($method === 'GET' && $act === 'service_log') {
-            $date = \lib\Task\SystemdController::validateLogDate($input['date'] ?? '');
+            $date = \lib\Task\Controller::validateLogDate($input['date'] ?? '');
             $data = ['date'=>$date, 'text'=>$service->logDay($date)];
         } elseif ($method === 'POST' && $act === 'service_log_delete') {
             if (count($input) !== 1 || !isset($input['date']) || !is_string($input['date'])) {
                 throw new InvalidArgumentException('删除日志必须指定日期');
             }
-            $date = \lib\Task\SystemdController::validateLogDate($input['date']);
+            $date = \lib\Task\Controller::validateLogDate($input['date']);
             $service->deleteLogDay($date);
             $store->insert('log', ['uid'=>0,'type'=>'服务日志删除','date'=>date('Y-m-d H:i:s'),'ip'=>$clientip,
                 'data'=>json_encode(['date'=>$date], JSON_UNESCAPED_UNICODE)]);

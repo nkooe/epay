@@ -8,6 +8,7 @@ try {
     if(count($argv)!==2)throw new InvalidArgumentException('只接受运行编号');
     if(!function_exists('posix_geteuid')||posix_geteuid()===0)throw new RuntimeException('任务必须以站点低权限用户执行');
     $db=\lib\Task\CliRuntime::connect($root);
+    if(\lib\Task\Health::execute($db,$argv[1]))exit(0);
     $execution=new \lib\Task\Execution($db);$run=$execution->claim($argv[1]);
     $registry=new \lib\Task\PluginRegistry($db);
     $task=$db->row('SELECT * FROM pre_task WHERE id=?',[$run['task_id']]);
@@ -26,5 +27,5 @@ try {
 }catch(Throwable $e){
     $conflict=$e instanceof \lib\AdminApp\ApiError&&$e->status===409;
     if($run&&$execution){try{$execution->finish($run['id'],$conflict?'rejected':'failed',$e->getMessage());}catch(Throwable $ignored){}}
-    error_log('[epay-task-runner] '.\lib\Task\SystemdController::redact($e->getMessage()));exit($conflict?75:1);
+    error_log('[epay-task-runner] '.\lib\Task\Controller::redact($e->getMessage()));exit($conflict?75:1);
 }

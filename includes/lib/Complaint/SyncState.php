@@ -16,7 +16,7 @@ final class SyncState
     }
     public function get($id){return $this->db->row('SELECT * FROM pre_complaint_sync WHERE account_id=?',[$id]);}
     public function update($id,array $data){$this->db->update('complaint_sync',$data+['updated_at'=>date('Y-m-d H:i:s')],'account_id',$id);}
-    public static function message(\Throwable $e){return mb_substr(\lib\Task\SystemdController::redact($e->getMessage()),0,1000);}
+    public static function message(\Throwable $e){return mb_substr(\lib\Task\Controller::redact($e->getMessage()),0,1000);}
     public function request($id)
     {
         $this->ensure($id);
