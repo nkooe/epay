@@ -5,8 +5,8 @@ if(isset($_COOKIE["admin_token"]))
 {
 	$token=authcode(daddslashes($_COOKIE['admin_token']), 'DECODE', SYS_KEY);
 	list($user, $sid, $expiretime) = explode("\t", $token);
-	$session=md5($conf['admin_user'].$conf['admin_pwd'].$password_hash);
-	if($session==$sid && $expiretime>time()) {
+	$session=webAdminSessionStamp($conf);
+	if(is_string($sid) && hash_equals($session,$sid) && $user===$conf['admin_user'] && $expiretime>time()) {
 		$islogin=1;
 	}
 }

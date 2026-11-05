@@ -567,6 +567,7 @@ class Pay
 
         $pid=intval($queryArr['pid']);
         if(!$conf['user_refund']) throw new Exception('管理员未开启商户后台自助退款');
+        if(empty($userrow['refund'])) throw new Exception('商户未开启订单退款API接口');
 
         $money = trim($queryArr['money']);
 	    if(!empty($money) && (!is_numeric($money) || !preg_match('/^[0-9.]+$/', $money)))throw new Exception('金额输入错误');
@@ -581,6 +582,7 @@ class Pay
             throw new Exception('订单号不能为空');
 		}
 
+        $out_refund_no = null;
         $refund_no = date("YmdHis").rand(11111,99999);
         if(!empty($queryArr['out_refund_no']) && strlen($queryArr['out_refund_no']) > 5){ //判断商户是否重复提交退款
             $out_refund_no = daddslashes($queryArr['out_refund_no']);
@@ -593,7 +595,7 @@ class Pay
             }
         }
 
-        $result = \lib\Order::refund($refund_no, $trade_no, $money, 1, $pid, $out_refund_no);
+        $result = \lib\Order::refund($refund_no, $trade_no, $money, 1, $pid, $out_refund_no, true);
         if($result['code'] == 0){
             $result['msg'] = '退款成功！退款金额¥'.$result['money'];
         }

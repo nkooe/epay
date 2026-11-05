@@ -7,6 +7,12 @@ if(!checkRefererHost())exit('{"code":403}');
 
 @header('Content-Type: application/json; charset=UTF-8');
 
+if(in_array($act,['create_batch', 'complete_batch', 'setSettleStatus', 'opslist', 'settle_save', 'transfer'],true)){
+    try{\lib\Security\AdminFinancial::requireVerified(\lib\AdminApp\Runtime::legacyStore($DB),$conf,$clientip,$_POST['paypwd']??null);}
+    catch(\lib\AdminApp\ApiError $e){exit(json_encode(['code'=>$e->getCode()===-9?-9:-1,'msg'=>$e->getMessage()]));}
+}
+
+
 switch($act){
 case 'settleList':
 	$sql=" 1=1";
@@ -38,7 +44,7 @@ case 'settleList':
 	$list = $DB->getAll("SELECT * FROM pre_settle WHERE{$sql} order by id desc limit $offset,$limit", $params);
 	$list2 = [];
 	foreach($list as $row){
-		if($row['type'] == 2 && $row['status'] == 1 && !empty($row['transfer_ext']) && time() - strtotime($row['transfer_date']) <= 86400){
+		if($row['type'] == 2 && in_array((int)$row['status'],[0,1],true) && !empty($row['transfer_ext']) && time() - strtotime($row['transfer_date']?:$row['addtime']) <= 86400){
 			if(substr($row['ext'], 0, 4) == 'http'){
 				$row['jumpurl'] = $row['ext'];
 			}else{
@@ -52,78 +58,26 @@ case 'settleList':
 break;
 
 case 'create_batch':
-	$count=$DB->getColumn("SELECT count(*) from pre_settle where status=0");
-	if($count==0)exit('{"code":-1,"msg":"当前不存在待结算的记录"}');
-	$batch=date("Ymd").rand(111,999);
-	$allmoney = 0;
-	$rs=$DB->query("SELECT * from pre_settle where status=0");
-	while($row = $rs->fetch())
-	{
-		$DB->exec("UPDATE pre_settle SET batch=:batch,status=2 WHERE id=:id", [':batch'=>$batch, ':id'=>(int)$row['id']]);
-		$allmoney+=$row['realmoney'];
-	}
-	$DB->insert('batch', ['batch'=>$batch, 'allmoney'=>$allmoney, 'count'=>$count, 'time'=>'NOW()', 'status'=>0]);
-
-	exit(json_encode(['code'=>0, 'msg'=>'succ', 'batch'=>$batch, 'count'=>$count, 'allmoney'=>$allmoney]));
-break;
 case 'complete_batch':
-	$batch=trim((string)($_POST['batch'] ?? ''));
-	if(!preg_match('/\A[0-9]{11,19}\z/', $batch))exit('{"code":-1,"msg":"批次号无效"}');
-	$DB->exec("UPDATE pre_settle SET status=1 WHERE batch=:batch", [':batch'=>$batch]);
-	exit('{"code":0,"msg":"操作成功"}');
+    try{
+        $ops=new \lib\AdminApp\Operations(\lib\AdminApp\Runtime::legacyStore($DB),$clientip);
+        $r=$ops->batchAction($act==='create_batch'?'batch-create':'batch-complete',['batch'=>trim((string)($_POST['batch']??''))]);
+        exit(json_encode(['code'=>0,'msg'=>$r['message'],'allmoney'=>$r['amount']??null]+$r));
+    }catch(\lib\AdminApp\ApiError $e){exit(json_encode(['code'=>-1,'msg'=>$e->getMessage()]));}
 break;
 case 'setSettleStatus':
-	$id=intval($_GET['id']);
-	$status=intval($_GET['status']);
-	if($status==4){
-		$row = $DB->find('settle', 'uid,money', ['id'=>$id]);
-		if(!$row) exit('{"code":200}');
-		if($DB->exec("DELETE FROM pre_settle WHERE id=:id", [':id'=>$id])){
-			changeUserMoney($row['uid'], $row['money'], true, '结算失败退回');
-			exit('{"code":200}');
-		}
-		else{
-			exit('{"code":400,"msg":"删除记录失败！['.$DB->error().']"}');
-		}
-	}else{
-		if($status==1){
-			$sql = "update pre_settle set status=:status,endtime=:endtime,result=NULL where id=:id";
-
-			$row = $DB->find('settle', 'uid,money,realmoney,account', ['id'=>$id]);
-			\lib\MsgNotice::send('settle', $row['uid'], ['money'=>$row['money'], 'realmoney'=>$row['realmoney'], 'time'=>date('Y-m-d H:i:s'), 'account'=>$row['account']]);
-		}else{
-			$sql = "update pre_settle set status=:status,endtime=NULL where id=:id";
-		}
-		$params = [':status'=>$status, ':id'=>$id];
-		if($status==1)$params[':endtime'] = $date;
-		if($DB->exec($sql, $params)!==false)
-			exit('{"code":200}');
-		else
-			exit('{"code":400,"msg":"修改记录失败！['.$DB->error().']"}');
-	}
-break;
 case 'opslist':
-	$status=filter_var($_POST['status'] ?? null, FILTER_VALIDATE_INT);
-	if($status===false || !in_array($status, [0, 1, 2, 3, 4], true))exit('{"code":-1,"msg":"状态无效"}');
-	$checkbox=isset($_POST['checkbox']) && is_array($_POST['checkbox']) ? $_POST['checkbox'] : [];
-	$i=0;
-	foreach($checkbox as $id){
-		$id=filter_var($id, FILTER_VALIDATE_INT);
-		if($id===false || $id<1)continue;
-		if($status==4){
-			$sql = "DELETE FROM pre_settle WHERE id=:id";
-		}elseif($status==1){
-			$sql = "update pre_settle set status=:status,endtime=:endtime,result=NULL where id=:id";
-		}else{
-			$sql = "update pre_settle set status=:status,endtime=NULL where id=:id";
-		}
-		$params = [':id'=>$id];
-		if($status!=4)$params[':status'] = $status;
-		if($status==1)$params[':endtime'] = $date;
-		$DB->exec($sql, $params);
-		$i++;
-	}
-	exit('{"code":0,"msg":"成功改变'.$i.'条记录状态"}');
+    $status=(int)($act==='opslist'?($_POST['status']??-1):($_GET['status']??-1));
+    // Removing funded history is never a generic bulk delete operation.
+    if($act==='opslist'&&$status===4)exit('{"code":-1,"msg":"结算记录包含资金引用，请逐条登记失败并退回余额"}');
+    $action=[1=>'settle-complete',3=>'settle-fail',4=>'settle-return'][$status]??null;
+    if(!$action)exit('{"code":-1,"msg":"不能直接重置结算状态，请使用结算生命周期操作"}');
+    $ids=$act==='opslist'?(array)($_POST['checkbox']??[]):[(int)($_GET['id']??0)];$count=0;
+    try{
+        $ops=new \lib\AdminApp\Operations(\lib\AdminApp\Runtime::legacyStore($DB),$clientip);
+        foreach($ids as $id){$ops->settlementAction($action,['id'=>(int)$id,'reason'=>'后台登记失败']);$count++;}
+        exit(json_encode(['code'=>$act==='opslist'?0:200,'msg'=>'已处理'.$count.'条结算记录']));
+    }catch(\lib\AdminApp\ApiError $e){exit(json_encode(['code'=>-1,'msg'=>'已处理'.$count.'条；'.$e->getMessage()]));}
 break;
 case 'settle_result':
 	$id=intval($_POST['id']);
@@ -164,87 +118,36 @@ case 'settle_save':
 	$pay_type=intval($_POST['pay_type']);
 	$pay_account=htmlspecialchars(trim($_POST['pay_account']));
 	$pay_name=htmlspecialchars(trim($_POST['pay_name']));
-	$data = ['type'=>$pay_type, 'account'=>$pay_account, 'username'=>$pay_name];
-	if($DB->update('settle', $data, ['id'=>$id])!==false)
-		exit('{"code":0,"msg":"修改记录成功！"}');
-	else
-		exit('{"code":-1,"msg":"修改记录失败！'.$DB->error().'"}');
+    try{
+        $store=\lib\AdminApp\Runtime::legacyStore($DB);
+        \lib\Finance\Ledger::transaction($store,function()use($store,$id,$pay_type,$pay_account,$pay_name){
+            $r=$store->row('SELECT * FROM pre_settle WHERE id=?'.$store->lockClause(),[$id]);
+            if(!$r||!in_array((int)$r['status'],[0,2],true)||$r['transfer_no'])throw new \DomainException('已有付款或结果待核实，不能修改收款账号');
+            if(!in_array($pay_type,[1,2,3,4],true)||$pay_account===''||$pay_name==='')throw new \DomainException('收款信息无效');
+            $store->update('settle',['type'=>$pay_type,'account'=>$pay_account,'username'=>$pay_name],'id',$id);
+        });exit('{"code":0,"msg":"修改成功"}');
+    }catch(\DomainException $e){exit(json_encode(['code'=>-1,'msg'=>$e->getMessage()]));}
 break;
 case 'paypwd_check':
-	if(isset($_SESSION['paypwd']) && $_SESSION['paypwd']==$conf['admin_paypwd'])
-		exit('{"code":0,"msg":"操作成功"}');
-	else
-		exit('{"code":-1,"msg":"操作失败"}');
+    try{\lib\Security\AdminFinancial::requireVerified(\lib\AdminApp\Runtime::legacyStore($DB),$conf,$clientip);exit('{"code":0}');}
+    catch(\lib\AdminApp\ApiError $e){exit(json_encode(['code'=>-1,'msg'=>$e->getMessage()]));}
 break;
 case 'paypwd_input':
-	$paypwd=trim($_POST['paypwd']);
-	if(!$conf['admin_paypwd'])exit('{"code":-1,"msg":"你还未设置支付密码"}');
-	if($paypwd == $conf['admin_paypwd']){
-		$_SESSION['paypwd'] = $paypwd;
-		exit('{"code":0,"msg":"操作成功"}');
-	}else{
-		exit('{"code":-1,"msg":"支付密码错误！"}');
-	}
+    try{\lib\Security\AdminFinancial::verify(\lib\AdminApp\Runtime::legacyStore($DB),$conf,$clientip,$_POST['paypwd']??null);exit('{"code":0,"msg":"验证成功"}');}
+    catch(\lib\AdminApp\ApiError $e){exit(json_encode(['code'=>-1,'msg'=>$e->getMessage()]));}
 break;
 case 'paypwd_reset':
-	unset($_SESSION['paypwd']);
-	exit('{"code":0,"msg":"操作成功"}');
+    unset($_SESSION['paypwd'],$_SESSION['financial_stamp'],$_SESSION['financial_until']);exit('{"code":0}');
 break;
-
 case 'transfer':
-	$id = isset($_POST['id'])?intval($_POST['id']):exit('{"code":-1,"msg":"ID不能为空"}');
-	$type = isset($_POST['type'])?intval($_POST['type']):exit('{"code":-1,"msg":"type不能为空"}');
-	$channelid = isset($_POST['channel'])?intval($_POST['channel']):0;
-
-	if(!isset($_SESSION['paypwd']) || $_SESSION['paypwd']!==$conf['admin_paypwd'])exit('{"code":-1,"msg":"支付密码错误，请返回重新进入该页面"}');
-
-	$row=$DB->getRow("SELECT * FROM pre_settle WHERE id=:id limit 1", [':id'=>$id]);
-	if(!$row)exit('{"code":-1,"msg":"记录不存在"}');
-	if($row['type']!=$type)exit('{"code":-1,"msg":"转账类型不正确"}');
-
-	if($row['transfer_status']==1)exit('{"code":0,"ret":2,"result":"转账订单号:'.$row['transfer_result'].' 支付时间:'.$row['transfer_date'].'"}');
-
-	if($type == 1){
-		$app = 'alipay';
-	}elseif($type == 2){
-		$app = 'wxpay';
-	}elseif($type == 3){
-		$app = 'qqpay';
-	}elseif($type == 4){
-		$app = 'bank';
-	}
-	$channel = \lib\Channel::get($channelid);
-	if(!$channel)exit('{"code":-1,"msg":"当前支付通道信息不存在"}');
-
-	$out_biz_no = date("YmdHis").str_pad($id, 5, '0', STR_PAD_LEFT);
-	$result = \lib\Transfer::submit($app, $channel, $out_biz_no, $row['account'], $row['username'], $row['realmoney']);
-
-	if($result['code']==0){
-		$data['code']=0;
-		$data['ret']=1;
-		$data['result']='转账订单号:'.$result['orderid'].' 支付时间:'.$result['paydate'];
-		$update = ['status'=>1, 'endtime'=>'NOW()', 'transfer_no'=>$out_biz_no, 'transfer_channel'=>$channelid, 'transfer_status'=>1, 'transfer_result'=>$result["orderid"], 'transfer_date'=>$result["paydate"]];
-		if(isset($result['wxpackage'])) $update['transfer_ext'] = $result['wxpackage'];
-		$DB->update('settle', $update, ['id'=>$id]);
-
-		if(isset($result['wxpackage'])) {
-			$jumpurl = $siteurl.'paypage/wxtrans.php?type=settle&id='.$id;
-			\lib\MsgNotice::send('settle', $row['uid'], ['money'=>$row['money'], 'realmoney'=>$row['realmoney'], 'time'=>date('Y-m-d H:i:s'), 'account'=>$row['account'], 'jumpurl'=>$jumpurl]);
-		}else{
-			\lib\MsgNotice::send('settle', $row['uid'], ['money'=>$row['money'], 'realmoney'=>$row['realmoney'], 'time'=>date('Y-m-d H:i:s'), 'account'=>$row['account']]);
-		}
-	} else {
-		if(in_array($result['errcode'], \lib\Transfer::$payee_err_code)){
-			$data['code']=0;
-			$data['ret']=0;
-			$data['result']='转账失败 '.$result['msg'];
-			$DB->update('settle', ['status'=>3, 'result'=>$result["msg"], 'transfer_status'=>2, 'transfer_result'=>$data['result']], ['id'=>$id]);
-		}else{
-			$data['code']=-1;
-			$data['msg']=$result['msg'];
-		}
-	}
-	exit(json_encode($data));
+    $id=(int)($_POST['id']??0);$channelId=(int)($_POST['channel']??0);
+    try{
+        $store=\lib\AdminApp\Runtime::legacyStore($DB);$ops=new \lib\AdminApp\Operations($store,$clientip);
+        $r=$store->row('SELECT transfer_no FROM pre_settle WHERE id=?',[$id]);
+        if(!$r)throw new \lib\AdminApp\ApiError('记录不存在');
+        $out=$ops->settlementAction($r['transfer_no']?'settle-query':'settle-pay',['id'=>$id,'channel'=>$channelId]);
+        exit(json_encode(['code'=>0,'ret'=>($out['status']??0)===1?2:1,'result'=>$out['message']]));
+    }catch(\lib\AdminApp\ApiError $e){exit(json_encode(['code'=>-1,'msg'=>$e->getMessage()]));}
 break;
 
 default:

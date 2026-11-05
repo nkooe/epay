@@ -7,6 +7,12 @@ if(!checkRefererHost())exit('{"code":403}');
 
 @header('Content-Type: application/json; charset=UTF-8');
 
+if(in_array($act,['freeze', 'unfreeze', 'refund', 'apirefund', 'operation'],true)){
+    try{\lib\Security\AdminFinancial::requireVerified(\lib\AdminApp\Runtime::legacyStore($DB),$conf,$clientip,$_POST['paypwd']??null);}
+    catch(\lib\AdminApp\ApiError $e){exit(json_encode(['code'=>$e->getCode()===-9?-9:-1,'msg'=>$e->getMessage()]));}
+}
+
+
 function adminApplyOrderStatus($trade_no, $status){
 	global $DB;
 	$trade_no=trim((string)$trade_no);

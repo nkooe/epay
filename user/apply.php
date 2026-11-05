@@ -48,77 +48,22 @@ if($userrow['remain_money'] > 0 && !strpos($userrow['remain_money'], '%') && $en
 	if($enable_money<0)$enable_money=0;
 }
 
-if(isset($_GET['act']) && $_GET['act']=='do'){
-	if($_POST['submit']=='申请提现'){
-		if(!checkRefererHost())exit();
-		$money=daddslashes(strip_tags($_POST['money']));
-		if(!is_numeric($money) || !preg_match('/^[0-9.]+$/', $money) || $money<=0)exit("<script language='javascript'>alert('提现金额输入不规范');history.go(-1);</script>");
-		if($enable_money<$conf['settle_money']){
-			exit("<script language='javascript'>alert('满{$conf['settle_money']}元才可以提现！');history.go(-1);</script>");
-		}
-		if($money>$enable_money){
-			exit("<script language='javascript'>alert('所输入的提现金额大于你所拥有的余额！');history.go(-1);</script>");
-		}
-		if($money<$conf['settle_money']){
-			exit("<script language='javascript'>alert('最低提现金额为{$conf['settle_money']}元');history.go(-1);</script>");
-		}
-		if($userrow['settle']==0){
-			exit("<script language='javascript'>alert('您的商户出现异常，无法提现');history.go(-1);</script>");
-		}
-		if($conf['settle_maxlimit']>0){
-			$a_count = $DB->getColumn('SELECT count(*) FROM pre_settle WHERE uid=:uid AND addtime>=:addtime', [':uid'=>$uid, ':addtime'=>date('Y-m-d').' 00:00:00']);
-			if($a_count >= $conf['settle_maxlimit']){
-				exit("<script language='javascript'>alert('您今天手动申请提现次数已达到上限');history.go(-1);</script>");
-			}
-		}
-		if($conf['settle_rate']>0){
-			$fee=round($money*$conf['settle_rate']/100,2);
-			if(!empty($conf['settle_fee_min']) && $fee<$conf['settle_fee_min'])$fee=$conf['settle_fee_min'];
-			if(!empty($conf['settle_fee_max']) && $fee>$conf['settle_fee_max'])$fee=$conf['settle_fee_max'];
-			$realmoney=round($money-$fee, 2);
-		}else{
-			$realmoney=round($money, 2);
-		}
-		$data = ['uid'=>$uid, 'type'=>$userrow['settle_id'], 'account'=>$userrow['account'], 'username'=>$userrow['username'], 'money'=>$money, 'realmoney'=>$realmoney, 'addtime'=>'NOW()', 'status'=>0];
-		if($DB->insert('settle', $data)){
-			$settleid=$DB->lastInsertId();
-			changeUserMoney($uid, $money, false, '手动提现');
-			if($conf['settle_transfer']==1 && $conf['settle_transfermax']>0 && $money>$conf['settle_transfermax']) $conf['settle_transfer']=0;
-			$app = convert_type($userrow['settle_id']);
-			$channelid = $conf['transfer_'.$app];
-			if($conf['settle_transfer']==1 && $channelid > 0){
-				$out_biz_no = date("YmdHis").rand(11111,99999);
-				$channel = \lib\Channel::get($channelid);
-				$result = \lib\Transfer::submit($app, $channel, $out_biz_no, $userrow['account'], $userrow['username'], $realmoney);
-				if($result['code']==0){
-					$update = ['status'=>1, 'endtime'=>'NOW()', 'transfer_no'=>$out_biz_no, 'transfer_channel'=>$channelid, 'transfer_status'=>1, 'transfer_result'=>$result["orderid"], 'transfer_date'=>$result["paydate"]];
-					if(isset($result['wxpackage'])) $update['transfer_ext'] = $result['wxpackage'];
-					$DB->update('settle', $update, ['id'=>$settleid]);
-					if($result['status'] == 1){
-						$msg = '提现成功，资金已到账！';
-					}elseif(isset($result['wxpackage'])){
-						if(checkwechat()){
-							$jumpurl = $siteurl.'paypage/wxtrans.php?id='.$out_biz_no.'&type=transfer';
-							exit("<script language='javascript'>window.location.href='{$jumpurl}';</script>");
-						}
-						$msg = '提现成功！请在结算记录页面扫描二维码确认收款，1天内未确认，将退还给商家。';
-					}else{
-						$msg = '提现成功，资金稍后到账！';
-					}
-					exit("<script language='javascript'>alert('$msg');window.location.href='./settle.php';</script>");
-				}else{
-					$message='转账失败 '.$result['msg'];
-					$DB->update('settle', ['status'=>3, 'result'=>$result["msg"], 'transfer_status'=>2, 'transfer_result'=>$message], ['id'=>$settleid]);
-					\lib\MsgNotice::send('apply', 0, ['uid'=>$uid, 'money'=>$money, 'realmoney'=>$realmoney, 'type'=>display_type($userrow['settle_id']), 'account'=>$userrow['account'], 'username'=>$userrow['username']]);
-					exit("<script language='javascript'>alert('申请提现成功，但转账失败，请联系客服处理！');window.location.href='./settle.php';</script>");
-				}
-			}else{
-				\lib\MsgNotice::send('apply', 0, ['uid'=>$uid, 'money'=>$money, 'realmoney'=>$realmoney, 'type'=>display_type($userrow['settle_id']), 'account'=>$userrow['account'], 'username'=>$userrow['username']]);
-			}
-		}
-		exit("<script language='javascript'>alert('申请提现成功！');window.location.href='./settle.php';</script>");
-	}
+if(($_GET['act']??'')==='do'&&($_POST['submit']??'')==='申请提现'){
+    if(!checkRefererHost())exit('请求来源无效，请刷新页面后重试');
+    try{
+        $store=\lib\AdminApp\Runtime::legacyStore($DB);
+        $r=(new \lib\Merchant\Settlement($store,$store->config()))->create($uid,$_POST['money']??null);
+        $c=$r['config'];$app=convert_type($r['type']);$channelId=$c['transfer_'.$app]??0;
+        $message='申请提现成功，请等待结算';
+        if(!empty($c['settle_transfer'])&&$channelId>0&&(empty($c['settle_transfermax'])||bccomp($r['money'],(string)$c['settle_transfermax'],2)<=0)){
+            try{(new \lib\AdminApp\Operations($store,$clientip))->settlementAction('settle-pay',['id'=>$r['id'],'channel'=>$channelId]);$message='提现转账已提交，请在结算记录中查询或确认收款';}
+            catch(\Throwable $e){$message='申请已受理，请在结算记录核对转账结果，勿重复申请';error_log('Settlement '.$r['id'].': '.get_class($e));}
+        }
+        try{\lib\MsgNotice::send('apply',0,['uid'=>$uid,'money'=>$r['money'],'realmoney'=>$r['realmoney'],'type'=>display_type($r['type']),'account'=>$r['account'],'username'=>$r['username']]);}catch(\Throwable $e){error_log('Settlement notification failed');}
+        exit('<script>alert('.json_encode($message,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT).');location.href="./settle.php";</script>');
+    }catch(\DomainException $e){exit('<script>alert('.json_encode($e->getMessage(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT).');history.back();</script>');}
 }
+
 
 
 ?>

@@ -127,7 +127,7 @@ $group=\lib\Channel::getGroup($row['gid']);
 </div>
 <div class="form-group">
 <label>商户余额:</label><br>
-<input type="text" class="form-control" name="money" value="<?php echo $row['money']?>" required>
+<input type="text" class="form-control" name="money" readonly value="<?php echo $row['money']?>" required>
 </div>
 <div class="form-group">
 <label>用户组:</label><br>
@@ -148,7 +148,7 @@ $group=\lib\Channel::getGroup($row['gid']);
 </div>
 <div class="form-group">
 <label>商户保证金余额:</label><br>
-<input type="text" class="form-control" name="deposit" value="<?php echo $row['deposit']?>" placeholder="开启商户保证金功能后使用">
+<input type="text" class="form-control" name="deposit" readonly value="<?php echo $row['deposit']?>" placeholder="保证金通过商户保证金业务调整">
 </div>
 <div class="form-group">
 <label>预留余额:</label><br>

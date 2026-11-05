@@ -162,7 +162,7 @@ elseif($act=='refund')
 	}
 
 	$refund_no = date("YmdHis").rand(11111,99999);
-	$result = \lib\Order::refund($refund_no, $trade_no, $money, 1, $pid);
+	$result = \lib\Order::refund($refund_no, $trade_no, $money, 1, $pid, null, true);
 	if($result['code'] == 0){
 		$result['msg'] = '退款成功！退款金额¥'.$result['money'];
 	}
@@ -170,17 +170,8 @@ elseif($act=='refund')
 }
 elseif($act=='refundapi')
 {
-	$money = trim($_POST['money']);
-	$trade_no=daddslashes($_POST['trade_no']);
-	if(!is_numeric($money) || !preg_match('/^[0-9.]+$/', $money))exit(json_encode(['code'=>-1, 'msg'=>'金额输入错误']));
-	if(!isset($_POST['key']) || $_POST['key']!==md5($trade_no.SYS_KEY.$trade_no))exit(json_encode(['code'=>-1, 'msg'=>'密钥错误']));
-
-	$refund_no = date("YmdHis").rand(11111,99999);
-	$result = \lib\Order::refund($refund_no, $trade_no, $money, 1);
-	if($result['code'] == 0){
-		$result['msg'] = '退款成功！退款金额￥'.$result['money'];
-	}
-	exit(json_encode($result));
+    http_response_code(410);
+    exit(json_encode(['code'=>-5,'msg'=>'旧内部退款入口已停用，请使用已鉴权的商户或管理员退款接口']));
 }
 else
 {

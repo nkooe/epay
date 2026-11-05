@@ -329,58 +329,16 @@ final class CronHandlers
         if(!$conf['auto_settle_money']) throw new \RuntimeException('未开启自动结算转账功能');
         if(!$conf['transfer_alipay']) throw new \RuntimeException('未设置支付宝转账接口通道');
 
-        $money = $conf['auto_settle_money']; //商户超过此金额自动结算
-        $success=0;
-        $list = $DB->getAll("SELECT * FROM pre_user WHERE status=1 AND settle=1 AND settle_id=1 AND money>'$money' order by uid desc limit 5");
+        $store=\lib\AdminApp\Runtime::legacyStore($DB);$base=$store->config();$success=0;
+        $list=$store->all('SELECT uid FROM pre_user WHERE status=1 AND settle=1 AND settle_id=1 AND money>? ORDER BY uid DESC LIMIT 5',[(string)$conf['auto_settle_money']]);
         foreach($list as $row){
-            $settle_rate = $conf['settle_rate'];
-            $group = getGroupConfig($row['gid']);
-            if(isset($group['settle_open']) && $group['settle_open'] == 2) continue;
-            if(isset($group['settle_rate']) && $group['settle_rate']!=='' && $group['settle_rate']!==null) $settle_rate = $group['settle_rate'];
-            if($settle_rate>0){
-                $fee=round($row['money']*$settle_rate/100,2);
-                if(!empty($conf['settle_fee_max']) && $fee>$conf['settle_fee_max'])$fee=$conf['settle_fee_max'];
-                $realmoney=$row['money']-$fee;
-            }else{
-                $realmoney=$row['money'];
-            }
-            $out_biz_no = date("YmdHis").rand(11111,99999);
-            $channel = \lib\Channel::get($conf['transfer_alipay']);
-            if(!$channel) throw new \RuntimeException('支付宝转账通道不存在');
-            $result = transfer_do('alipay', $channel, $out_biz_no, $row['account'], $row['username'], $realmoney);
-            if(!is_array($result) || !isset($result['code']) || !is_int($result['code'])) {
-                throw new \RuntimeException('转账接口返回格式错误，须核查商户'.$row['uid'].'的交易结果');
-            }
-            if($result['code']===0){
-                if(!isset($result['orderid'], $result['paydate'])) {
-                    throw new \RuntimeException('转账成功但缺少交易凭证，商户'.$row['uid'].'须人工核查');
-                }
-                $data = ['uid'=>$row['uid'], 'type'=>$row['settle_id'], 'account'=>$row['account'], 'username'=>$row['username'], 'money'=>$row['money'], 'realmoney'=>$realmoney, 'addtime'=>'NOW()', 'endtime'=>'NOW()', 'status'=>1, 'transfer_no'=>$out_biz_no, 'transfer_channel'=>$conf['transfer_alipay'], 'transfer_status'=>1, 'transfer_result'=>$result["orderid"], 'transfer_date'=>$result["paydate"]];
-                if($DB->insert('settle', $data)){
-                    $success++;
-                    if(changeUserMoney($row['uid'], $row['money'], false, '自动结算') !== 1) {
-                        throw new \RuntimeException('转账成功但余额扣减失败，商户'.$row['uid'].'须人工核查');
-                    }
-                    echo '商户'.$row['uid'].'成功结算'.$realmoney.'元，交易号：'.$result["orderid"].'<br/>';
-                }else{
-                    throw new \RuntimeException('商户'.$row['uid'].'转账成功，但结算记录写入失败，须人工核查');
-                }
-            }else{
-                if(!isset($result['msg']) || !is_string($result['msg'])) {
-                    throw new \RuntimeException('转账失败但未返回错误信息，商户'.$row['uid'].'须人工核查');
-                }
-                echo '商户'.$row['uid'].'结算'.$realmoney.'元失败：'.$result['msg'].'<br/>';
-                if(!isset($result['errcode'])) throw new \RuntimeException($result['msg']);
-                if(!in_array($result['errcode'], \lib\Transfer::$payee_err_code, true)){
-                    $DB->exec("UPDATE pre_channel SET status=0 WHERE id='{$channel['id']}'");
-                    echo '已关闭通道:'.$channel['name'].'<br/>';
-                    $mail_name = $conf['mail_recv']?$conf['mail_recv']:$conf['mail_name'];
-                    send_mail($mail_name,$conf['sitename'].' - 支付通道自动关闭提醒','尊敬的管理员：支付通道“'.$channel['name'].'”因自动结算转账失败，已被系统自动关闭！<br/>----------<br/>'.$conf['sitename'].'<br/>'.date('Y-m-d H:i:s'));
-                }
-                throw new \RuntimeException('商户'.$row['uid'].'结算失败：'.$result['msg']);
-            }
+            try{$r=(new \lib\Merchant\Settlement($store,$base))->create($row['uid'],null,true);}
+            catch(\DomainException $e){echo '商户'.(int)$row['uid'].'跳过：'.htmlspecialchars($e->getMessage(),ENT_QUOTES,'UTF-8').'<br/>';continue;}
+            // Failed or unknown submissions remain visible and reserved for reconciliation.
+            (new \lib\AdminApp\Operations($store,'task'))->settlementAction('settle-pay',['id'=>$r['id'],'channel'=>(int)$base['transfer_alipay']]);
+            $success++;echo '商户'.(int)$row['uid'].'已提交结算，结算单号'.(int)$r['id'].'<br/>';
         }
-        echo '成功结算'.$success.'个商户<br/>';
+        echo '已提交结算'.$success.'个商户<br/>';
     }
 
 }

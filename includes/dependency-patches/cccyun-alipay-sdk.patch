@@ -1,0 +1,2918 @@
+--- a/src/AlipayBillService.php
++++ b/src/AlipayBillService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace Alipay;
++
++use Exception;
+ 
+ /**
+  * 支付宝账单服务类
+@@ -13,15 +15,16 @@
+         parent::__construct($config);
+     }
+ 
+-    /**
+-     * 账户卖出交易查询
+-     * @param $start_time 创建时间的起始
+-     * @param $end_time 创建时间的结束
+-     * @param $page_no 分页号，从1开始
+-     * @param $page_size 分页大小1000-2000，默认2000
+-     * @return mixed {"page_no":"1","page_size":"2000","total_size":"10000","detail_list":[]}
+-     */
+-    public function sellQuery($start_time, $end_time, $page_no = 1, $page_size = 2000)
++	/**
++	 * 账户卖出交易查询
++	 * @param string $start_time 创建时间的起始
++	 * @param string $end_time 创建时间的结束
++	 * @param int $page_no 分页号，从1开始
++	 * @param int $page_size 分页大小1000-2000，默认2000
++	 * @return mixed {"page_no":"1","page_size":"2000","total_size":"10000","detail_list":[]}
++	 * @throws Exception
++	 */
++    public function sellQuery(string $start_time, string $end_time, int $page_no = 1, int $page_size = 2000)
+     {
+         $apiName = 'alipay.data.bill.sell.query';
+         $bizContent = [
+@@ -33,15 +36,16 @@
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 账户买入交易查询
+-     * @param $start_time 创建时间的起始
+-     * @param $end_time 创建时间的结束
+-     * @param $page_no 分页号，从1开始
+-     * @param $page_size 分页大小1000-2000，默认2000
+-     * @return mixed {"page_no":"1","page_size":"2000","total_size":"10000","detail_list":[]}
+-     */
+-    public function buyQuery($start_time, $end_time, $page_no = 1, $page_size = 2000)
++	/**
++	 * 账户买入交易查询
++	 * @param string $start_time 创建时间的起始
++	 * @param string $end_time 创建时间的结束
++	 * @param int $page_no 分页号，从1开始
++	 * @param int $page_size 分页大小1000-2000，默认2000
++	 * @return mixed {"page_no":"1","page_size":"2000","total_size":"10000","detail_list":[]}
++	 * @throws Exception
++	 */
++    public function buyQuery(string $start_time, string $end_time, int $page_no = 1, int $page_size = 2000)
+     {
+         $apiName = 'alipay.data.bill.buy.query';
+         $bizContent = [
+@@ -53,18 +57,19 @@
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 账户账务明细查询
+-     * @param $start_time 创建时间的起始
+-     * @param $end_time 创建时间的结束
+-     * @param $page_no 分页号，从1开始
+-     * @param $page_size 分页大小1000-2000，默认2000
+-     * @param $bill_user_id 指定用户做账单查询
+-     * @return mixed {"page_no":"1","page_size":"2000","total_size":"10000","detail_list":[]}
+-     */
+-    public function accountlogQuery($start_time, $end_time, $page_no = 1, $page_size = 2000, $bill_user_id = null)
++	/**
++	 * 账户账务明细查询
++	 * @param string $start_time 创建时间的起始
++	 * @param string $end_time 创建时间的结束
++	 * @param int $page_no 分页号，从1开始
++	 * @param int $page_size 分页大小1000-2000，默认2000
++	 * @param null $bill_user_id 指定用户做账单查询
++	 * @return mixed {"page_no":"1","page_size":"2000","total_size":"10000","detail_list":[]}
++	 * @throws Exception
++	 */
++    public function accountlogQuery(string $start_time, string $end_time, int $page_no = 1, int $page_size = 2000, $bill_user_id = null)
+     {
+-        $apiName = 'alipay.data.bill.buy.query';
++        $apiName = 'alipay.data.bill.accountlog.query';
+         $bizContent = [
+             'start_time' => $start_time,
+             'end_time' => $end_time,
+@@ -75,15 +80,16 @@
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 账户充值，转账，提现查询
+-     * @param $start_time 创建时间的起始
+-     * @param $end_time 创建时间的结束
+-     * @param $page_no 分页号，从1开始
+-     * @param $page_size 分页大小1000-2000，默认2000
+-     * @return mixed {"page_no":"1","page_size":"2000","total_size":"10000","detail_list":[]}
+-     */
+-    public function transferQuery($start_time, $end_time, $page_no = 1, $page_size = 2000)
++	/**
++	 * 账户充值，转账，提现查询
++	 * @param string $start_time 创建时间的起始
++	 * @param string $end_time 创建时间的结束
++	 * @param int $page_no 分页号，从1开始
++	 * @param int $page_size 分页大小1000-2000，默认2000
++	 * @return mixed {"page_no":"1","page_size":"2000","total_size":"10000","detail_list":[]}
++	 * @throws Exception
++	 */
++    public function transferQuery(string $start_time, string $end_time, int $page_no = 1, int $page_size = 2000)
+     {
+         $apiName = 'alipay.data.bill.transfer.query';
+         $bizContent = [
+@@ -95,13 +101,46 @@
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 账户当前余额查询
+-     * @return mixed {"total_amount":"支付宝账户余额","available_amount":"账户可用余额","freeze_amount":"冻结金额","settle_amount":"待结算金额"}
+-     */
++	/**
++	 * 账户当前余额查询
++	 * @return mixed {"total_amount":"支付宝账户余额","available_amount":"账户可用余额","freeze_amount":"冻结金额","settle_amount":"待结算金额"}
++	 * @throws Exception
++	 */
+     public function balanceQuery()
+     {
+         $apiName = 'alipay.data.bill.balance.query';
+         return $this->aopExecute($apiName);
+     }
++
++	/**
++	 * 申请电子回单
++	 * @param string $type 申请的类型
++	 * @param string $key 根据不同业务类型，传入不同参数
++	 * @return mixed {"file_id":"文件申请号"}
++	 * @throws Exception
++	 */
++    public function ereceiptApply(string $type, string $key)
++    {
++        $apiName = 'alipay.data.bill.ereceipt.apply';
++        $bizContent = [
++            'type' => $type,
++            'key' => $key,
++        ];
++        return $this->aopExecute($apiName, $bizContent);
++    }
++
++	/**
++	 * 查询电子回单状态
++	 * @param string $file_id 文件申请号
++	 * @return mixed {"status":"处理状态","download_url":"下载链接","error_message":"失败原因"}
++	 * @throws Exception
++	 */
++    public function ereceiptQuery(string $file_id)
++    {
++        $apiName = 'alipay.data.bill.ereceipt.query';
++        $bizContent = [
++            'file_id' => $file_id
++        ];
++        return $this->aopExecute($apiName, $bizContent);
++    }
+ }
+\ No newline at end of file
+--- a/src/AlipayCertdocService.php
++++ b/src/AlipayCertdocService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace Alipay;
++
++use Exception;
+ 
+ /**
+  * 支付宝实名证件信息比对验证服务类
+@@ -9,20 +11,21 @@
+ class AlipayCertdocService extends AlipayService
+ {
+     /**
+-     * @param $config 支付宝配置信息
++     * @param array $config 支付宝配置信息
+      */
+-    public function __construct($config)
++    public function __construct(array $config)
+     {
+         parent::__construct($config);
+     }
+ 
+-    /**
+-     * 实名证件信息比对验证预咨询
+-     * @param $cert_name 真实姓名
+-     * @param $cert_no 证件号码
+-     * @return mixed {"code":"10000","msg":"Success","verify_id":"申请验证ID"}
+-     */
+-    public function preconsult($cert_name, $cert_no)
++	/**
++	 * 实名证件信息比对验证预咨询
++	 * @param string $cert_name 真实姓名
++	 * @param string $cert_no 证件号码
++	 * @return mixed {"code":"10000","msg":"Success","verify_id":"申请验证ID"}
++	 * @throws Exception
++	 */
++    public function preconsult(string $cert_name, string $cert_no)
+     {
+         $apiName = 'alipay.user.certdoc.certverify.preconsult';
+         $bizContent = array(
+@@ -33,13 +36,14 @@
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 实名证件信息比对验证咨询
+-     * @param $verify_id 申请验证ID
+-     * @param $auth_token 用户授权令牌
+-     * @return mixed {"code":"10000","msg":"Success","passed":"F","fail_reason":"姓名不一致","fail_params":"[\\\"user_name\\\"]"}
+-     */
+-    public function consult($verify_id, $auth_token)
++	/**
++	 * 实名证件信息比对验证咨询
++	 * @param string $verify_id 申请验证ID
++	 * @param string $auth_token 用户授权令牌
++	 * @return mixed {"code":"10000","msg":"Success","passed":"F","fail_reason":"姓名不一致","fail_params":"[\\\"user_name\\\"]"}
++	 * @throws Exception
++	 */
++    public function consult(string $verify_id, string $auth_token)
+     {
+         $apiName = 'alipay.user.certdoc.certverify.consult';
+         $bizContent = array(
+@@ -53,13 +57,13 @@
+ 
+     /**
+      * 跳转支付宝授权页面
+-     * @param $redirect_uri 回调地址
+-     * @param $verify_id 申请验证ID
++     * @param string $redirect_uri 回调地址
++     * @param string $verify_id 申请验证ID
+      * @param $state
+-     * @param $is_get_url 是否只返回url
++     * @param bool $is_get_url 是否只返回url
+      * @return void|string
+      */
+-    public function oauth($redirect_uri, $verify_id, $state = null, $is_get_url = false)
++    public function oauth(string $redirect_uri, string $verify_id, $state = null, bool $is_get_url = false)
+     {
+         $param = [
+             'app_id' => $this->appId,
+@@ -79,13 +83,14 @@
+         exit();
+     }
+ 
+-    /**
+-     * 换取授权访问令牌
+-     * @param $code 授权码或刷新令牌
+-     * @param $grant_type 授权方式(authorization_code,refresh_token)
+-     * @return mixed {"user_id":"支付宝用户的唯一标识","open_id":"支付宝用户的唯一标识","access_token":"访问令牌","expires_in":"3600","refresh_token":"刷新令牌","re_expires_in":"3600"}
+-     */
+-    public function getToken($code, $grant_type = 'authorization_code')
++	/**
++	 * 换取授权访问令牌
++	 * @param string $code 授权码或刷新令牌
++	 * @param string $grant_type 授权方式(authorization_code,refresh_token)
++	 * @return mixed {"user_id":"支付宝用户的唯一标识","open_id":"支付宝用户的唯一标识","access_token":"访问令牌","expires_in":"3600","refresh_token":"刷新令牌","re_expires_in":"3600"}
++	 * @throws Exception
++	 */
++    public function getToken(string $code, string $grant_type = 'authorization_code')
+     {
+         $apiName = 'alipay.system.oauth.token';
+         $params = [];
+--- a/src/AlipayCertifyService.php
++++ b/src/AlipayCertifyService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace Alipay;
++
++use Exception;
+ 
+ /**
+  * 支付宝身份认证服务类
+@@ -12,26 +14,27 @@
+     private $return_url;
+ 
+     /**
+-     * @param $config 支付宝配置信息
++     * @param array $config 支付宝配置信息
+      */
+-    public function __construct($config)
++    public function __construct(array $config)
+     {
+         parent::__construct($config);
+-        $this->return_url = $config['return_url'];
++        $this->return_url = $config['return_url'] ?? '';
+     }
+ 
+-    /**
+-     * 身份认证初始化服务
+-     * @param $outer_order_no 商户请求的唯一标识
+-     * @param $cert_name 真实姓名
+-     * @param $cert_no 证件号码
+-     * @param $cert_type 证件类型
+-     * @param $biz_code 认证场景码（FACE、SMART_FACE）
+-     * @return mixed {"code":"10000","msg":"Success","certify_id":"本次申请操作的唯一标识"}
+-     * 
+-     * @see https://opendocs.alipay.com/open/02ahjy
+-     */
+-    public function initialize($outer_order_no, $cert_name, $cert_no, $cert_type = 'IDENTITY_CARD', $biz_code = 'SMART_FACE')
++	/**
++	 * 身份认证初始化服务
++	 * @param string $outer_order_no 商户请求的唯一标识
++	 * @param string $cert_name 真实姓名
++	 * @param string $cert_no 证件号码
++	 * @param string $cert_type 证件类型
++	 * @param string $biz_code 认证场景码（FACE、SMART_FACE）
++	 * @return mixed {"code":"10000","msg":"Success","certify_id":"本次申请操作的唯一标识"}
++	 *
++	 * @throws Exception
++	 * @see https://opendocs.alipay.com/open/02ahjy
++	 */
++    public function initialize(string $outer_order_no, string $cert_name, string $cert_no, string $cert_type = 'IDENTITY_CARD', string $biz_code = 'SMART_FACE')
+     {
+         $apiName = 'alipay.user.certify.open.initialize';
+         $bizContent = [
+@@ -48,12 +51,13 @@
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 身份认证开始认证
+-     * @param $certify_id 本次申请操作的唯一标识
+-     * @return string html表单
+-     */
+-    public function certify($certify_id)
++	/**
++	 * 身份认证开始认证
++	 * @param string $certify_id 本次申请操作的唯一标识
++	 * @return string html表单
++	 * @throws Exception
++	 */
++    public function certify(string $certify_id): string
+     {
+         $apiName = 'alipay.user.certify.open.certify';
+         $bizContent = array(
+@@ -62,12 +66,13 @@
+         return $this->aopPageExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 身份认证记录查询
+-     * @param $certify_id 本次申请操作的唯一标识
+-     * @return mixed {"code":"10000","msg":"Success","passed":"T"}
+-     */
+-    public function query($certify_id)
++	/**
++	 * 身份认证记录查询
++	 * @param string $certify_id 本次申请操作的唯一标识
++	 * @return mixed {"code":"10000","msg":"Success","passed":"T"}
++	 * @throws Exception
++	 */
++    public function query(string $certify_id)
+     {
+         $apiName = 'alipay.user.certify.open.query';
+         $bizContent = array(
+--- a/src/AlipayComplainService.php
++++ b/src/AlipayComplainService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace Alipay;
++
++use Exception;
+ 
+ /**
+  * 支付宝交易投诉处理类
+@@ -14,12 +16,13 @@
+         parent::__construct($config);
+     }
+ 
+-    /**
+-     * 查询单条交易投诉详情
+-     * @param $complain_event_id 支付宝侧投诉单号
+-     * @return mixed {"complain_event_id":"支付宝侧投诉单号","status":"MERCHANT_PROCESSING","trade_no":"支付宝交易号","merchant_order_no":"商家订单号","gmt_create":"投诉单创建时间","gmt_modified":"投诉单修改时间","gmt_finished":"投诉单完结时间","leaf_category_name":"用户投诉诉求","complain_reason":"用户投诉原因","content":"用户投诉内容","images":[],"phone_no":"投诉人电话号码","trade_amount":"交易金额","reply_detail_infos":[]}
+-     */
+-    public function query($complain_event_id)
++	/**
++	 * 查询单条交易投诉详情
++	 * @param string $complain_event_id 支付宝侧投诉单号
++	 * @return mixed {"complain_event_id":"支付宝侧投诉单号","status":"MERCHANT_PROCESSING","trade_no":"支付宝交易号","merchant_order_no":"商家订单号","gmt_create":"投诉单创建时间","gmt_modified":"投诉单修改时间","gmt_finished":"投诉单完结时间","leaf_category_name":"用户投诉诉求","complain_reason":"用户投诉原因","content":"用户投诉内容","images":[],"phone_no":"投诉人电话号码","trade_amount":"交易金额","reply_detail_infos":[]}
++	 * @throws Exception
++	 */
++    public function query(string $complain_event_id)
+     {
+         $apiName = 'alipay.merchant.tradecomplain.query';
+         $bizContent = [
+@@ -28,16 +31,17 @@
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 查询交易投诉列表
+-     * @param $status 状态
+-     * @param $begin_time 查询开始时间
+-     * @param $end_time 查询结束时间
+-     * @param $page_num 当前页
+-     * @param $page_size 每页条数,最多支持20条
+-     * @return mixed {"page_size":10,"page_num":1,"total_page_num":5,"total_num":55,"trade_complain_infos":[]}
+-     */
+-    public function batchQuery($status = null, $begin_time = null, $end_time = null, $page_num = 1, $page_size = 10)
++	/**
++	 * 查询交易投诉列表
++	 * @param string|null $status 状态
++	 * @param string|null $begin_time 查询开始时间
++	 * @param string|null $end_time 查询结束时间
++	 * @param int $page_num 当前页
++	 * @param int $page_size 每页条数,最多支持20条
++	 * @return mixed {"page_size":10,"page_num":1,"total_page_num":5,"total_num":55,"trade_complain_infos":[]}
++	 * @throws Exception
++	 */
++    public function batchQuery(?string $status = null, ?string $begin_time = null, ?string $end_time = null, int $page_num = 1, int $page_size = 10)
+     {
+         $apiName = 'alipay.merchant.tradecomplain.batchquery';
+         $bizContent = [
+@@ -50,13 +54,14 @@
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 商户上传处理图片
+-     * @param $file_path 文件路径
+-     * @param $file_name 文件名
+-     * @return string 图片资源标识
+-     */
+-    public function imageUpload($file_path, $file_name)
++	/**
++	 * 商户上传处理图片
++	 * @param string $file_path 文件路径
++	 * @param string $file_name 文件名
++	 * @return string 图片资源标识
++	 * @throws Exception
++	 */
++    public function imageUpload(string $file_path, string $file_name): string
+     {
+         $image_type = array_pop(explode('.',$file_name));
+         if (empty($image_type)) $image_type = 'png';
+@@ -69,15 +74,16 @@
+         return $result['image_id'];
+     }
+ 
+-    /**
+-     * 商家处理交易投诉
+-     * @param $complain_event_id 投诉单号
+-     * @param $feedback_code 反馈类目ID
+-     * @param $feedback_content 反馈内容
+-     * @param $feedback_images 反馈图片id列表(多个用逗号隔开)
+-     * @return bool
+-     */
+-    public function feedbackSubmit($complain_event_id, $feedback_code, $feedback_content, $feedback_images = null)
++	/**
++	 * 商家处理交易投诉
++	 * @param string $complain_event_id 投诉单号
++	 * @param string $feedback_code 反馈类目ID
++	 * @param string $feedback_content 反馈内容
++	 * @param string|null $feedback_images 反馈图片id列表(多个用逗号隔开)
++	 * @return bool
++	 * @throws Exception
++	 */
++    public function feedbackSubmit(string $complain_event_id, string $feedback_code, string $feedback_content, ?string $feedback_images = null): bool
+     {
+         $apiName = 'alipay.merchant.tradecomplain.feedback.submit';
+         $bizContent = [
+@@ -90,14 +96,15 @@
+         return true;
+     }
+ 
+-    /**
+-     * 商家留言回复
+-     * @param $complain_event_id 投诉单号
+-     * @param $reply_content 回复内容
+-     * @param $reply_images 回复图片(多个用逗号隔开)
+-     * @return bool
+-     */
+-    public function replySubmit($complain_event_id, $reply_content, $reply_images = null)
++	/**
++	 * 商家留言回复
++	 * @param string $complain_event_id 投诉单号
++	 * @param string $reply_content 回复内容
++	 * @param string|null $reply_images 回复图片(多个用逗号隔开)
++	 * @return bool
++	 * @throws Exception
++	 */
++    public function replySubmit(string $complain_event_id, string $reply_content, ?string $reply_images = null): bool
+     {
+         $apiName = 'alipay.merchant.tradecomplain.reply.submit';
+         $bizContent = [
+@@ -109,14 +116,15 @@
+         return true;
+     }
+ 
+-     /**
+-     * 商家补充凭证
+-     * @param $complain_event_id 投诉单号
+-     * @param $supplement_content 文字凭证
+-     * @param $supplement_images 图片凭证(多个用逗号隔开)
+-     * @return bool
+-     */
+-    public function supplementSubmit($complain_event_id, $supplement_content, $supplement_images = null)
++	/**
++	 * 商家补充凭证
++	 * @param string $complain_event_id 投诉单号
++	 * @param string $supplement_content 文字凭证
++	 * @param string|null $supplement_images 图片凭证(多个用逗号隔开)
++	 * @return bool
++	 * @throws Exception
++	 */
++    public function supplementSubmit(string $complain_event_id, string $supplement_content, ?string $supplement_images = null): bool
+     {
+         $apiName = 'alipay.merchant.tradecomplain.supplement.submit';
+         $bizContent = [
+@@ -129,12 +137,13 @@
+     }
+ 
+ 
+-    /**
+-     * RiskGO查询单条交易投诉详情
+-     * @param $complain_id 支付宝侧投诉单号
+-     * @return mixed
+-     */
+-    public function riskquery($complain_id)
++	/**
++	 * RiskGO查询单条交易投诉详情
++	 * @param string $complain_id 支付宝侧投诉单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function riskquery(string $complain_id)
+     {
+         $apiName = 'alipay.security.risk.complaint.info.query';
+         $bizContent = [
+@@ -143,16 +152,17 @@
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * RiskGO查询交易投诉列表
+-     * @param $status 状态
+-     * @param $begin_time 查询开始时间
+-     * @param $end_time 查询结束时间
+-     * @param $page_num 当前页
+-     * @param $page_size 每页条数,最多支持20条
+-     * @return mixed {"page_size":10,"page_num":1,"total_page_num":5,"total_num":55,"trade_complain_infos":[]}
+-     */
+-    public function riskbatchQuery($status = null, $begin_time = null, $end_time = null, $page_num = 1, $page_size = 10)
++	/**
++	 * RiskGO查询交易投诉列表
++	 * @param string|null $status 状态
++	 * @param string|null $begin_time 查询开始时间
++	 * @param string|null $end_time 查询结束时间
++	 * @param int $page_num 当前页
++	 * @param int $page_size 每页条数,最多支持20条
++	 * @return mixed {"page_size":10,"page_num":1,"total_page_num":5,"total_num":55,"trade_complain_infos":[]}
++	 * @throws Exception
++	 */
++    public function riskbatchQuery(?string $status = null, ?string $begin_time = null, ?string $end_time = null, int $page_num = 1, int $page_size = 10)
+     {
+         $apiName = 'alipay.security.risk.complaint.info.batchquery';
+         $bizContent = [
+@@ -165,41 +175,60 @@
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * RiskGO商户上传处理图片
+-     * @param $file_path 文件路径
+-     * @param $file_name 文件名
+-     * @return string 图片资源标识
+-     */
+-    public function riskimageUpload($file_path, $file_name)
++	/**
++	 * RiskGO商户上传处理图片
++	 * @param string $file_path 文件路径
++	 * @param string $file_name 文件名
++	 * @return mixed 图片资源标识
++	 * @throws Exception
++	 */
++    public function riskimageUpload(string $file_path, string $file_name)
+     {
+         $apiName = 'alipay.security.risk.complaint.file.upload';
+         $params = [
+             'file_content' => new \CURLFile($file_path, '', $file_name),
+         ];
+-        $result = $this->aopExecute($apiName, null, $params);
+-        return $result;
+-    }
+-
+-    /**
+-     * RiskGO商家处理交易投诉
+-     * @param $complain_id 投诉单号
+-     * @param $process_code 投诉处理结果码
+-     * @param $remark 备注
+-     * @param $img_file_list 图片文件列表
+-     * @return bool
+-     */
+-    public function riskfeedbackSubmit($complain_id, $process_code, $remark, $img_file_list = null)
++	    return $this->aopExecute($apiName, null, $params);
++    }
++
++	/**
++	 * RiskGO商家处理交易投诉
++	 * @param string $complain_id 投诉单号
++	 * @param string $process_code 投诉处理结果码
++	 * @param string $reply_content 商家完结留言内容
++	 * @param array|null $img_file_list 图片文件列表
++	 * @return bool
++	 * @throws Exception
++	 */
++    public function riskfeedbackSubmit(string $complain_id, string $process_code, string $reply_content, ?array $img_file_list = null): bool
+     {
+         $apiName = 'alipay.security.risk.complaint.process.finish';
+         $bizContent = [
+             'id_list' => [$complain_id],
+             'process_code' => $process_code,
+-            'remark' => $remark
++            'reply_content' => $reply_content
+         ];
+         if ($img_file_list) $bizContent['img_file_list'] = $img_file_list;
+         $result = $this->aopExecute($apiName, $bizContent);
+         return $result['complaint_process_success'];
+     }
+ 
++    /**
++     * RiskGO商家留言回复
++     * @param string $complain_id 投诉单号
++     * @param string $reply_content 回复内容
++     * @return bool
++     * @throws Exception
++     */
++    public function riskReplySend(string $complain_id, string $reply_content): bool
++    {
++        $apiName = 'alipay.security.risk.complaint.reply.send';
++        $bizContent = [
++            'complaint_id' => $complain_id,
++            'reply_content' => $reply_content,
++        ];
++        $this->aopExecute($apiName, $bizContent);
++        return true;
++    }
++
+ }
+\ No newline at end of file
+--- a/src/AlipayOauthService.php
++++ b/src/AlipayOauthService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace Alipay;
++
++use Exception;
+ 
+ /**
+  * 支付宝快捷登录服务类
+@@ -9,9 +11,9 @@
+ class AlipayOauthService extends AlipayService
+ {
+     /**
+-     * @param $config 支付宝配置信息
++     * @param array $config 支付宝配置信息
+      */
+-    public function __construct($config)
++    public function __construct(array $config)
+     {
+         if(isset($config['app_auth_token'])) unset($config['app_auth_token']);
+         parent::__construct($config);
+@@ -19,16 +21,17 @@
+ 
+     /**
+      * 跳转支付宝授权页面
+-     * @param $redirect_uri 回调地址
+-     * @param $state
+-     * @param $is_get_url 是否只返回url
++     * @param string $redirect_uri 回调地址
++     * @param string $state
++     * @param string $scope 授权范围(auth_base,auth_user)
++     * @param bool $is_get_url 是否只返回url
+      * @return void|string
+      */
+-    public function oauth($redirect_uri, $state = null, $is_get_url = false)
++    public function oauth(string $redirect_uri, $state = null, $scope = 'auth_base', bool $is_get_url = false)
+     {
+         $param = [
+             'app_id' => $this->appId,
+-            'scope' => 'auth_base',
++            'scope' => $scope,
+             'redirect_uri' => $redirect_uri,
+         ];
+         if($state) $param['state'] = $state;
+@@ -43,13 +46,14 @@
+         exit();
+     }
+ 
+-    /**
+-     * 换取授权访问令牌
+-     * @param $code 授权码或刷新令牌
+-     * @param $grant_type 授权方式(authorization_code,refresh_token)
+-     * @return mixed {"user_id":"支付宝用户的唯一标识","open_id":"支付宝用户的唯一标识","access_token":"访问令牌","expires_in":"3600","refresh_token":"刷新令牌","re_expires_in":"3600"}
+-     */
+-    public function getToken($code, $grant_type = 'authorization_code')
++	/**
++	 * 换取授权访问令牌
++	 * @param string $code 授权码或刷新令牌
++	 * @param string $grant_type 授权方式(authorization_code,refresh_token)
++	 * @return mixed {"user_id":"支付宝用户的唯一标识","open_id":"支付宝用户的唯一标识","access_token":"访问令牌","expires_in":"3600","refresh_token":"刷新令牌","re_expires_in":"3600"}
++	 * @throws Exception
++	 */
++    public function getToken(string $code, string $grant_type = 'authorization_code')
+     {
+         $apiName = 'alipay.system.oauth.token';
+         $params = [];
+@@ -62,12 +66,13 @@
+         return $this->aopExecute($apiName, null, $params);
+     }
+ 
+-    /**
+-     * 支付宝会员授权信息查询
+-     * @param $accessToken 用户授权令牌
+-     * @return mixed {"code":"10000","msg":"Success","user_id":"支付宝用户的userId","avatar":"用户头像地址","city":"市名称","nick_name":"用户昵称","province":"省份名称","gender":"性别MF"}
+-     */
+-    public function userinfo($accessToken)
++	/**
++	 * 支付宝会员授权信息查询
++	 * @param string $accessToken 用户授权令牌
++	 * @return mixed {"code":"10000","msg":"Success","user_id":"支付宝用户的userId","avatar":"用户头像地址","city":"市名称","nick_name":"用户昵称","province":"省份名称","gender":"性别MF"}
++	 * @throws Exception
++	 */
++    public function userinfo(string $accessToken)
+     {
+         $apiName = 'alipay.user.info.share';
+         $params = [
+@@ -80,12 +85,12 @@
+ 
+     /**
+      * 跳转支付宝第三方应用授权页面
+-     * @param $redirect_uri 回调地址
++     * @param string $redirect_uri 回调地址
+      * @param $state
+-     * @param $is_get_url 是否只返回url
++     * @param bool $is_get_url 是否只返回url
+      * @return void|string
+      */
+-    public function appOauth($redirect_uri, $state = null, $is_get_url = false)
++    public function appOauth(string $redirect_uri, $state = null, bool $is_get_url = false)
+     {
+         $param = [
+             'app_id' => $this->appId,
+@@ -105,12 +110,12 @@
+ 
+     /**
+      * 跳转支付宝指定应用授权页面
+-     * @param $redirect_uri 回调地址
+-     * @param $app_types 对商家应用的限制类型
++     * @param string $redirect_uri 回调地址
++     * @param array $app_types 对商家应用的限制类型
+      * @param $state
+-     * @return mixed
++     * @return array [PC端url, APP端url]
+      */
+-    public function appOauthAssign($redirect_uri, $app_types, $state = null)
++    public function appOauthAssign(string $redirect_uri, array $app_types, $state = null): array
+     {
+         $param = [
+             'platformCode' => 'O',
+@@ -130,13 +135,14 @@
+         return [$pc_url, $app_url];
+     }
+ 
+-    /**
+-     * 换取授权访问令牌
+-     * @param $code 授权码或刷新令牌
+-     * @param $grant_type 授权方式(authorization_code,refresh_token)
+-     * @return mixed {"user_id":"授权商户的user_id","auth_app_id":"授权商户的appid","app_auth_token":"应用授权令牌","app_refresh_token":"刷新令牌","re_expires_in":"3600"}
+-     */
+-    public function getAppToken($code, $grant_type = 'authorization_code')
++	/**
++	 * 换取授权访问令牌
++	 * @param string $code 授权码或刷新令牌
++	 * @param string $grant_type 授权方式(authorization_code,refresh_token)
++	 * @return mixed {"user_id":"授权商户的user_id","auth_app_id":"授权商户的appid","app_auth_token":"应用授权令牌","app_refresh_token":"刷新令牌","re_expires_in":"3600"}
++	 * @throws Exception
++	 */
++    public function getAppToken(string $code, string $grant_type = 'authorization_code')
+     {
+         $apiName = 'alipay.open.auth.token.app';
+         $bizContent = [
+@@ -150,12 +156,13 @@
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 查询授权商家信息
+-     * @param $appAuthToken 应用授权令牌
+-     * @return mixed {"user_id":"授权商户的user_id","auth_app_id":"授权商户的appid","expires_in":31536000,"auth_methods":[],"auth_start":"授权生效时间","auth_end":"授权失效时间","status":"valid/invalid","is_by_app_auth":true}
+-     */
+-    public function appQuery($appAuthToken)
++	/**
++	 * 查询授权商家信息
++	 * @param string $appAuthToken 应用授权令牌
++	 * @return mixed {"user_id":"授权商户的user_id","auth_app_id":"授权商户的appid","expires_in":31536000,"auth_methods":[],"auth_start":"授权生效时间","auth_end":"授权失效时间","status":"valid/invalid","is_by_app_auth":true}
++	 * @throws Exception
++	 */
++    public function appQuery(string $appAuthToken)
+     {
+         $apiName = 'alipay.open.auth.token.app.query';
+         $bizContent = [
+@@ -163,4 +170,29 @@
+         ];
+         return $this->aopExecute($apiName, $bizContent);
+     }
++
++    public function decryptMobile(array $response, string $key)
++    {
++        if(is_string($response['response'])){
++            /*if(!$this->client->rsaPubilcVerify('"'.$response['response'].'"', $response['sign'])){
++                throw new Exception('手机号码数据验签失败');
++            }*/
++            $data = $this->client->aesDecrypt($response['response'], $key);
++            if(!$data) {
++                throw new Exception('手机号码数据解密失败');
++            }
++            $result = json_decode($data, true);
++            if($result['code'] == '10000'){
++                return $result['mobile'];
++            }elseif(isset($result['subMsg'])){
++                throw new Exception($result['subMsg']);
++            }else{
++                throw new Exception('手机号码数据解密失败 '.$result['msg']);
++            }
++        }elseif(isset($response['response']['subCode']) && isset($response['response']['subMsg'])){
++            throw new Exception('['.$response['response']['subCode'].']'.$response['response']['subMsg']);
++        }else{
++            throw new Exception('手机号码加密数据错误');
++        }
++    }
+ }
+\ No newline at end of file
+--- a/src/AlipayService.php
++++ b/src/AlipayService.php
+@@ -6,182 +6,192 @@
+ use Alipay\Aop\AlipayCertHelper;
+ use Alipay\Aop\AlipayRequest;
+ use Alipay\Aop\AlipayResponseException;
++use Exception;
++use InvalidArgumentException;
+ 
+ class AlipayService
+ {
+-    //AopClient
+-    protected $client;
++	//AopClient
++	protected $client;
+ 
+-    //是否公钥证书模式
+-    protected $isCertMode = false;
++	//是否公钥证书模式
++	protected $isCertMode = false;
+ 
+-    //应用ID
+-    protected $appId;
++	//应用ID
++	protected $appId;
+ 
+-    //异步通知回调地址
+-    protected $notifyUrl;
++	//异步通知回调地址
++	protected $notifyUrl;
+ 
+-    //同步通知回调地址
+-    protected $returnUrl;
++	//同步通知回调地址
++	protected $returnUrl;
+ 
+-    //服务商模式子商户token
+-    protected $appAuthToken;
++	//服务商模式子商户token
++	protected $appAuthToken;
+ 
+-    //日志文件夹路径
+-    protected $logPath;
++	//日志文件夹路径
++	protected $logPath;
+ 
+-    //页面跳转接口返回类型
+-    protected $pageMethod;
++	//页面跳转接口返回类型
++	protected $pageMethod;
+ 
+-    /**
+-     * @param $config 支付宝配置信息
+-     * @throws \InvalidArgumentException
+-     */
+-    public function __construct($config)
+-    {
+-        if (empty($config['app_id'])) {
+-            throw new \InvalidArgumentException('应用AppID不能为空');
+-        }
+-        if (empty($config['app_private_key'])) {
+-            throw new \InvalidArgumentException("应用私钥不能为空");
+-        }
+-        if (empty($config['alipay_public_key']) && empty($config['alipay_cert_path'])) {
+-            throw new \InvalidArgumentException("支付宝公钥不能为空");
+-        }
+-        $this->appId = $config['app_id'];
+-        if (!empty($config['app_cert_path']) && !empty($config['alipay_cert_path']) && !empty($config['root_cert_path']) && (!isset($config['cert_mode']) || $config['cert_mode'] == 1)) {
+-            $this->isCertMode = true;
+-        }
+-        if (isset($config['app_auth_token'])) {
+-            $this->appAuthToken = $config['app_auth_token'];
+-        }
+-        if (isset($config['logPath'])) {
+-            $this->logPath = $config['logPath'];
+-        }
+-        if (isset($config['pageMethod'])) {
+-            $this->pageMethod = $config['pageMethod'];
+-        }
++	/**
++	 * @param array $config 支付宝配置信息
++	 * @throws InvalidArgumentException
++	 */
++	public function __construct(array $config)
++	{
++		if (empty($config['app_id'])) {
++			throw new InvalidArgumentException('应用AppID不能为空');
++		}
++		if (empty($config['app_private_key'])) {
++			throw new InvalidArgumentException("应用私钥不能为空");
++		}
++		if (empty($config['alipay_public_key']) && empty($config['alipay_cert_path'])) {
++			throw new InvalidArgumentException("支付宝公钥不能为空");
++		}
++		$this->appId = $config['app_id'];
++		if (!empty($config['app_cert_path']) && !empty($config['alipay_cert_path']) && !empty($config['root_cert_path']) && (!isset($config['cert_mode']) || $config['cert_mode'] == 1)) {
++			$this->isCertMode = true;
++		}
++		if (isset($config['app_auth_token'])) {
++			$this->appAuthToken = $config['app_auth_token'];
++		}
++		if (isset($config['logPath'])) {
++			$this->logPath = $config['logPath'];
++		}
++		if (isset($config['pageMethod'])) {
++			$this->pageMethod = $config['pageMethod'];
++		}
+ 
+-        $this->client = new AopClient();
+-        $this->client->appId = $config['app_id'];
+-        if (isset($config['gateway_url']) && !empty($config['gateway_url'])) {
+-            $this->client->gatewayUrl = $config['gateway_url'];
+-        }
+-        if (isset($config['sign_type']) && !empty($config['sign_type'])) {
+-            $this->client->signType = $config['sign_type'];
+-        }
+-        if (isset($config['charset']) && !empty($config['charset'])) {
+-            $this->client->charset = $config['charset'];
+-        }
++		$this->client = new AopClient();
++		$this->client->appId = $config['app_id'];
++		if (!empty($config['gateway_url'])) {
++			$this->client->gatewayUrl = $config['gateway_url'];
++		}
++		if (!empty($config['sign_type'])) {
++			$this->client->signType = $config['sign_type'];
++		}
++		if (!empty($config['charset'])) {
++			$this->client->charset = $config['charset'];
++		}
+ 
+-        $this->client->rsaPrivateKey = $config['app_private_key'];
+-        if ($this->isCertMode) {
+-            $this->client->rsaPublicKeyFilePath = $config['alipay_cert_path'];
+-            $this->client->appCertSN = AlipayCertHelper::getCertSN($config['app_cert_path']);
+-            $this->client->alipayRootCertSN = AlipayCertHelper::getRootCertSN($config['root_cert_path']);
+-        } else {
+-            $this->client->rsaPublicKey = $config['alipay_public_key'];
+-        }
+-        
+-    }
++		$this->client->rsaPrivateKey = $config['app_private_key'];
++		if ($this->isCertMode) {
++			$this->client->rsaPublicKeyFilePath = $config['alipay_cert_path'];
++			$this->client->appCertSN = AlipayCertHelper::getCertSN($config['app_cert_path']);
++			$this->client->alipayRootCertSN = AlipayCertHelper::getRootCertSN($config['root_cert_path']);
++		} else {
++			$this->client->rsaPublicKey = $config['alipay_public_key'];
++		}
+ 
+-    /**
+-     * 发起接口请求
+-     * 
+-     * @param $apiName    接口名称
+-     * @param $bizContent 请求参数的集合
+-     * @param $params     其他公共参数
+-     * @throws AlipayResponseException
+-     * @return mixed
+-     */
+-    public function aopExecute($apiName, $bizContent = null, $params = null)
+-    {
+-        $request = new AlipayRequest();
+-        $request->setApiMethodName($apiName);
+-        $request->setNotifyUrl($this->notifyUrl);
+-        $request->setAppAuthToken($this->appAuthToken);
+-        $request->setBizContent($bizContent);
+-        if (is_array($params) && count($params) > 0) {
+-            $request->setOtherParams($params);
+-        }
+-        $result = $this->client->execute($request)->getData();
+-        if ($apiName == 'alipay.system.oauth.token' && isset($result['access_token'])) {
+-            return $result;
+-        } elseif (isset($result['code']) && $result['code'] == '10000') {
+-            return $result;
+-        } else {
+-            throw new AlipayResponseException($result);
+-        }
+-    }
++	}
+ 
+-    /**
+-     * 页面跳转接口，返回form表单html
+-     * 
+-     * @param $apiName    接口名称
+-     * @param $bizContent 请求参数的集合
+-     * @param $params     其他公共参数
+-     * @return string
+-     */
+-    public function aopPageExecute($apiName, $bizContent = null, $params = null)
+-    {
+-        $request = new AlipayRequest();
+-        $request->setApiMethodName($apiName);
+-        $request->setNotifyUrl($this->notifyUrl);
+-        $request->setReturnUrl($this->returnUrl);
+-        $request->setAppAuthToken($this->appAuthToken);
+-        $request->setBizContent($bizContent);
+-        if (is_array($params) && count($params) > 0) {
+-            $request->setOtherParams($params);
+-        }
+-        if (!empty($this->pageMethod)) {
+-            switch($this->pageMethod) {
+-                case '2':$httpmethod = 'REDIRECT';break;
+-                case '1':$httpmethod = 'GET';break;
+-                default:$httpmethod = 'POST';break;
+-            }
+-            return $this->client->pageExecute($request, $httpmethod);
+-        } else {
+-            return $this->client->pageExecute($request);
+-        }
+-    }
++	/**
++	 * 发起接口请求
++	 *
++	 * @param string $apiName 接口名称
++	 * @param array|null $bizContent 请求参数的集合
++	 * @param array|null $params 其他公共参数
++	 * @return mixed
++	 * @throws Exception
++	 */
++	public function aopExecute(string $apiName, ?array $bizContent = null, ?array $params = null)
++	{
++		$request = new AlipayRequest();
++		$request->setApiMethodName($apiName);
++		$request->setNotifyUrl($this->notifyUrl);
++		$request->setAppAuthToken($this->appAuthToken);
++		$request->setBizContent($bizContent);
++		if (is_array($params) && count($params) > 0) {
++			$request->setOtherParams($params);
++		}
++		$result = $this->client->execute($request)->getData();
++		if ($apiName == 'alipay.system.oauth.token' && isset($result['access_token'])) {
++			return $result;
++		} elseif (isset($result['code']) && $result['code'] == '10000') {
++			return $result;
++		} else {
++			throw new AlipayResponseException($result);
++		}
++	}
+ 
+-    /**
+-     * APP接口，返回收银台SDK的字符串
+-     * 
+-     * @param $apiName    接口名称
+-     * @param $bizContent 请求参数的集合
+-     * @param $params     其他公共参数
+-     * @return string
+-     */
+-    public function aopSdkExecute($apiName, $bizContent = null, $params = null)
+-    {
+-        $request = new AlipayRequest();
+-        $request->setApiMethodName($apiName);
+-        $request->setNotifyUrl($this->notifyUrl);
+-        $request->setAppAuthToken($this->appAuthToken);
+-        $request->setBizContent($bizContent);
+-        if (is_array($params) && count($params) > 0) {
+-            $request->setOtherParams($params);
+-        }
+-        return $this->client->sdkExecute($request);
+-    }
++	/**
++	 * 页面跳转接口，返回form表单html
++	 *
++	 * @param string $apiName 接口名称
++	 * @param array|null $bizContent 请求参数的集合
++	 * @param array|null $params 其他公共参数
++	 * @return string
++	 * @throws Exception
++	 */
++	public function aopPageExecute(string $apiName, ?array $bizContent = null, ?array $params = null): string
++	{
++		$request = new AlipayRequest();
++		$request->setApiMethodName($apiName);
++		$request->setNotifyUrl($this->notifyUrl);
++		$request->setReturnUrl($this->returnUrl);
++		$request->setAppAuthToken($this->appAuthToken);
++		$request->setBizContent($bizContent);
++		if (is_array($params) && count($params) > 0) {
++			$request->setOtherParams($params);
++		}
++		if (!empty($this->pageMethod)) {
++			switch ($this->pageMethod) {
++				case '2':
++					$httpmethod = 'REDIRECT';
++					break;
++				case '1':
++					$httpmethod = 'GET';
++					break;
++				default:
++					$httpmethod = 'POST';
++					break;
++			}
++			return $this->client->pageExecute($request, $httpmethod);
++		} else {
++			return $this->client->pageExecute($request);
++		}
++	}
+ 
+-    /**
+-     * 回调验签
+-     * @param $params 支付宝返回的信息
+-     * @return bool
+-     */
+-    public function check($params){
+-        $result = $this->client->verify($params);
+-        return $result;
+-    }
++	/**
++	 * APP接口，返回收银台SDK的字符串
++	 *
++	 * @param string $apiName 接口名称
++	 * @param array|null $bizContent 请求参数的集合
++	 * @param array|null $params 其他公共参数
++	 * @return string
++	 */
++	public function aopSdkExecute(string $apiName, ?array $bizContent = null, ?array $params = null): string
++	{
++		$request = new AlipayRequest();
++		$request->setApiMethodName($apiName);
++		$request->setNotifyUrl($this->notifyUrl);
++		$request->setAppAuthToken($this->appAuthToken);
++		$request->setBizContent($bizContent);
++		if (is_array($params) && count($params) > 0) {
++			$request->setOtherParams($params);
++		}
++		return $this->client->sdkExecute($request);
++	}
+ 
+-    /**
+-     * 记录日志
+-     */
+-    public function writeLog($text) {
+-        if (empty($this->logPath)) return;
+-        //$text=iconv("GBK", "UTF-8//IGNORE", $text);
+-        file_put_contents($this->logPath."log.txt", date ( "Y-m-d H:i:s" ) . "  " . $text . "\r\n", FILE_APPEND);
+-    }
++	/**
++	 * 回调验签
++	 * @param array $params 支付宝返回的信息
++	 * @return bool
++	 */
++	public function check(array $params): bool
++	{
++		return $this->client->verify($params);
++	}
++
++	/**
++	 * 记录日志
++	 */
++	public function writeLog($text)
++	{
++		if (empty($this->logPath)) return;
++		//$text=iconv("GBK", "UTF-8//IGNORE", $text);
++		file_put_contents($this->logPath . "log.txt", date("Y-m-d H:i:s") . "  " . $text . "\r\n", FILE_APPEND);
++	}
+ }
+\ No newline at end of file
+--- a/src/AlipaySettleService.php
++++ b/src/AlipaySettleService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace Alipay;
++
++use Exception;
+ 
+ /**
+  * 支付宝分账服务类
+@@ -9,21 +11,23 @@
+ class AlipaySettleService extends AlipayService
+ {
+     /**
+-     * @param $config 支付宝配置信息
++     * @param array $config 支付宝配置信息
+      */
+-    public function __construct($config)
++    public function __construct(array $config)
+     {
+         parent::__construct($config);
+     }
+ 
+-    /**
+-     * 分账关系绑定
+-     * @param $type 分账接收方方类型(userId,loginName,openId)
+-     * @param $account 分账接收方账号
+-     * @param $name 分账接收方真实姓名
+-     * @return bool
+-     */
+-    public function relation_bind($type, $account, $name) {
++	/**
++	 * 分账关系绑定
++	 * @param string $type 分账接收方方类型(userId,loginName,openId)
++	 * @param string $account 分账接收方账号
++	 * @param string $name 分账接收方真实姓名
++	 * @return bool
++	 * @throws Exception
++	 */
++    public function relation_bind(string $type, string $account, string $name): bool
++    {
+         $apiName = 'alipay.trade.royalty.relation.bind';
+         $out_request_no = date("YmdHis").rand(11111,99999);
+         $receiver = [
+@@ -41,13 +45,15 @@
+         return true;
+     }
+ 
+-    /**
+-     * 分账关系解绑
+-     * @param $type 分账接收方方类型(userId,loginName,openId)
+-     * @param $account 分账接收方账号
+-     * @return bool
+-     */
+-    public function relation_unbind($type, $account) {
++	/**
++	 * 分账关系解绑
++	 * @param string $type 分账接收方方类型(userId,loginName,openId)
++	 * @param string $account 分账接收方账号
++	 * @return bool
++	 * @throws Exception
++	 */
++    public function relation_unbind(string $type, string $account): bool
++    {
+         $apiName = 'alipay.trade.royalty.relation.unbind';
+         $out_request_no = date("YmdHis").rand(11111,99999);
+         $receiver = [
+@@ -64,13 +70,15 @@
+         return true;
+     }
+ 
+-    /**
+-     * 分账关系查询
+-     * @param $page_num 页码
+-     * @param $page_size 每页条数
+-     * @return array
+-     */
+-    public function relation_batchquery($page_num = 1, $page_size = 20) {
++	/**
++	 * 分账关系查询
++	 * @param int $page_num 页码
++	 * @param int $page_size 每页条数
++	 * @return array
++	 * @throws Exception
++	 */
++    public function relation_batchquery(int $page_num = 1, int $page_size = 20): array
++    {
+         $apiName = 'alipay.trade.royalty.relation.batchquery';
+         $out_request_no = date("YmdHis").rand(11111,99999);
+         $bizContent = array(
+@@ -82,15 +90,16 @@
+         return $result['receiver_list'];
+     }
+ 
+-    /**
+-     * 分账请求
+-     * @param $trade_no 支付宝订单号
+-     * @param $type 收入方账户类型(userId,cardAliasNo,loginName,openId)
+-     * @param $account 收入方账户
+-     * @param $money 分账的金额
+-     * @return mixed {"trade_no":"支付宝交易号","settle_no":"支付宝分账单号"}
+-     */
+-    public function order_settle($trade_no, $type, $account, $money) {
++	/**
++	 * 分账请求
++	 * @param string $trade_no 支付宝订单号
++	 * @param string $type 收入方账户类型(userId,cardAliasNo,loginName,openId)
++	 * @param string $account 收入方账户
++	 * @param numeric $money 分账的金额
++	 * @return mixed {"trade_no":"支付宝交易号","settle_no":"支付宝分账单号"}
++	 * @throws Exception
++	 */
++    public function order_settle(string $trade_no, string $type, string $account, $money) {
+         $apiName = 'alipay.trade.order.settle';
+         $out_request_no = date("YmdHis").rand(11111,99999);
+         $receiver = [
+@@ -111,12 +120,13 @@
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 解冻剩余资金
+-     * @param $trade_no 支付宝订单号
+-     * @return mixed {"trade_no":"支付宝交易号","settle_no":"支付宝分账单号"}
+-     */
+-    public function order_settle_unfreeze($trade_no) {
++	/**
++	 * 解冻剩余资金
++	 * @param string $trade_no 支付宝订单号
++	 * @return mixed {"trade_no":"支付宝交易号","settle_no":"支付宝分账单号"}
++	 * @throws Exception
++	 */
++    public function order_settle_unfreeze(string $trade_no) {
+         $apiName = 'alipay.trade.order.settle';
+         $out_request_no = date("YmdHis").rand(11111,99999);
+         $bizContent = array(
+@@ -128,13 +138,14 @@
+         );
+         return $this->aopExecute($apiName, $bizContent);
+     }
+-    
+-    /**
+-     * 分账查询
+-     * @param $settle_no 支付宝分账单号
+-     * @return mixed {"out_request_no":"商户分账请求单号","operation_dt":"分账受理时间","royalty_detail_list":[{"operation_type":"transfer","execute_dt":"分账执行时间","trans_out":"2088111111111111","trans_out_type":"userId","trans_in":"2088111111112222","trans_in_type":"userId","amount":10,"state":"FAIL","error_code":"TXN_RESULT_ACCOUNT_BALANCE_NOT_ENOUGH","error_desc":"分账余额不足"}]}
+-     */
+-    public function order_settle_query($settle_no) {
++
++	/**
++	 * 分账查询
++	 * @param string $settle_no 支付宝分账单号
++	 * @return mixed {"out_request_no":"商户分账请求单号","operation_dt":"分账受理时间","royalty_detail_list":[{"operation_type":"transfer","execute_dt":"分账执行时间","trans_out":"2088111111111111","trans_out_type":"userId","trans_in":"2088111111112222","trans_in_type":"userId","amount":10,"state":"FAIL","error_code":"TXN_RESULT_ACCOUNT_BALANCE_NOT_ENOUGH","error_desc":"分账余额不足"}]}
++	 * @throws Exception
++	 */
++    public function order_settle_query(string $settle_no) {
+         $apiName = 'alipay.trade.order.settle.query';
+         $bizContent = array(
+             'settle_no' => $settle_no,
+@@ -142,10 +153,11 @@
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 分账比例查询
+-     * @return mixed {"user_id":"2088XXXX1234","max_ratio":80}
+-     */
++	/**
++	 * 分账比例查询
++	 * @return mixed {"user_id":"2088XXXX1234","max_ratio":80}
++	 * @throws Exception
++	 */
+     public function rate_query() {
+         $apiName = 'alipay.trade.royalty.rate.query';
+         $out_request_no = date("YmdHis").rand(11111,99999);
+@@ -155,14 +167,17 @@
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 退分账
+-     * @param $trade_no 支付宝交易号
+-     * @param $type 支出方账户类型(userId,loginName)
+-     * @param $account 支出方账户
+-     * @param $money 分账的金额
+-     */
+-    public function order_settle_refund($trade_no, $type, $account, $money) {
++	/**
++	 * 退分账
++	 * @param string $trade_no 支付宝交易号
++	 * @param string $type 支出方账户类型(userId,loginName)
++	 * @param string $account 支出方账户
++	 * @param numeric $money 分账的金额
++	 * @return true
++	 * @throws Exception
++	 */
++    public function order_settle_refund(string $trade_no, string $type, string $account, $money): bool
++    {
+         $apiName = 'alipay.trade.refund';
+         $out_request_no = date("YmdHis").rand(11111,99999);
+         $receiver = [
+--- a/src/AlipayTradeService.php
++++ b/src/AlipayTradeService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace Alipay;
++
++use Exception;
+ 
+ /**
+  * 支付宝交易服务类
+@@ -11,9 +13,9 @@
+     private $smid;
+ 
+     /**
+-     * @param $config 支付宝配置信息
++     * @param array $config 支付宝配置信息
+      */
+-    public function __construct($config)
++    public function __construct(array $config)
+     {
+         parent::__construct($config);
+         if (isset($config['smid'])) {
+@@ -27,37 +29,40 @@
+         }
+     }
+ 
+-    /**
+-     * 付款码支付
+-     * @param $bizContent 请求参数的集合
+-     * @return mixed {"trade_no":"支付宝交易号","out_trade_no":"商户订单号","open_id":"买家支付宝userid","buyer_logon_id":"买家支付宝账号"}
+-     * @see https://opendocs.alipay.com/open/02ekfp?ref=api&scene=32
+-     */
+-    public function scanPay($bizContent)
++	/**
++	 * 付款码支付
++	 * @param array $bizContent 请求参数的集合
++	 * @return mixed {"trade_no":"支付宝交易号","out_trade_no":"商户订单号","open_id":"买家支付宝userid","buyer_logon_id":"买家支付宝账号"}
++	 * @throws Exception
++	 * @see https://opendocs.alipay.com/open/02ekfp?ref=api&scene=32
++	 */
++    public function scanPay(array $bizContent)
+     {
+         $apiName = 'alipay.trade.pay';
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 扫码支付
+-     * @param $bizContent 请求参数的集合
+-     * @return mixed {"out_trade_no":"商户订单号","qr_code":"二维码链接"}
+-     * @see https://opendocs.alipay.com/open/02ekfg?ref=api&scene=19
+-     */
+-    public function qrPay($bizContent)
++	/**
++	 * 扫码支付
++	 * @param array $bizContent 请求参数的集合
++	 * @return mixed {"out_trade_no":"商户订单号","qr_code":"二维码链接"}
++	 * @throws Exception
++	 * @see https://opendocs.alipay.com/open/02ekfg?ref=api&scene=19
++	 */
++    public function qrPay(array $bizContent)
+     {
+         $apiName = 'alipay.trade.precreate';
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * JS支付
+-     * @param $bizContent 请求参数的集合
+-     * @return mixed {"trade_no":"支付宝交易号","out_trade_no":"商户订单号"}
+-     * @see https://opendocs.alipay.com/open/02ekfj?ref=api
+-     */
+-    public function jsPay($bizContent)
++	/**
++	 * JS支付
++	 * @param array $bizContent 请求参数的集合
++	 * @return mixed {"trade_no":"支付宝交易号","out_trade_no":"商户订单号"}
++	 * @throws Exception
++	 * @see https://opendocs.alipay.com/open/02ekfj?ref=api
++	 */
++    public function jsPay(array $bizContent)
+     {
+         $apiName = 'alipay.trade.create';
+         return $this->aopExecute($apiName, $bizContent);
+@@ -65,49 +70,52 @@
+ 
+     /**
+      * APP支付
+-     * @param $bizContent 请求参数的集合
++     * @param array $bizContent 请求参数的集合
+      * @return string SDK请求串
+      * @see https://opendocs.alipay.com/open/02e7gq?ref=api&scene=20
+      */
+-    public function appPay($bizContent)
++    public function appPay(array $bizContent): string
+     {
+         $apiName = 'alipay.trade.app.pay';
+         return $this->aopSdkExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 电脑网站支付
+-     * @param $bizContent 请求参数的集合
+-     * @return string html表单
+-     * @see https://opendocs.alipay.com/open/028r8t?ref=api&scene=22
+-     */
+-    public function pagePay($bizContent)
++	/**
++	 * 电脑网站支付
++	 * @param array $bizContent 请求参数的集合
++	 * @return string html表单
++	 * @throws Exception
++	 * @see https://opendocs.alipay.com/open/028r8t?ref=api&scene=22
++	 */
++    public function pagePay(array $bizContent): string
+     {
+         $apiName = 'alipay.trade.page.pay';
+         $bizContent['product_code'] = 'FAST_INSTANT_TRADE_PAY';
+         return $this->aopPageExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 手机网站支付
+-     * @param $bizContent 请求参数的集合
+-     * @return string html表单
+-     * @see https://opendocs.alipay.com/open/02ivbs?ref=api&scene=21
+-     */
+-    public function wapPay($bizContent)
++	/**
++	 * 手机网站支付
++	 * @param array $bizContent 请求参数的集合
++	 * @return string html表单
++	 * @throws Exception
++	 * @see https://opendocs.alipay.com/open/02ivbs?ref=api&scene=21
++	 */
++    public function wapPay(array $bizContent): string
+     {
+         $apiName = 'alipay.trade.wap.pay';
+         $bizContent['product_code'] = 'QUICK_WAP_WAY';
+         return $this->aopPageExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 交易查询
+-     * @param $trade_no 支付宝交易号
+-     * @param $out_trade_no 商户订单号
+-     * @return mixed {"trade_no":"支付宝交易号","out_trade_no":"商户订单号","open_id":"买家支付宝userid","buyer_logon_id":"买家支付宝账号","trade_status":"TRADE_SUCCESS","total_amount":88.88}
+-     */
+-    public function query($trade_no = null, $out_trade_no = null)
++	/**
++	 * 交易查询
++	 * @param string|null $trade_no 支付宝交易号
++	 * @param string|null $out_trade_no 商户订单号
++	 * @return mixed {"trade_no":"支付宝交易号","out_trade_no":"商户订单号","open_id":"买家支付宝userid","buyer_logon_id":"买家支付宝账号","trade_status":"TRADE_SUCCESS","total_amount":88.88}
++	 * @throws Exception
++	 */
++    public function query(string $trade_no = null, string $out_trade_no = null)
+     {
+         $apiName = 'alipay.trade.query';
+         $bizContent = [];
+@@ -119,86 +127,92 @@
+         }
+         return $this->aopExecute($apiName, $bizContent);
+     }
+-    
+-    /**
+-     * 交易是否成功
+-     * @param $trade_no 支付宝交易号
+-     * @param $out_trade_no 商户订单号
+-     * @return bool
+-     */
+-    public function queryResult($trade_no = null, $out_trade_no = null)
++
++	/**
++	 * 交易是否成功
++	 * @param null $trade_no 支付宝交易号
++	 * @param null $out_trade_no 商户订单号
++	 * @return bool
++	 * @throws Exception
++	 */
++    public function queryResult($trade_no = null, $out_trade_no = null): bool
+     {
+         $result = $this->query($trade_no, $out_trade_no);
+-        if (isset($result['code']) && $result['code'] == '10000') {
+-            if ($result['trade_status'] == 'TRADE_SUCCESS' || $result['trade_status'] == 'TRADE_FINISHED' || $result['trade_status'] == 'TRADE_CLOSED') {
+-                return true;
+-            }
++        if ($result['trade_status'] == 'TRADE_SUCCESS' || $result['trade_status'] == 'TRADE_FINISHED' || $result['trade_status'] == 'TRADE_CLOSED') {
++            return true;
+         }
+         return false;
+     }
+ 
+-    /**
+-     * 交易退款
+-     * @param $bizContent 请求参数的集合
+-     * @return mixed {"trade_no":"支付宝交易号","out_trade_no":"商户订单号","buyer_user_id":"买家支付宝userid","buyer_logon_id":"买家支付宝账号","fund_change":"Y","refund_fee":88.88}
+-     * @see https://opendocs.alipay.com/open/02ekfk?ref=api
+-     */
+-    public function refund($bizContent)
++	/**
++	 * 交易退款
++	 * @param array $bizContent 请求参数的集合
++	 * @return mixed {"trade_no":"支付宝交易号","out_trade_no":"商户订单号","buyer_user_id":"买家支付宝userid","buyer_logon_id":"买家支付宝账号","fund_change":"Y","refund_fee":88.88}
++	 * @throws Exception
++	 * @see https://opendocs.alipay.com/open/02ekfk?ref=api
++	 */
++    public function refund(array $bizContent)
+     {
+         $apiName = 'alipay.trade.refund';
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 交易退款查询
+-     * @param $bizContent 请求参数的集合
+-     * @return mixed {"trade_no":"支付宝交易号","out_trade_no":"商户订单号","out_request_no":"退款请求号","refund_status":"REFUND_SUCCESS","total_amount":88.88,"refund_amount":88.88}
+-     */
+-    public function refundQuery($bizContent)
++	/**
++	 * 交易退款查询
++	 * @param array $bizContent 请求参数的集合
++	 * @return mixed {"trade_no":"支付宝交易号","out_trade_no":"商户订单号","out_request_no":"退款请求号","refund_status":"REFUND_SUCCESS","total_amount":88.88,"refund_amount":88.88}
++	 * @throws Exception
++	 */
++    public function refundQuery(array $bizContent)
+     {
+         $apiName = 'alipay.trade.fastpay.refund.query';
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 交易撤销
+-     * @param $bizContent 请求参数的集合
+-     * @return mixed {"trade_no":"支付宝交易号","out_trade_no":"商户订单号","retry_flag":"N是否需要重试","action":"close本次撤销触发的交易动作"}
+-     */
+-    public function cancel($bizContent)
++	/**
++	 * 交易撤销
++	 * @param array $bizContent 请求参数的集合
++	 * @return mixed {"trade_no":"支付宝交易号","out_trade_no":"商户订单号","retry_flag":"N是否需要重试","action":"close本次撤销触发的交易动作"}
++	 * @throws Exception
++	 */
++    public function cancel(array $bizContent)
+     {
+         $apiName = 'alipay.trade.cancel';
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 交易关闭
+-     * @param $bizContent 请求参数的集合
+-     * @return mixed {"trade_no":"支付宝交易号","out_trade_no":"商户订单号"}
+-     */
+-    public function close($bizContent)
++	/**
++	 * 交易关闭
++	 * @param array $bizContent 请求参数的集合
++	 * @return mixed {"trade_no":"支付宝交易号","out_trade_no":"商户订单号"}
++	 * @throws Exception
++	 */
++    public function close(array $bizContent)
+     {
+         $apiName = 'alipay.trade.close';
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 查询对账单下载地址
+-     * @param $bizContent 请求参数的集合
+-     * @return mixed {"bill_download_url":"账单下载地址"}
+-     */
+-    public function downloadurlQuery($bizContent)
++	/**
++	 * 查询对账单下载地址
++	 * @param array $bizContent 请求参数的集合
++	 * @return mixed {"bill_download_url":"账单下载地址"}
++	 * @throws Exception
++	 */
++    public function downloadurlQuery(array $bizContent)
+     {
+         $apiName = 'alipay.data.dataservice.bill.downloadurl.query';
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 支付回调验签
+-     * @param $params 支付宝返回的信息
+-     * @return bool
+-     */
+-    public function check($params){
++	/**
++	 * 支付回调验签
++	 * @param $params array
++	 * @return bool
++	 * @throws Exception
++	 */
++    public function check(array $params): bool
++    {
+         $result = $this->client->verify($params);
+         if($result){
+             $result = $this->queryResult($params['trade_no']);
+@@ -206,16 +220,17 @@
+         return $result;
+     }
+ 
+-    /**
+-     * 互联网直付通交易额外参数
+-     * @param &$bizContent
+-     * @param $settle_period_time 最晚结算周期
+-     * @see https://opendocs.alipay.com/open/direct-payment/qadp9d
+-     */
+-    public function directPayParams(&$bizContent, $settle_period_time = '1d')
++	/**
++	 * 互联网直付通交易额外参数
++	 * @param array &$bizContent 请求参数的集合
++	 * @param string $settle_period_time 最晚结算周期
++	 * @throws Exception
++	 * @see https://opendocs.alipay.com/open/direct-payment/qadp9d
++	 */
++    public function directPayParams(array &$bizContent, string $settle_period_time = '1d')
+     {
+         if (empty($this->smid)) {
+-            throw new \Exception("子商户SMID不能为空");
++            throw new Exception("子商户SMID不能为空");
+         }
+         if(strpos($this->smid, ',')){
+             $smids = explode(',', $this->smid);
+@@ -233,14 +248,16 @@
+         ];
+     }
+ 
+-    /**
+-     * 互联网直付通确认结算
+-     * @param $trade_no 支付宝交易号
+-     * @param $settle_amount 结算金额
+-     * @return mixed {"trade_no":"支付宝交易号","out_request_no":"确认结算请求流水号","settle_amount":"结算金额"}
+-     * @see https://opendocs.alipay.com/open/direct-payment/gkvknf
+-     */
+-    public function settle_confirm($trade_no, $settle_amount)
++	/**
++	 * 互联网直付通确认结算
++	 * @param string $trade_no 支付宝交易号
++	 * @param numeric $settle_amount 结算金额
++     * @param bool $freeze 冻结标识
++	 * @return mixed {"trade_no":"支付宝交易号","out_request_no":"确认结算请求流水号","settle_amount":"结算金额"}
++	 * @throws Exception
++	 * @see https://opendocs.alipay.com/open/direct-payment/gkvknf
++	 */
++    public function settle_confirm(string $trade_no, $settle_amount, bool $freeze = false)
+     {
+         $apiName = 'alipay.trade.settle.confirm';
+         $out_request_no = date("YmdHis").rand(11111,99999);
+@@ -256,16 +273,20 @@
+                 ]
+             ],
+         );
+-        return $this->aopExecute($apiName, $bizContent);
+-    }
+-
+-    /**
+-     * 合并支付预创建
+-     * @param $bizContent 请求参数的集合
+-     * @return mixed {"out_merge_no":"合单订单号","pre_order_no":"预下单号"}
+-     * @see https://opendocs.alipay.com/open/028xr9
+-     */
+-    public function mergePrecreatePay($bizContent)
++        if($freeze){
++            $bizContent['extend_params'] = ['royalty_freeze' => 'true'];
++        }
++        return $this->aopExecute($apiName, $bizContent);
++    }
++
++	/**
++	 * 合并支付预创建
++	 * @param array $bizContent 请求参数的集合
++	 * @return mixed {"out_merge_no":"合单订单号","pre_order_no":"预下单号"}
++	 * @throws Exception
++	 * @see https://opendocs.alipay.com/open/028xr9
++	 */
++    public function mergePrecreatePay(array $bizContent)
+     {
+         $apiName = 'alipay.trade.merge.precreate';
+         $params = null;
+@@ -275,37 +296,39 @@
+         return $this->aopExecute($apiName, $bizContent, $params);
+     }
+ 
+-    /**
+-     * 手机网站合单支付
+-     * @param $pre_order_no 预下单号
+-     * @return string html表单
+-     * @see https://opendocs.alipay.com/open/028xra
+-     */
+-    public function wapMergePay($bizContent)
++	/**
++	 * 手机网站合单支付
++	 * @param array $bizContent 请求参数的集合
++	 * @return string html表单
++	 * @throws Exception
++	 * @see https://opendocs.alipay.com/open/028xra
++	 */
++    public function wapMergePay(array $bizContent): string
+     {
+         $apiName = 'alipay.trade.wap.merge.pay';
+         return $this->aopPageExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * APP合单支付
+-     * @param $pre_order_no 预下单号
+-     * @return string SDK请求串
+-     * @see https://opendocs.alipay.com/open/028py8
+-     */
+-    public function appMergePay($bizContent)
++	/**
++	 * APP合单支付
++	 * @param array $bizContent 请求参数的集合
++	 * @return string SDK请求串
++	 * @see https://opendocs.alipay.com/open/028py8
++	 */
++    public function appMergePay(array $bizContent): string
+     {
+         $apiName = 'alipay.trade.app.merge.pay';
+         return $this->aopSdkExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 小程序合单支付
+-     * @param $bizContent 请求参数的集合
+-     * @return mixed {"out_merge_no":"外部合并单号","merge_no":"合并交易号","order_detail_results":[]}
+-     * @see https://opendocs.alipay.com/open/0a0yaq
+-     */
+-    public function mergeCreate($bizContent)
++	/**
++	 * 小程序合单支付
++	 * @param array $bizContent 请求参数的集合
++	 * @return mixed {"out_merge_no":"外部合并单号","merge_no":"合并交易号","order_detail_results":[]}
++	 * @throws Exception
++	 * @see https://opendocs.alipay.com/open/0a0yaq
++	 */
++    public function mergeCreate(array $bizContent)
+     {
+         $apiName = 'alipay.trade.merge.create';
+         return $this->aopExecute($apiName, $bizContent);
+@@ -313,55 +336,59 @@
+ 
+     /**
+      * 线上资金授权冻结
+-     * @param $bizContent 请求参数的集合
++     * @param array $bizContent 请求参数的集合
+      * @return string SDK请求串
+      * @see https://opendocs.alipay.com/open/repo-0243e2
+      */
+-    public function preAuthFreeze($bizContent)
++    public function preAuthFreeze(array $bizContent): string
+     {
+         $apiName = 'alipay.fund.auth.order.app.freeze';
+         return $this->aopSdkExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 资金授权解冻
+-     * @param $bizContent 请求参数的集合
+-     * @return mixed
+-     */
+-    public function preAuthUnfreeze($bizContent)
++	/**
++	 * 资金授权解冻
++	 * @param array $bizContent 请求参数的集合
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function preAuthUnfreeze(array $bizContent)
+     {
+         $apiName = 'alipay.fund.auth.order.unfreeze';
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 资金授权撤销
+-     * @param $bizContent 请求参数的集合
+-     * @return mixed
+-     */
+-    public function preAuthCancel($bizContent)
++	/**
++	 * 资金授权撤销
++	 * @param array $bizContent 请求参数的集合
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function preAuthCancel(array $bizContent)
+     {
+         $apiName = 'alipay.fund.auth.operation.cancel';
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 资金授权操作查询接口
+-     * @param $bizContent 请求参数的集合
+-     * @return mixed
+-     */
+-    public function preAuthQuery($bizContent)
++	/**
++	 * 资金授权操作查询接口
++	 * @param array $bizContent 请求参数的集合
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function preAuthQuery(array $bizContent)
+     {
+         $apiName = 'alipay.fund.auth.operation.detail.query';
+         return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+-    /**
+-     * 资金转账页面支付接口
+-     * @param $bizContent 请求参数的集合
+-     * @return mixed
+-     */
+-    public function transPagePay($bizContent)
++	/**
++	 * 资金转账页面支付接口
++	 * @param array $bizContent 请求参数的集合
++	 * @return string
++	 * @throws Exception
++	 */
++    public function transPagePay(array $bizContent): string
+     {
+         $apiName = 'alipay.fund.trans.page.pay';
+         return $this->aopPageExecute($apiName, $bizContent);
+@@ -369,10 +396,10 @@
+ 
+     /**
+      * 现金红包无线支付接口
+-     * @param $bizContent 请求参数的集合
+-     * @return mixed
++     * @param array $bizContent 请求参数的集合
++     * @return string
+      */
+-    public function transAppPay($bizContent)
++    public function transAppPay(array $bizContent): string
+     {
+         $apiName = 'alipay.fund.trans.app.pay';
+         return $this->aopSdkExecute($apiName, $bizContent);
+--- a/src/AlipayTransferService.php
++++ b/src/AlipayTransferService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace Alipay;
++
++use Exception;
+ 
+ /**
+  * 支付宝转账服务类
+@@ -9,31 +11,38 @@
+ class AlipayTransferService extends AlipayService
+ {
+     /**
+-     * @param $config 支付宝配置信息
+-     */
+-    public function __construct($config)
++     * @param array $config 支付宝配置信息
++     */
++    public function __construct(array $config)
+     {
+         parent::__construct($config);
+     }
+ 
+     /**
+      * 转账到支付宝账号
+-     * @param $out_biz_no 商户转账唯一订单号
+-     * @param $amount 转账金额
+-     * @param $is_userid 收款方是否支付宝userid（0支付宝账号,1支付宝UID,2支付宝openid）
+-     * @param $payee_account 收款方账户
+-     * @param $payee_real_name 收款方姓名
+-     * @param $payer_show_name 付款方显示姓名
++     * @param string $out_biz_no 商户转账唯一订单号
++     * @param numeric $amount 转账金额
++     * @param int $is_userid 收款方是否支付宝userid（0支付宝账号,1支付宝UID,2支付宝openid）
++     * @param string $payee_account 收款方账户
++     * @param string $payee_real_name 收款方姓名
++     * @param string $payer_show_name 付款方显示姓名
+      * @return mixed {"out_biz_no":"商户订单号","order_id":"支付宝转账订单号","pay_fund_order_id":"支付宝支付资金流水号","status":"SUCCESS","trans_date":"订单支付时间"}
+-     */
+-    public function transferToAccount($out_biz_no, $amount, $is_userid, $payee_account, $payee_real_name, $payer_show_name)
++     * @throws Exception
++     */
++    public function transferToAccount(string $out_biz_no, $amount, int $is_userid, string $payee_account, string $payee_real_name, string $payer_show_name)
+     {
+         if ($this->isCertMode) {
+             $apiName = 'alipay.fund.trans.uni.transfer';
+-            switch($is_userid) {
+-                case 2:$payee_type = 'ALIPAY_OPEN_ID';break;
+-                case 1:$payee_type = 'ALIPAY_USER_ID';break;
+-                default:$payee_type = 'ALIPAY_LOGON_ID';break;
++            switch ($is_userid) {
++                case 2:
++                    $payee_type = 'ALIPAY_OPEN_ID';
++                    break;
++                case 1:
++                    $payee_type = 'ALIPAY_USER_ID';
++                    break;
++                default:
++                    $payee_type = 'ALIPAY_LOGON_ID';
++                    break;
+             }
+             $bizContent = [
+                 'out_biz_no' => $out_biz_no, //商户转账唯一订单号
+@@ -42,11 +51,12 @@
+                 'biz_scene' => 'DIRECT_TRANSFER',
+                 'order_title' => $payer_show_name, //付款方显示名称
+                 'payee_info' => array('identity' => $payee_account, 'identity_type' => $payee_type),
+-            ];
+-            if(!empty($payee_real_name))$bizContent['payee_info']['name'] = $payee_real_name; //收款方真实姓名
++                'business_params' => json_encode(['payer_show_name_use_alias' => 'true']),
++            ];
++            if (!empty($payee_real_name)) $bizContent['payee_info']['name'] = $payee_real_name; //收款方真实姓名
+         } else {
+             $apiName = 'alipay.fund.trans.toaccount.transfer';
+-            $payee_type = $is_userid?'ALIPAY_USERID':'ALIPAY_LOGONID';
++            $payee_type = $is_userid ? 'ALIPAY_USERID' : 'ALIPAY_LOGONID';
+             $bizContent = [
+                 'out_biz_no' => $out_biz_no, //商户转账唯一订单号
+                 'payee_type' => $payee_type, //收款方账户类型
+@@ -54,24 +64,25 @@
+                 'amount' => $amount, //转账金额
+                 'payer_show_name' => $payer_show_name, //付款方显示姓名
+             ];
+-            if(!empty($payee_real_name))$bizContent['payee_real_name'] = $payee_real_name; //收款方真实姓名
++            if (!empty($payee_real_name)) $bizContent['payee_real_name'] = $payee_real_name; //收款方真实姓名
+         }
+ 
+         $result = $this->aopExecute($apiName, $bizContent);
+-        if(isset($result['pay_date'])) $result['trans_date'] = $result['pay_date'];
++        if (isset($result['pay_date'])) $result['trans_date'] = $result['pay_date'];
+         return $result;
+     }
+ 
+     /**
+      * 转账到银行卡账户
+-     * @param $out_biz_no 商户转账唯一订单号
+-     * @param $amount 转账金额
+-     * @param $payee_account 收款方账户
+-     * @param $payee_real_name 收款方姓名
+-     * @param $payer_show_name 付款方显示姓名
++     * @param string $out_biz_no 商户转账唯一订单号
++     * @param numeric $amount 转账金额
++     * @param string $payee_account 收款方账户
++     * @param string $payee_real_name 收款方姓名
++     * @param string $payer_show_name 付款方显示姓名
+      * @return mixed {"out_biz_no":"商户订单号","order_id":"支付宝转账订单号","pay_fund_order_id":"支付宝支付资金流水号","status":"SUCCESS","trans_date":"订单支付时间"}
+-     */
+-    public function transferToBankCard($out_biz_no, $amount, $payee_account, $payee_real_name, $payer_show_name)
++     * @throws Exception
++     */
++    public function transferToBankCard(string $out_biz_no, $amount, string $payee_account, string $payee_real_name, string $payer_show_name)
+     {
+         $apiName = 'alipay.fund.trans.uni.transfer';
+         $bizContent = [
+@@ -94,23 +105,24 @@
+ 
+     /**
+      * 转账单据查询
+-     * @param $order_id 订单号
+-     * @param $type 订单号类型(0=支付宝转账单据号,1=支付宝支付资金流水号,2=商户转账唯一订单号)
+-     * @param $code 产品类型(0=转账到支付宝账户,1=转账到银行卡)
++     * @param string $order_id 订单号
++     * @param int $type 订单号类型(0=支付宝转账单据号,1=支付宝支付资金流水号,2=商户转账唯一订单号)
++     * @param int $code 产品类型(0=转账到支付宝账户,1=转账到银行卡)
+      * @return mixed {"order_id":"支付宝转账单据号","pay_fund_order_id":"支付宝支付资金流水号","out_biz_no":"商户转账唯一订单号","trans_amount":1,"status":"SUCCESS","pay_date":"支付时间","error_code":"PAYEE_CARD_INFO_ERROR","fail_reason":"收款方银行卡信息有误"}
+-     */
+-    public function query($order_id, $type=0, $code = 0)
++     * @throws Exception
++     */
++    public function query(string $order_id, int $type = 0, int $code = 0)
+     {
+         $apiName = 'alipay.fund.trans.common.query';
+         $bizContent = [];
+-        if($type==1){
++        if ($type == 1) {
+             $bizContent['pay_fund_order_id'] = $order_id;
+-        }elseif($type==2){
++        } elseif ($type == 2) {
+             $bizContent['out_biz_no'] = $order_id;
+-        }else{
++        } else {
+             $bizContent['order_id'] = $order_id;
+         }
+-        if($type==2){
++        if ($type == 2) {
+             $bizContent['product_code'] = $code == 1 ? 'TRANS_BANKCARD_NO_PWD' : 'TRANS_ACCOUNT_NO_PWD';
+             $bizContent['biz_scene'] = 'DIRECT_TRANSFER';
+         }
+@@ -119,19 +131,20 @@
+ 
+     /**
+      * 账户余额查询
+-     * @param $alipay_user_id 支付宝用户ID
+-     * @param $user_type 用户标识类型（0支付宝UID,1支付宝openid）
++     * @param string $alipay_user_id 支付宝用户ID
++     * @param int $user_type 用户标识类型（0支付宝UID,1支付宝openid）
+      * @return mixed {"available_amount":"账户可用余额","freeze_amount":"实时冻结余额"}
+-     */
+-    public function accountQuery($alipay_user_id, $user_type = 0)
++     * @throws Exception
++     */
++    public function accountQuery(?string $alipay_user_id = null, int $user_type = 0)
+     {
+         $apiName = 'alipay.fund.account.query';
+-        if($user_type == 1){
++        if ($user_type == 1) {
+             $bizContent = [
+                 'alipay_open_id' => $alipay_user_id,
+                 'account_type' => 'ACCTRANS_ACCOUNT',
+             ];
+-        }else{
++        } else {
+             $bizContent = [
+                 'alipay_user_id' => $alipay_user_id,
+                 'account_type' => 'ACCTRANS_ACCOUNT',
+@@ -141,15 +154,33 @@
+     }
+ 
+     /**
++     * 转账额度查询
++     * @param string $product_code 产品编码
++     * @param string $biz_scene 业务场景
++     * @return mixed
++     * @throws Exception
++     */
++    public function quotaQuery(string $product_code = 'TRANS_ACCOUNT_NO_PWD', string $biz_scene = 'DIRECT_TRANSFER')
++    {
++        $apiName = 'alipay.fund.quota.query';
++        $bizContent = [
++            'product_code' => $product_code,
++            'biz_scene' => $biz_scene,
++        ];
++        return $this->aopExecute($apiName, $bizContent);
++    }
++
++    /**
+      * 现金红包转账接口
+-     * @param $out_biz_no 商户转账唯一订单号
+-     * @param $amount 转账金额
+-     * @param $user_id 收款方账户
+-     * @param $order_title 转账业务的标题
+-     * @param $original_order_id 原支付宝业务单号
++     * @param string $out_biz_no 商户转账唯一订单号
++     * @param numeric $amount 转账金额
++     * @param string $user_id 收款方账户
++     * @param string $order_title 转账业务的标题
++     * @param null $original_order_id 原支付宝业务单号
+      * @return mixed {"out_biz_no":"商户订单号","order_id":"支付宝转账订单号","pay_fund_order_id":"支付宝支付资金流水号","status":"SUCCESS","trans_date":"订单支付时间"}
+-     */
+-    public function redPacketTansfer($out_biz_no, $amount, $user_id, $order_title, $original_order_id = null)
++     * @throws Exception
++     */
++    public function redPacketTansfer(string $out_biz_no, $amount, string $user_id, string $order_title, $original_order_id = null)
+     {
+         $apiName = 'alipay.fund.trans.uni.transfer';
+         $bizContent = [
+@@ -159,22 +190,22 @@
+             'biz_scene' => 'PERSONAL_COLLECTION',
+             'order_title' => $order_title,
+             'payee_info' => array('identity' => $user_id, 'identity_type' => 'ALIPAY_USER_ID'),
+-            'business_params' => json_encode(['sub_biz_scene'=>'REDPACKET'], JSON_UNESCAPED_UNICODE)
+-        ];
+-        if($original_order_id) $bizContent['original_order_id'] = $original_order_id;
+-    
+-        $result = $this->aopExecute($apiName, $bizContent);
+-        return $result;
++            'business_params' => json_encode(['sub_biz_scene' => 'REDPACKET'], JSON_UNESCAPED_UNICODE)
++        ];
++        if ($original_order_id) $bizContent['original_order_id'] = $original_order_id;
++
++        return $this->aopExecute($apiName, $bizContent);
+     }
+ 
+     /**
+      * 红包资金退回接口
+-     * @param $out_request_no 标识一次资金退回请求
+-     * @param $order_id 发红包时支付宝返回的支付宝订单号
+-     * @param $refund_amount 需要退款的金额
++     * @param string $out_request_no 标识一次资金退回请求
++     * @param string $order_id 发红包时支付宝返回的支付宝订单号
++     * @param numeric $refund_amount 需要退款的金额
+      * @return mixed {"refund_order_id":"退款的支付宝系统内部单据id","order_id":"发红包时支付宝返回的支付宝订单号","out_request_no":"标识一次资金退回请求","status":"SUCCESS","refund_amount":"本次退款的金额","refund_date":"时间"}
+-     */
+-    public function redPacketRefund($out_request_no, $order_id, $refund_amount)
++     * @throws Exception
++     */
++    public function redPacketRefund(string $out_request_no, string $order_id, $refund_amount)
+     {
+         $apiName = 'alipay.fund.trans.refund';
+         $bizContent = [
+@@ -182,9 +213,7 @@
+             'out_request_no' => $out_request_no,
+             'refund_amount' => $refund_amount,
+         ];
+-    
+-        $result = $this->aopExecute($apiName, $bizContent);
+-        return $result;
+-    }
+-
+-}
+\ No newline at end of file
++
++        return $this->aopExecute($apiName, $bizContent);
++    }
++}
+--- a/src/Aop/AlipayCertHelper.php
++++ b/src/Aop/AlipayCertHelper.php
+@@ -5,25 +5,25 @@
+ class AlipayCertHelper
+ {
+ 
+-    /**
+-     * 从证书中提取序列号
+-     * @param $cert
+-     * @return string
+-     */
+-    public static function getCertSN($certPath)
++	/**
++	 * 从证书中提取序列号
++	 * @param string $certPath 证书路径
++	 * @return string
++	 */
++    public static function getCertSN(string $certPath): string
+     {
+         $cert = file_get_contents($certPath);
++        $cert = str_replace("\n\n", "\n", $cert);
+         $ssl = openssl_x509_parse($cert);
+-        $SN = md5(self::array2string(array_reverse($ssl['issuer'])) . $ssl['serialNumber']);
+-        return $SN;
++	    return md5(self::array2string(array_reverse($ssl['issuer'])) . $ssl['serialNumber']);
+     }
+ 
+     /**
+      * 数组转字符串
+-     * @param $array
++     * @param array $array 数组
+      * @return string
+      */
+-    private static function array2string($array)
++    private static function array2string(array $array): string
+     {
+         $string = [];
+         if ($array && is_array($array)) {
+@@ -36,10 +36,10 @@
+ 
+     /**
+      * 提取根证书序列号
+-     * @param $cert  根证书
++     * @param string $certPath 根证书
+      * @return string|null
+      */
+-    public static function getRootCertSN($certPath)
++    public static function getRootCertSN(string $certPath): ?string
+     {
+         $cert = file_get_contents($certPath);
+         $array = explode("-----END CERTIFICATE-----", $cert);
+--- a/src/Aop/AlipayRequest.php
++++ b/src/Aop/AlipayRequest.php
+@@ -22,11 +22,16 @@
+ 
+     protected $apiMethodName;
+ 
++    protected $otherParams = [];
++
+     public function setOtherParams($params = [])
+     {
+-        foreach ($params as $key => $value) {
+-            $this->{$key} = $value;
+-        }
++        $this->otherParams = array_merge($this->otherParams, $params ?? []);
++    }
++
++    public function getOtherParams(): array
++    {
++        return $this->otherParams;
+     }
+ 
+     /**
+@@ -34,7 +39,7 @@
+      *
+      * @return string
+      */
+-    public static function getTimestamp()
++    public static function getTimestamp(): string
+     {
+         return date('Y-m-d H:i:s');
+     }
+@@ -44,12 +49,12 @@
+      *
+      * @return string
+      */
+-    public function getApiMethodName()
++    public function getApiMethodName(): string
+     {
+         return $this->apiMethodName;
+     }
+ 
+-    public function setApiMethodName($apiMethodName)
++    public function setApiMethodName($apiMethodName): AlipayRequest
+     {
+         $this->apiMethodName = $apiMethodName;
+ 
+@@ -61,7 +66,7 @@
+         return $this->notifyUrl;
+     }
+ 
+-    public function setNotifyUrl($notifyUrl)
++    public function setNotifyUrl($notifyUrl): AlipayRequest
+     {
+         $this->notifyUrl = $notifyUrl;
+ 
+@@ -73,7 +78,7 @@
+         return $this->returnUrl;
+     }
+ 
+-    public function setReturnUrl($returnUrl)
++    public function setReturnUrl($returnUrl): AlipayRequest
+     {
+         $this->returnUrl = $returnUrl;
+ 
+@@ -85,7 +90,7 @@
+         return $this->terminalType;
+     }
+ 
+-    public function setTerminalType($terminalType)
++    public function setTerminalType($terminalType): AlipayRequest
+     {
+         $this->terminalType = $terminalType;
+ 
+@@ -97,7 +102,7 @@
+         return $this->terminalInfo;
+     }
+ 
+-    public function setTerminalInfo($terminalInfo)
++    public function setTerminalInfo($terminalInfo): AlipayRequest
+     {
+         $this->terminalInfo = $terminalInfo;
+ 
+@@ -109,7 +114,7 @@
+         return $this->prodCode;
+     }
+ 
+-    public function setProdCode($prodCode)
++    public function setProdCode($prodCode): AlipayRequest
+     {
+         $this->prodCode = $prodCode;
+ 
+@@ -121,7 +126,7 @@
+         return $this->authToken;
+     }
+ 
+-    public function setAuthToken($authToken)
++    public function setAuthToken($authToken): AlipayRequest
+     {
+         $this->authToken = $authToken;
+ 
+@@ -133,7 +138,7 @@
+         return $this->appAuthToken;
+     }
+ 
+-    public function setAppAuthToken($appAuthToken)
++    public function setAppAuthToken($appAuthToken): AlipayRequest
+     {
+         $this->appAuthToken = $appAuthToken;
+ 
+@@ -148,7 +153,7 @@
+         return $this->bizContent;
+     }
+ 
+-    public function setBizContent($bizContent = [])
++    public function setBizContent($bizContent = []): AlipayRequest
+     {
+         $this->bizContent = $bizContent;
+ 
+--- a/src/Aop/AlipayResponse.php
++++ b/src/Aop/AlipayResponse.php
+@@ -49,11 +49,12 @@
+     protected $signData;
+ 
+ 
+-    /**
+-     * @param $raw     原始数据
+-     * @param $apiName 接口名称
+-     */
+-    public function __construct($raw, $apiName)
++	/**
++	 * @param string $raw 原始数据
++	 * @param string $apiName 接口名称
++	 * @throws \Exception
++	 */
++    public function __construct(string $raw, string $apiName)
+     {
+         $this->raw = $raw;
+         $this->parsed = json_decode($raw, true);
+@@ -64,12 +65,13 @@
+         $this->parseResponseData($apiName);
+     }
+ 
+-    /**
+-     * 获取原始响应的被签名数据，用于验证签名.
+-     *
+-     * @param $apiName
+-     */
+-    protected function parseResponseData($apiName)
++	/**
++	 * 获取原始响应的被签名数据，用于验证签名.
++	 *
++	 * @param string $apiName
++	 * @throws \Exception
++	 */
++    protected function parseResponseData(string $apiName)
+     {
+         $nodeName = str_replace(".", "_", $apiName) . self::RESPONSE_SUFFIX;
+         $nodeIndex = strpos($this->raw, $nodeName);
+@@ -102,7 +104,7 @@
+      *
+      * @return string
+      */
+-    public function getSignData()
++    public function getSignData(): ?string
+     {
+         return $this->signData;
+     }
+@@ -112,7 +114,7 @@
+      *
+      * @return string
+      */
+-    public function getSign()
++    public function getSign(): ?string
+     {
+         if (isset($this->parsed[static::SIGN_NODE])) {
+             return $this->parsed[static::SIGN_NODE];
+@@ -127,13 +129,13 @@
+      *
+      * @return mixed|object
+      */
+-    public function getData($assoc = true)
++    public function getData(bool $assoc = true)
+     {
+         if (!isset($this->parsed[$this->nodeName])){
+             return null;
+         }
+         $result = $this->parsed[$this->nodeName];
+-        if ($assoc == false) {
++        if (!$assoc) {
+             $result = (object) ($result);
+         }
+         return $result;
+@@ -144,7 +146,7 @@
+      *
+      * @return bool
+      */
+-    public function isSuccess()
++    public function isSuccess(): bool
+     {
+         if (isset($this->parsed[static::ERROR_NODE])) {
+             return false;
+@@ -161,7 +163,7 @@
+      *
+      * @return string
+      */
+-    public function getRaw()
++    public function getRaw(): string
+     {
+         return $this->raw;
+     }
+--- a/src/Aop/AlipayResponseException.php
++++ b/src/Aop/AlipayResponseException.php
+@@ -5,6 +5,8 @@
+ class AlipayResponseException extends \Exception
+ {
+     private $res = [];
++    private $retCode;
++    private $errCode;
+ 
+     /**
+      * @param array $res
+@@ -12,7 +14,9 @@
+     public function __construct($res)
+     {
+         $this->res = $res;
++        $this->retCode = $res['code'];
+         if (isset($res['sub_msg'])) {
++            $this->errCode = $res['sub_code'];
+             $message = '['.$res['sub_code'].']'.$res['sub_msg'];
+         } elseif (isset($res['msg'])) {
+             $message = '['.$res['code'].']'.$res['msg'];
+@@ -22,7 +26,17 @@
+         parent::__construct($message);
+     }
+ 
+-    public function getResponse()
++    public function getRetCode()
++    {
++        return $this->retCode;
++    }
++
++    public function getErrCode()
++    {
++        return $this->errCode;
++    }
++
++    public function getResponse(): array
+     {
+         return $this->res;
+     }
+--- a/src/Aop/AopClient.php
++++ b/src/Aop/AopClient.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace Alipay\Aop;
++
++use Exception;
+ 
+ class AopClient
+ {
+@@ -64,7 +66,7 @@
+      * @see https://docs.alipay.com/mini/introduce/aes
+      * @see https://docs.alipay.com/mini/introduce/getphonenumber
+      */
+-    public static function aesDecrypt($content, $aesKey)
++    public static function aesDecrypt(string $content, string $aesKey): string
+     {
+         return openssl_decrypt($content, 'aes-128-cbc', base64_decode($aesKey));
+     }
+@@ -77,20 +79,21 @@
+      *
+      * @return string
+      */
+-    public static function aesEncrypt($content, $aesKey)
++    public static function aesEncrypt(string $content, string $aesKey): string
+     {
+         $result = openssl_encrypt($content, 'aes-128-cbc', base64_decode($aesKey));
+         return base64_encode($result);
+     }
+ 
+-    /**
+-     * 发起请求并解析结果
+-     *
+-     * @param  AlipayRequest  $request
+-     * 
+-     * @return AlipayResponse
+-     */
+-    public function execute(AlipayRequest $request)
++	/**
++	 * 发起请求并解析结果
++	 *
++	 * @param AlipayRequest $request
++	 *
++	 * @return AlipayResponse
++	 * @throws Exception
++	 */
++    public function execute(AlipayRequest $request): AlipayResponse
+     {
+         $params = $this->build($request);
+ 
+@@ -104,27 +107,29 @@
+         return $response;
+     }
+ 
+-    /**
+-     * 生成用于调用收银台SDK的字符串
+-     *
+-     * @param  AlipayRequest  $request
+-     * @return string
+-     */
+-    public function sdkExecute(AlipayRequest $request)
++	/**
++	 * 生成用于调用收银台SDK的字符串
++	 *
++	 * @param AlipayRequest $request
++	 * @return string
++	 * @throws Exception
++	 */
++    public function sdkExecute(AlipayRequest $request): string
+     {
+         $params = $this->build($request);
+ 
+         return http_build_query($params);
+     }
+ 
+-    /**
+-     * 页面提交执行方法
+-     *
+-     * @param  AlipayRequest  $request
+-     * @param  $httpmethod
+-     * @return string
+-     */
+-    public function pageExecute(AlipayRequest $request, $httpmethod = 'POST')
++	/**
++	 * 页面提交执行方法
++	 *
++	 * @param AlipayRequest $request
++	 * @param string $httpmethod
++	 * @return string
++	 * @throws Exception
++	 */
++    public function pageExecute(AlipayRequest $request, string $httpmethod = 'POST'): string
+     {
+         $params = $this->build($request);
+ 
+@@ -141,7 +146,7 @@
+             if (curl_errno($ch) > 0) {
+                 $errmsg = curl_error($ch);
+                 curl_close($ch);
+-                throw new \Exception($errmsg, 0);
++                throw new Exception($errmsg, 0);
+             }
+             $httpStatusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+             if ($httpStatusCode == 301 || $httpStatusCode == 302) {
+@@ -152,14 +157,13 @@
+                 curl_close($ch);
+                 $response = mb_convert_encoding($response, 'UTF-8', 'GB2312');
+                 if(preg_match('/<div\s+class="Todo">([^<]+)<\/div>/i', $response, $matchers)) {
+-                    throw new \Exception($matchers[1]);
++                    throw new Exception($matchers[1]);
+                 }
+             }
+-            throw new \Exception('返回数据解析失败', $httpStatusCode);
++            throw new Exception('返回数据解析失败', $httpStatusCode);
+ 
+         } elseif (strtoupper($httpmethod) == 'GET') {
+-            $requestUrl = $this->gatewayUrl.'?'.http_build_query($params);
+-            return $requestUrl;
++	        return $this->gatewayUrl.'?'.http_build_query($params);
+         } else {
+             $url = $this->gatewayUrl.'?charset='.$this->charset;
+ 
+@@ -177,15 +181,16 @@
+             return $html;
+         }
+     }
+-    
+-    /**
+-     * 拼接请求参数并签名.
+-     *
+-     * @param  AlipayRequest  $request
+-     * 
+-     * @return array
+-     */
+-    protected function build(AlipayRequest $request)
++
++	/**
++	 * 拼接请求参数并签名.
++	 *
++	 * @param AlipayRequest $request
++	 *
++	 * @return array
++	 * @throws Exception
++	 */
++    protected function build(AlipayRequest $request): array
+     {
+         // 组装系统参数
+         $sysParams = [];
+@@ -213,7 +218,7 @@
+             $sysParams["alipay_root_cert_sn"] = $this->alipayRootCertSN;
+         }
+         $sysParams['biz_content'] = $request->getBizContent();
+-        $sysParams = array_merge($sysParams, get_object_vars($request));
++        $sysParams = array_merge($sysParams, $request->getOtherParams());
+         // 转换可能是数组的参数
+         foreach ($sysParams as $key => &$param) {
+             if (is_array($param) || is_object($param) && !$param instanceof \CURLFile) {
+@@ -230,11 +235,12 @@
+         return $sysParams;
+     }
+ 
+-    /**
+-     * 验证返回内容签名
+-     *
+-     * @param $response
+-     */
++	/**
++	 * 验证返回内容签名
++	 *
++	 * @param AlipayResponse $response
++	 * @throws Exception
++	 */
+     protected function verifyResponse(AlipayResponse $response)
+     {
+         $signData = $response->getSignData();
+@@ -249,7 +255,7 @@
+                 $checkResult = $this->rsaPubilcVerify($signData, $sign, $this->signType);
+             }
+             if (!$checkResult) {
+-                throw new \Exception('对返回数据使用支付宝公钥验签失败');
++                throw new Exception('对返回数据使用支付宝公钥验签失败');
+             }
+         }
+     }
+@@ -261,7 +267,7 @@
+      * 
+      * @return bool
+      */
+-    public function verify($params)
++    public function verify($params): bool
+     {
+         if (!$params || !isset($params['sign'])) {
+             return false;
+@@ -272,7 +278,7 @@
+         $data = $this->getSignContent($params);
+         try {
+             return $this->rsaPubilcVerify($data, $sign, $this->signType);
+-        } catch (\Exception $ex) {
++        } catch (Exception $ex) {
+             return false;
+         }
+     }
+@@ -284,7 +290,7 @@
+      * 
+      * @return bool
+      */
+-    public function verifyV2($params)
++    public function verifyV2($params): bool
+     {
+         if (!$params || !isset($params['sign'])) {
+             return false;
+@@ -294,34 +300,35 @@
+         $data = $this->getSignContent($params);
+         try {
+             return $this->rsaPubilcVerify($data, $sign, $this->signType);
+-        } catch (\Exception $ex) {
++        } catch (Exception $ex) {
+             return false;
+         }
+     }
+ 
+-    /**
+-     * 将参数数组签名（计算 Sign 值）.
+-     *
+-     * @param $params
+-     * @param $signType
++	/**
++	 * 将参数数组签名（计算 Sign 值）.
++	 *
++	 * @param array $params 参数数组
++	 * @param string $signType 签名类型
++	 *
++	 * @return string
++	 * @throws Exception
++	 */
++    protected function generateSign(array $params, string $signType = 'RSA2'): string
++    {
++        $data = $this->getSignContent($params);
++
++        return $this->rsaPrivateSign($data, $signType);
++    }
++
++    /**
++     * 将数组转换为待签名数据.
++     *
++     * @param array $params 参数数组
+      *
+      * @return string
+      */
+-    protected function generateSign($params, $signType = 'RSA2')
+-    {
+-        $data = $this->getSignContent($params);
+-
+-        return $this->rsaPrivateSign($data, $signType);
+-    }
+-
+-    /**
+-     * 将数组转换为待签名数据.
+-     *
+-     * @param array $params
+-     *
+-     * @return string
+-     */
+-    protected function getSignContent($params)
++    protected function getSignContent(array $params): string
+     {
+         ksort($params);
+         unset($params['sign']);
+@@ -331,22 +338,21 @@
+             if($v instanceof \CURLFile || $this->isEmpty($v) || substr($v, 0, 1) == '@') continue;
+             $stringToBeSigned .= "&{$k}={$v}";
+         }
+-        $stringToBeSigned = substr($stringToBeSigned, 1);
+-
+-        return $stringToBeSigned;
+-    }
+-
+-    /**
+-     * 使用应用私钥签名
+-     *
+-     * @param $data
+-     * @param $signType
+-     *
+-     * @return string
+-     *
+-     * @see https://docs.open.alipay.com/291/106118
+-     */
+-    protected function rsaPrivateSign($data, $signType = 'RSA2')
++	    return substr($stringToBeSigned, 1);
++    }
++
++	/**
++	 * 使用应用私钥签名
++	 *
++	 * @param string $data 待签名数据
++	 * @param string $signType 签名类型
++	 *
++	 * @return string
++	 *
++	 * @throws Exception
++	 * @see https://docs.open.alipay.com/291/106118
++	 */
++    protected function rsaPrivateSign(string $data, string $signType = 'RSA2'): string
+     {
+         if ($this->isEmpty($this->rsaPrivateKeyFilePath)) {
+             $priKey = "-----BEGIN RSA PRIVATE KEY-----\n" .
+@@ -357,7 +363,7 @@
+         }
+         $res = openssl_get_privatekey($priKey);
+         if(!$res){
+-            throw new \Exception('签名失败，应用私钥不正确');
++            throw new Exception('签名失败，应用私钥不正确');
+         }
+ 
+         if($signType == 'RSA2'){
+@@ -371,14 +377,16 @@
+         return base64_encode($sign);
+     }
+ 
+-    /**
+-     * 使用支付宝公钥验签
+-     *
+-     * @param $data
+-     * 
+-     * @return bool
+-     */
+-    protected function rsaPubilcVerify($data, $sign, $signType = 'RSA2')
++	/**
++	 * 使用支付宝公钥验签
++	 *
++	 * @param string $data 待验签数据
++	 * @param string $sign 签名
++	 * @param string $signType
++	 * @return bool
++	 * @throws Exception
++	 */
++    public function rsaPubilcVerify(string $data, string $sign, string $signType = 'RSA2'): bool
+     {
+         if ($this->isEmpty($this->rsaPublicKeyFilePath)) {
+             $pubKey = "-----BEGIN PUBLIC KEY-----\n" .
+@@ -389,7 +397,7 @@
+         }
+         $res = openssl_get_publickey($pubKey);
+         if(!$res){
+-            throw new \Exception('验签失败，支付宝公钥不正确');
++            throw new Exception('验签失败，支付宝公钥不正确');
+         }
+ 
+         if($signType == 'RSA2'){
+@@ -410,20 +418,20 @@
+      *
+      * @return bool
+      */
+-    protected function isEmpty($value)
++    protected function isEmpty(?string $value): bool
+     {
+         return $value === null || trim($value) === '';
+     }
+ 
+-    /**
+-     * 发起 GET/POST 请求.
+-     *
+-     * @param $url
+-     * @param $params
+-     *
+-     * @return bool|string
+-     */
+-    protected function curl($url, $postFields = null)
++	/**
++	 * 发起 GET/POST 请求.
++	 *
++	 * @param string $url 请求地址
++	 * @param array|null $postFields POST 数据
++	 * @return bool|string
++	 * @throws Exception
++	 */
++    protected function curl(string $url, array $postFields = null)
+     {
+         $ch = curl_init();
+ 
+@@ -459,13 +467,13 @@
+         if (curl_errno($ch) > 0) {
+             $errmsg = curl_error($ch);
+             curl_close($ch);
+-            throw new \Exception($errmsg, 0);
++            throw new Exception($errmsg, 0);
+         }
+ 
+         $httpStatusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+         if ($httpStatusCode != 200) {
+             curl_close($ch);
+-            throw new \Exception($response, $httpStatusCode);
++            throw new Exception($response, $httpStatusCode);
+         }
+ 
+         curl_close($ch);

@@ -71,6 +71,8 @@ final class Auth
         if (!preg_match('/^\d{6}$/D', $code) || !\lib\TOTP::create($this->conf['totp_secret'])->verify($code, $this->now(), 1)) throw new ApiError('动态口令错误', 401);
 
         if ($this->db->query('DELETE FROM pre_app_challenge WHERE id=? AND attempts<=5', [$id])->rowCount()!==1) throw new ApiError('验证已使用，请重新登录', 401);
+        require_once dirname(__DIR__).'/Security/TotpReplay.php';
+        \lib\Security\TotpReplay::consume($this->db,$this->stamp(),$code,$this->now());
         $info=json_decode($row['data'], true);
         return $this->issue($info['username'], $info['device']);
     }

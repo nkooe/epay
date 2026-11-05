@@ -7,6 +7,12 @@ if(!checkRefererHost())exit('{"code":403}');
 
 @header('Content-Type: application/json; charset=UTF-8');
 
+if(in_array($act,['recharge'],true)){
+    try{\lib\Security\AdminFinancial::requireVerified(\lib\AdminApp\Runtime::legacyStore($DB),$conf,$clientip,$_POST['paypwd']??null);}
+    catch(\lib\AdminApp\ApiError $e){exit(json_encode(['code'=>$e->getCode()===-9?-9:-1,'msg'=>$e->getMessage()]));}
+}
+
+
 switch($act){
 case 'userList':
 	$usergroup = [0=>'默认用户组'];
@@ -487,7 +493,6 @@ case 'editUser':
 		'settle_id' => intval($_POST['settle_id']),
 		'account' => trim($_POST['account']),
 		'username' => trim($_POST['username']),
-		'money' => trim($_POST['money']),
 		'url' => trim($_POST['url']),
 		'email' => trim($_POST['email']),
 		'qq' => trim($_POST['qq']),
@@ -506,7 +511,6 @@ case 'editUser':
 		'status' => intval($_POST['status']),
 		'open_code' => intval($_POST['open_code']),
 		'remain_money' => !empty($_POST['remain_money']) ? trim($_POST['remain_money']) : null,
-		'deposit' => !empty($_POST['deposit']) ? trim($_POST['deposit']) : null,
 	];
 
 	if($DB->update('user', $data, ['uid'=>$uid])!==false){
@@ -555,14 +559,8 @@ case 'editUserChannelInfo':
 	}
 break;
 case 'delUser':
-	$uid=intval($_GET['uid']);
-	if($DB->exec("DELETE FROM pre_user WHERE uid='$uid'")){
-		$DB->exec("DELETE FROM pre_merchant_channel_policy WHERE uid='$uid'");
-		$DB->exec("DELETE FROM pre_subchannel WHERE uid='$uid'");
-		exit('{"code":0}');
-	}else{
-		exit('{"code":-1,"msg":"删除商户失败！'.$DB->error().'"}');
-	}
+    try{$r=(new \lib\AdminApp\Operations(\lib\AdminApp\Runtime::legacyStore($DB),$clientip))->deleteEmptyMerchant((int)($_GET['uid']??0));exit(json_encode(['code'=>0,'msg'=>$r['message']]));}
+    catch(\lib\AdminApp\ApiError $e){exit(json_encode(['code'=>-1,'msg'=>$e->getMessage()]));}
 break;
 case 'setUser':
 	$uid=intval($_POST['uid']);
@@ -627,17 +625,15 @@ break;
 case 'recharge':
 	$uid=intval($_POST['uid']);
 	$do=$_POST['actdo'];
-	$rmb=floatval($_POST['rmb']);
-	$row=$DB->getRow("select uid,money from pre_user where uid='$uid' limit 1");
-	if(!$row)
-		exit('{"code":-1,"msg":"当前用户不存在！"}');
-
-	if($do==0){
-		changeUserMoney($uid, $rmb, true, '后台加款');
-	}else{
-		changeUserMoney($uid, $rmb, false, '后台扣款');
-	}
-	exit('{"code":0,"msg":"操作成功"}');
+    try{
+        $rmb=\lib\Finance\Ledger::amount($_POST['rmb']??null);
+        $store=\lib\AdminApp\Runtime::legacyStore($DB);
+        \lib\Finance\Ledger::transaction($store,function()use($store,$uid,$rmb,$do,$clientip){
+            \lib\Finance\Ledger::change($store,$uid,$rmb,$do==0,$do==0?'后台加款':'后台扣款');
+            $store->audit('余额调整',$clientip,['uid'=>$uid,'money'=>$rmb,'direction'=>$do==0?'add':'subtract','entry'=>'web']);
+        });
+        exit('{"code":0,"msg":"操作成功"}');
+    }catch(\DomainException $e){exit(json_encode(['code'=>-1,'msg'=>$e->getMessage()]));}
 break;
 
 case 'addDomain':

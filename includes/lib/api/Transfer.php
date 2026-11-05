@@ -35,7 +35,7 @@ class Transfer
             $desc = null;
         }
 
-        $result = \lib\Transfer::add($pid, $type, $out_biz_no, $account, $name, $money, $title, $desc, $queryArr['bookid']);
+        $result = \lib\Transfer::add($pid, $type, $out_biz_no, $account, $name, $money, $title, $desc, $queryArr['bookid']??null, null, true);
         return $result;
     }
 
@@ -81,7 +81,7 @@ class Transfer
             $errmsg = ($order['result']?$order['result']:'原因未知');
             $result = ['code'=>0, 'msg'=>'转账失败：'.($order['result']?$order['result']:'原因未知'), 'biz_no'=>$order['biz_no'], 'out_biz_no'=>$order['out_biz_no'], 'status'=>2, 'amount'=>$order['money'], 'cost_money'=>$order['money'], 'paydate'=>$order['paytime'], 'remark'=>$order['desc'], 'errmsg'=>$errmsg];
         }else{
-            $result = \lib\Transfer::status($order['biz_no']);
+            $result = \lib\Transfer::status($order['biz_no'], $pid);
             $result['biz_no'] = $order['biz_no'];
             $result['out_biz_no'] = $order['out_biz_no'];
             $result['remark'] = $order['desc'];
@@ -111,7 +111,7 @@ class Transfer
         }
         if(!$order) throw new Exception('当前转账订单不存在');
 
-        $result = \lib\Transfer::proof($order['biz_no']);
+        $result = \lib\Transfer::proof($order['biz_no'], $pid);
 
         return $result;
     }

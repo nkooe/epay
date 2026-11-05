@@ -4,9 +4,10 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInita012aca486d6abc048243f4697c6ac40
+class ComposerStaticInitEpayRuntimeDependencies
 {
     public static $files = array (
+        '3109cb1a231dcd04bee1f9f620d46975' => __DIR__ . '/..' . '/paragonie/sodium_compat/autoload.php',
         '382a2ac8aeff4e600f8a2b1256c841e2' => __DIR__ . '/..' . '/lpilp/guomi/src/overwrite.php',
     );
 
@@ -22,6 +23,10 @@ class ComposerStaticInita012aca486d6abc048243f4697c6ac40
         'Q' => 
         array (
             'QQPay\\' => 6,
+        ),
+        'P' => 
+        array (
+            'ParagonIE\\Sodium\\' => 17,
         ),
         'M' => 
         array (
@@ -50,13 +55,17 @@ class ComposerStaticInita012aca486d6abc048243f4697c6ac40
         array (
             0 => __DIR__ . '/..' . '/cccyun/qqpay-sdk/src',
         ),
+        'ParagonIE\\Sodium\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/paragonie/sodium_compat/namespaced',
+        ),
         'Mdanter\\Ecc\\' => 
         array (
-            0 => __DIR__ . '/..' . '/mdanter/ecc/src',
+            0 => __DIR__ . '/..' . '/paragonie/ecc/src',
         ),
         'FG\\' => 
         array (
-            0 => __DIR__ . '/..' . '/fgrosse/phpasn1/lib',
+            0 => __DIR__ . '/..' . '/genkgo/php-asn1/lib',
         ),
         'Alipay\\' => 
         array (
@@ -71,9 +80,9 @@ class ComposerStaticInita012aca486d6abc048243f4697c6ac40
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInita012aca486d6abc048243f4697c6ac40::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInita012aca486d6abc048243f4697c6ac40::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInita012aca486d6abc048243f4697c6ac40::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInitEpayRuntimeDependencies::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInitEpayRuntimeDependencies::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInitEpayRuntimeDependencies::$classMap;
 
         }, null, ClassLoader::class);
     }

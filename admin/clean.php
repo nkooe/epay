@@ -11,6 +11,8 @@ if($islogin==1){}else exit("<script language='javascript'>window.location.href='
     <div class="col-xs-12 col-sm-10 col-lg-8 center-block" style="float: none;">
 <?php
 $mod=isset($_GET['mod'])?$_GET['mod']:null;
+if(in_array($mod,['cleanorder','cleanorderi','cleansettle','cleansettlei','cleanrecord','cleanrecordi','cleantransferi','cleanpsorderi'],true))showmsg('资金与订单历史用于防止重复付款和账务核对，在线清理已停用；请使用离线归档流程。',3);
+if($mod&&!checkRefererHost())showmsg('请求来源无效',3);
 if($mod=='cleancache'){
 $CACHE->clear();
 if(function_exists("opcache_reset"))@opcache_reset();

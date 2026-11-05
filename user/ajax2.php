@@ -3,7 +3,7 @@ include("../includes/common.php");
 if($islogin2==1){}else exit('{"code":-3,"msg":"No Login"}');
 $act=isset($_GET['act'])?daddslashes($_GET['act']):null;
 
-if(!checkRefererHost() && !checkwechat())exit('{"code":403}');
+if(!checkRefererHost())exit('{"code":403}');
 
 @header('Content-Type: application/json; charset=UTF-8');
 
@@ -1141,7 +1141,7 @@ case 'settleList':
 	$list = $DB->getAll("SELECT * FROM pre_settle WHERE{$sql} order by id desc limit $offset,$limit");
 	$list2 = [];
 	foreach($list as $row){
-		if($row['type'] == 2 && $row['status'] == 1 && !empty($row['transfer_ext']) && time() - strtotime($row['transfer_date']) <= 86400){
+		if($row['type'] == 2 && in_array((int)$row['status'],[0,1],true) && !empty($row['transfer_ext']) && time() - strtotime($row['transfer_date']?:$row['addtime']) <= 86400){
 			if(substr($row['ext'], 0, 4) == 'http'){
 				$row['jumpurl'] = $row['ext'];
 			}else{
@@ -1267,12 +1267,12 @@ case 'transfer_result':
 break;
 case 'transfer_query':
 	$biz_no=trim($_GET['biz_no']);
-	$result = \lib\Transfer::status($biz_no);
+	$result = \lib\Transfer::status($biz_no, $uid);
 	exit(json_encode($result));
 break;
 case 'transfer_proof':
 	$biz_no=trim($_POST['biz_no']);
-	$result = \lib\Transfer::proof($biz_no);
+	$result = \lib\Transfer::proof($biz_no, $uid);
 	exit(json_encode($result));
 break;
 
@@ -1326,10 +1326,10 @@ case 'deposit_recharge':
 	if($money<=0 || !is_numeric($money) || !preg_match('/^[0-9.]+$/', $money))exit('{"code":-1,"msg":"金额不合法"}');
 	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"页面校验失败，请刷新重试"}');
 	if($typeid==0){
-		if($money>$userrow['money'])exit('{"code":-1,"msg":"余额不足，请选择其他方式支付"}');
-		changeUserMoney($uid, $money, false, '充值保证金');
-		$deposit = $userrow['deposit'] > 0 ? round($userrow['deposit'] + $money, 2) : $money;
-		$DB->exec("UPDATE pre_user SET deposit=:deposit WHERE uid=:uid", [':deposit'=>$deposit, ':uid'=>$uid]);
+		try{
+			(new \lib\Merchant\Deposit(\lib\AdminApp\Runtime::legacyStore($DB)))->move($uid,$money);
+		}catch(\DomainException $e){exit(json_encode(['code'=>-1,'msg'=>$e->getMessage()]));}
+		catch(\Throwable $e){exit('{"code":-1,"msg":"保证金处理失败，请稍后重试"}');}
 		unset($_SESSION['csrf_token']);
 		$result = ['code'=>1, 'msg'=>'成功充值'.$money.'元保证金！'];
 		exit(json_encode($result));
@@ -1352,17 +1352,10 @@ case 'deposit_withdraw':
 	$money=trim(daddslashes($_POST['money']));
 	if($money<=0 || !is_numeric($money) || !preg_match('/^[0-9.]+$/', $money))exit('{"code":-1,"msg":"金额不合法"}');
 	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"页面校验失败，请刷新重试"}');
-	if($money>$userrow['deposit'])exit('{"code":-1,"msg":"保证金不足"}');
-	if($conf['user_deposit_day']>0){
-		$days = intval($conf['user_deposit_day']);
-		$orders = $DB->getColumn("SELECT count(*) FROM pre_order WHERE uid='{$uid}' AND status=1 AND addtime>DATE_SUB(NOW(),INTERVAL {$days} DAY)");
-		if($orders>0)exit('{"code":-1,"msg":"你在最近'.$days.'天内有订单，无法提取保证金"}');
-		$complains = $DB->getColumn("SELECT count(*) FROM pre_complain WHERE uid='{$uid}' AND addtime>DATE_SUB(NOW(),INTERVAL {$days} DAY)");
-		if($complains>0)exit('{"code":-1,"msg":"你在最近'.$days.'天内有投诉记录，无法提取保证金"}');
-	}
-	$deposit = round($userrow['deposit'] - $money, 2);
-	$DB->exec("UPDATE pre_user SET deposit=:deposit WHERE uid=:uid", [':deposit'=>$deposit, ':uid'=>$uid]);
-	changeUserMoney($uid, $money, true, '提取保证金');
+	try{
+		(new \lib\Merchant\Deposit(\lib\AdminApp\Runtime::legacyStore($DB)))->move($uid,$money,true,$conf['user_deposit_day']??0);
+	}catch(\DomainException $e){exit(json_encode(['code'=>-1,'msg'=>$e->getMessage()]));}
+	catch(\Throwable $e){exit('{"code":-1,"msg":"保证金处理失败，请稍后重试"}');}
 	unset($_SESSION['csrf_token']);
 	$result = ['code'=>0, 'msg'=>'成功提取'.$money.'元保证金！'];
 	exit(json_encode($result));

@@ -3,38 +3,16 @@ namespace lib;
 
 class Order
 {
-    public static function freeze($trade_no){
+    public static function freeze($trade_no){return self::freezeState($trade_no,true);}
+    public static function unfreeze($trade_no){return self::freezeState($trade_no,false);}
+    private static function freezeState($trade_no,$freeze)
+    {
         global $DB;
-        $row = $DB->find('order', 'uid,getmoney,status,channel', ['trade_no'=>$trade_no]);
-        if(!$row)
-            return ['code'=>-1, 'msg'=>'当前订单不存在！'];
-        if($row['status']!=1)
-            return ['code'=>-1, 'msg'=>'只支持冻结已支付状态的订单'];
-        $channel = \lib\Channel::get($row['channel']);
-        if($channel['mode']==1)
-            return ['code'=>-1, 'msg'=>'当前支付通道为商户直清，不支持冻结'];
-        if($row['getmoney']>0){
-            changeUserMoney($row['uid'], $row['getmoney'], false, '订单冻结', $trade_no);
-            $DB->update('order', ['status'=>3], ['trade_no'=>$trade_no]);
-        }
-        return ['code'=>0, 'msg'=>'已成功从UID:'.$row['uid'].'冻结'.$row['getmoney'].'元余额'];
-    }
-
-    public static function unfreeze($trade_no){
-        global $DB;
-        $row = $DB->find('order', 'uid,getmoney,status,channel', ['trade_no'=>$trade_no]);
-        if(!$row)
-            return ['code'=>-1, 'msg'=>'当前订单不存在！'];
-        if($row['status']!=3)
-            return ['code'=>-1, 'msg'=>'只支持解冻已冻结状态的订单'];
-        $channel = \lib\Channel::get($row['channel']);
-        if($channel['mode']==1)
-            return ['code'=>-1, 'msg'=>'当前支付通道为商户直清，不支持冻结'];
-        if($row['getmoney']>0){
-            changeUserMoney($row['uid'], $row['getmoney'], true, '订单解冻', $trade_no);
-            $DB->update('order', ['status'=>1], ['trade_no'=>$trade_no]);
-        }
-        return ['code'=>0, 'msg'=>'已成功为UID:'.$row['uid'].'恢复'.$row['getmoney'].'元余额'];
+        try{
+            $store=\lib\AdminApp\Runtime::legacyStore($DB);
+            $r=(new \lib\AdminApp\Operations($store,$_SERVER['REMOTE_ADDR']??'127.0.0.1'))->freezeOrder($trade_no,$freeze);
+            return ['code'=>0,'msg'=>$r['message']];
+        }catch(\lib\AdminApp\ApiError $e){return ['code'=>-1,'msg'=>$e->getMessage()];}
     }
 
     public static function refund_info($trade_no, $api = 0, $uid = 0){
@@ -62,12 +40,12 @@ class Order
         return ['code'=>0, 'money'=>$money];
     }
 
-    public static function refund($refund_no, $trade_no, $money, $api = 0, $uid = 0, $out_refund_no = null){
+    public static function refund($refund_no, $trade_no, $money, $api = 0, $uid = 0, $out_refund_no = null, $merchantApi = false){
         global $DB;
         try {
             $store = \lib\AdminApp\Runtime::legacyStore($DB);
             $result = (new \lib\AdminApp\Operations($store, $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'))
-                ->refundOrder($refund_no, $trade_no, $money, (int)$api === 1, $uid, $out_refund_no);
+                ->refundOrder($refund_no, $trade_no, $money, (int)$api === 1, $uid, $out_refund_no, $merchantApi);
             return ['code'=>0] + $result;
         } catch (\lib\AdminApp\ApiError $e) {
             return ['code'=>-1, 'msg'=>$e->getMessage()];

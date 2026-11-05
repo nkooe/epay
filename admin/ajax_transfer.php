@@ -7,6 +7,12 @@ if(!checkRefererHost())exit('{"code":403}');
 
 @header('Content-Type: application/json; charset=UTF-8');
 
+if(in_array($act,['transfer_cancel', 'setTransferStatus', 'refundTransfer', 'operation', 'batch_submit', 'delTransfer'],true)){
+    try{\lib\Security\AdminFinancial::requireVerified(\lib\AdminApp\Runtime::legacyStore($DB),$conf,$clientip,$_POST['paypwd']??null);}
+    catch(\lib\AdminApp\ApiError $e){exit(json_encode(['code'=>$e->getCode()===-9?-9:-1,'msg'=>$e->getMessage()]));}
+}
+
+
 switch($act){
 case 'transferList':
 	$sql=" 1=1";
@@ -158,71 +164,36 @@ case 'balance_query':
 	exit(json_encode($result));
 break;
 case 'setTransferStatus':
-	$biz_no=$_POST['biz_no'];
-	$order = $DB->find('transfer', '*', ['biz_no' => $biz_no]);
-	if(!$order) exit('{"code":-1,"msg":"付款记录不存在！"}');
-	$status=intval($_POST['status']);
-	$reason = trim($_POST['reason']);
-	$data = ['status'=>$status];
-	if(!empty($reason)) $data['result'] = $reason;
-	if($status == 1 && empty($order['paytime'])) $data['paytime'] = date('Y-m-d H:i:s');
-	if($DB->update('transfer', $data, ['biz_no' => $biz_no])){
-		if($status == 2 && ($order['status'] == 3 || $order['status'] == 0) && $order['uid'] > 0){
-			changeUserMoney($order['uid'], $order['costmoney'], true, '代付退回', $biz_no);
-		}
-		exit('{"code":0,"msg":"操作成功"}');
-	}
-	else exit('{"code":-1,"msg":"修改失败['.$DB->error().']"}');
+case 'refundTransfer':
+    $status=$act==='refundTransfer'?2:(int)($_POST['status']??0);
+    if(!in_array($status,[1,2],true))exit('{"code":-1,"msg":"仅支持登记明确成功或失败，不能重置已提交付款"}');
+    try{
+        $ops=new \lib\AdminApp\Operations(\lib\AdminApp\Runtime::legacyStore($DB),$clientip);
+        $r=$ops->reviewTransferState(trim((string)($_POST['biz_no']??'')),$status===1,trim((string)($_POST['reason']??'后台人工核实')));
+        exit(json_encode(['code'=>0,'msg'=>$r['message']]));
+    }catch(\lib\AdminApp\ApiError $e){exit(json_encode(['code'=>-1,'msg'=>$e->getMessage()]));}
 break;
 case 'delTransfer':
-	$biz_no=$_POST['biz_no'];
-	if($DB->delete('transfer', ['biz_no' => $biz_no])!==false)exit('{"code":0,"msg":"操作成功"}');
-	else exit('{"code":-1,"msg":"删除失败['.$DB->error().']"}');
-break;
-case 'refundTransfer':
-	$biz_no=$_POST['biz_no'];
-	$order = $DB->find('transfer', '*', ['biz_no' => $biz_no]);
-    if(!$order) exit('{"code":-1,"msg":"付款记录不存在！"}');
-	if($DB->exec("UPDATE pre_transfer SET status=2 WHERE biz_no=:biz_no", [':biz_no'=>$biz_no])){
-		if($order['uid'] > 0){
-			changeUserMoney($order['uid'], $order['costmoney'], true, '代付退回', $biz_no);
-		}
-	}
-	exit('{"code":0,"msg":"已成功将¥'.$order['costmoney'].'退给商户'.$order['uid'].'"}');
+    exit('{"code":-1,"msg":"付款记录用于账务核对，不能删除资金历史"}');
 break;
 case 'transfer_proof':
 	$biz_no=trim($_POST['biz_no']);
 	$result = \lib\Transfer::proof($biz_no);
 	exit(json_encode($result));
 break;
-case 'operation': //批量操作订单
-	$status=is_numeric($_POST['status'])?intval($_POST['status']):exit('{"code":-1,"msg":"请选择操作"}');
-	$checkbox=$_POST['checkbox'];
-	$i=0;
-	foreach($checkbox as $biz_no){
-		if($status==3){
-			$DB->delete('transfer', ['biz_no' => $biz_no]);
-			continue;
-		}
-		$order = $DB->find('transfer', '*', ['biz_no' => $biz_no]);
-		if($order){
-			$data = ['status'=>$status];
-			if($status == 1 && empty($order['paytime'])) $data['paytime'] = date('Y-m-d H:i:s');
-			if($DB->update('transfer', $data, ['biz_no' => $biz_no])){
-				if($status == 2 && ($order['status'] == 3 || $order['status'] == 0) && $order['uid'] > 0){
-					changeUserMoney($order['uid'], $order['costmoney'], true, '代付退回', $biz_no);
-				}
-				$i++;
-			}
-		}
-	}
-	exit('{"code":0,"msg":"成功改变'.$i.'条订单状态"}');
+case 'operation':
+    $status=(int)($_POST['status']??0);
+    if(!in_array($status,[1,2],true))exit('{"code":-1,"msg":"不能删除付款历史或重置付款状态"}');
+    $count=0;
+    try{
+        $ops=new \lib\AdminApp\Operations(\lib\AdminApp\Runtime::legacyStore($DB),$clientip);
+        foreach((array)($_POST['checkbox']??[]) as $biz){$ops->reviewTransferState((string)$biz,$status===1,'后台批量核实');$count++;}
+        exit(json_encode(['code'=>0,'msg'=>'已处理'.$count.'条付款记录']));
+    }catch(\lib\AdminApp\ApiError $e){exit(json_encode(['code'=>-1,'msg'=>'已处理'.$count.'条；'.$e->getMessage()]));}
 break;
-
 case 'batch_submit':
 	$type = isset($_POST['type'])?$_POST['type']:'alipay';
 	$out_biz_no = date("YmdHis").rand(11111,99999);
-	if(!isset($_POST['paypwd']) || $_POST['paypwd']!==$conf['admin_paypwd'])exit('{"code":-2,"msg":"支付密码错误"}');
 	$payee_account = htmlspecialchars(trim($_POST['account']));
 	$payee_real_name = htmlspecialchars(trim($_POST['name']));
 	$money = trim($_POST['money']);

@@ -46,24 +46,10 @@ if(!checkwechat()) showerror('请在微信客户端打开链接');
 
 $result = \lib\Transfer::query('wxpay', $channel, $out_biz_no, '');
 if($result['code'] == 0){
-    if($result['status'] == 2){
-        if($type == 'transfer' && $row['status'] == 0){
-            $resCount = $DB->update('transfer', ['status'=>2, 'result'=>$result['errmsg']], ['biz_no' => $out_biz_no]);
-            if($row['uid'] > 0 && $resCount > 0){
-                changeUserMoney($row['uid'], $row['costmoney'], true, '代付退回');
-            }
-        }elseif($type == 'settle' && $row['transfer_status'] == 1){
-            $DB->update('settle', ['transfer_status'=>2, 'transfer_result'=>$result['errmsg'], 'status'=>3, 'result'=>$result['errmsg']], ['id' => $row['id']]);
-        }
-        showerror('转账已失败，请重新提交！失败原因:'.$result['errmsg']);
-    }elseif($result['status'] == 1){
-        if($type == 'transfer' && $row['status'] == 0){
-            $paytimen = $result['paydate'] ?? 'NOW()';
-            $DB->update('transfer', ['status'=>1, 'paytime'=>$paytimen, 'result'=>''], ['biz_no' => $out_biz_no]);
-        }
-        if(empty($paytime)) $paytime = date("Y-m-d H:i:s");
-        include ROOT.'paypage/wxtrans_success.php';
-        exit;
+    if(in_array((int)$result['status'],[1,2],true)){
+        \lib\Transfer::processNotify($out_biz_no,(int)$result['status'],$result['errmsg']??null);
+        if((int)$result['status']===2)showerror('转账已失败，请联系管理员核对；失败原因:'.htmlspecialchars((string)($result['errmsg']??'渠道明确失败'),ENT_QUOTES,'UTF-8'));
+        if(empty($paytime))$paytime=date('Y-m-d H:i:s');include ROOT.'paypage/wxtrans_success.php';exit;
     }
 }
 

@@ -26,25 +26,12 @@ if (!is_file($configFile) || !is_readable($configFile)) {
 date_default_timezone_set('Asia/Shanghai');
 $date = date("Y-m-d H:i:s");
 
-if(!isset($nosession) || !$nosession)session_start();
-
-if(!function_exists("is_https")){
-	function is_https() {
-		if(isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443){
-			return true;
-		}elseif(isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) == 'on' || $_SERVER['HTTPS'] == '1')){
-			return true;
-		}elseif(isset($_SERVER['HTTP_X_CLIENT_SCHEME']) && $_SERVER['HTTP_X_CLIENT_SCHEME'] == 'https'){
-			return true;
-		}elseif(isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https'){
-			return true;
-		}elseif(isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] == 'https'){
-			return true;
-		}elseif(isset($_SERVER['HTTP_EWS_CUSTOME_SCHEME']) && $_SERVER['HTTP_EWS_CUSTOME_SCHEME'] == 'https'){
-			return true;
-		}
-		return false;
-	}
+require_once SYSTEM_ROOT.'lib/Security/ClientAddress.php';
+if(!isset($nosession) || !$nosession){
+    session_start(['use_strict_mode'=>1,'use_only_cookies'=>1,'cookie_httponly'=>true,'cookie_samesite'=>'Lax','cookie_secure'=>\lib\Security\ClientAddress::secure($_SERVER)]);
+}
+if(!function_exists('is_https')){
+    function is_https(){return \lib\Security\ClientAddress::secure($_SERVER);}
 }
 
 $siteurl = (is_https() ? 'https://' : 'http://').$_SERVER['HTTP_HOST'].'/';

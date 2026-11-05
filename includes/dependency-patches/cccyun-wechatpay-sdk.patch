@@ -1,0 +1,3915 @@
+--- a/src/BaseService.php
++++ b/src/BaseService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace WeChatPay;
++
++use Exception;
+ 
+ class BaseService
+ {
+@@ -30,11 +32,13 @@
+ 
+     //公共请求参数
+     protected $publicParams = [];
+-
+-    /**
+-     * @param $config 微信支付配置信息
+-     */
+-    public function __construct($config)
++    
++    private $signType;
++
++    /**
++     * @param array $config 微信支付配置信息
++     */
++    public function __construct(array $config)
+     {
+         if (empty($config['appid'])) {
+             throw new \InvalidArgumentException('应用APPID不能为空');
+@@ -61,14 +65,16 @@
+ 
+     /**
+      * 请求接口并解析返回数据
+-     * @param $url url
+-     * @param $params 请求参数
+-     * @param $cert 是否需要证书
++     * @param string $url url
++     * @param array $params 请求参数
++     * @param bool $cert 是否需要证书
+      * @return mixed
+-     */
+-    public function execute($url, $params, $cert = false)
++     * @throws Exception
++     */
++    public function execute(string $url, array $params, bool $cert = false)
+     {
+         $params = array_merge($this->publicParams, $params);
++        $this->signType = isset($params['sign_type']) ? $params['sign_type'] : 'MD5';
+         $params['sign'] = $this->makeSign($params);
+         $xml = $this->array2Xml($params);
+         $response = $this->curl($url, $xml, $cert);
+@@ -76,7 +82,7 @@
+         if (isset($result['return_code']) && $result['return_code'] == 'SUCCESS') {
+             if (isset($result['result_code']) && $result['result_code'] == 'SUCCESS') {
+                 if (isset($result['sign']) && !$this->checkSign($result)) {
+-                    throw new \Exception('返回数据验签失败');
++                    throw new Exception('返回数据验签失败');
+                 }
+                 return $result;
+             }
+@@ -89,7 +95,7 @@
+      * @param $data
+      * @return bool
+      */
+-    protected function checkSign($data)
++    protected function checkSign($data): bool
+     {
+         if (!isset($data['sign'])) return false;
+ 
+@@ -103,7 +109,7 @@
+      * @param $data
+      * @return string
+      */
+-    protected function makeSign($data)
++    protected function makeSign($data): string
+     {
+         ksort($data);
+         $signStr = '';
+@@ -113,7 +119,7 @@
+             }
+         }
+         $signStr = trim($signStr, '&') . '&key=' . $this->apiKey;
+-        if (isset($data['sign_type']) && $data['sign_type'] == 'HMAC-SHA256') {
++        if ($this->signType === 'HMAC-SHA256') {
+             $sign = hash_hmac("sha256", $signStr, $this->apiKey);
+         } else {
+             $sign = md5($signStr);
+@@ -128,7 +134,7 @@
+      *
+      * @return bool
+      */
+-    protected function isEmpty($value)
++    protected function isEmpty(?string $value): bool
+     {
+         return $value === null || $value === '';
+     }
+@@ -136,9 +142,9 @@
+     /**
+      * 产生随机字符串，不长于32位
+      * @param int $length
+-     * @return 产生的随机字符串
+-     */
+-    protected function getNonceStr($length = 32)
++     * @return string 产生的随机字符串
++     */
++    protected function getNonceStr(int $length = 32): string
+     {
+         $chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+         $str = "";
+@@ -153,12 +159,9 @@
+      * @param array $data 源数据
+      * @return string
+      */
+-    protected function array2Xml($data)
+-    {
+-        if (!is_array($data)) {
+-            return false;
+-        }
+-        $xml = '<xml>';
++    protected function array2Xml(array $data): string
++    {
++	    $xml = '<xml>';
+         foreach ($data as $key => $val) {
+             $xml .= (is_numeric($val) ? "<{$key}>{$val}</{$key}>" : "<{$key}><![CDATA[{$val}]]></{$key}>");
+         }
+@@ -170,7 +173,7 @@
+      * @param string $xml 源数据
+      * @return mixed
+      */
+-    protected function xml2array($xml)
++    protected function xml2array(string $xml)
+     {
+         if (!$xml) {
+             return false;
+@@ -179,15 +182,16 @@
+         return json_decode(json_encode(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA), JSON_UNESCAPED_UNICODE), true);
+     }
+ 
+-    /**
+-     * 以post方式提交xml到对应的接口url
+-     * @param string $url  url
+-     * @param string $xml  需要post的xml数据
+-     * @param bool $useCert 是否需要证书
+-     * @param int $second   url执行超时时间
+-     * @return string
+-     */
+-    protected function curl($url, $xml, $useCert = false, $second = 10)
++	/**
++	 * 以post方式提交xml到对应的接口url
++	 * @param string $url url
++	 * @param mixed $xml 需要post的xml数据
++	 * @param bool $useCert 是否需要证书
++	 * @param int $second url执行超时时间
++	 * @return string
++	 * @throws Exception
++	 */
++    protected function curl(string $url, $xml, bool $useCert = false, int $second = 10): string
+     {
+         $ch = curl_init();
+         $curlVersion = curl_version();
+@@ -201,8 +205,8 @@
+         curl_setopt($ch, CURLOPT_HEADER, false);
+         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+         if ($useCert) {
+-            if (!file_exists($this->sslCertPath) || !file_exists($this->sslKeyPath)) {
+-                throw new \Exception('商户证书文件不存在');
++            if (empty($this->sslCertPath) || empty($this->sslKeyPath) || !file_exists($this->sslCertPath) || !file_exists($this->sslKeyPath)) {
++                throw new Exception('商户证书文件不存在');
+             }
+             //使用证书：cert 与 key 分别属于两个.pem文件
+             curl_setopt($ch, CURLOPT_SSLCERTTYPE, 'PEM');
+@@ -216,7 +220,7 @@
+         if (curl_errno($ch) > 0) {
+             $errmsg = curl_error($ch);
+             curl_close($ch);
+-            throw new \Exception($errmsg, 0);
++            throw new Exception($errmsg, 0);
+         }
+         curl_close($ch);
+         return $data;
+--- a/src/JsApiTool.php
++++ b/src/JsApiTool.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace WeChatPay;
++
++use Exception;
+ 
+ /**
+  * JSAPI支付工具类
+@@ -36,22 +38,21 @@
+         $this->appsecret = $appsecret;
+     }
+ 
+-    /**
+-     * 通过跳转获取用户的openid，跳转流程如下：
+-     * 1、设置自己需要调回的url及其其他参数，跳转到微信服务器
+-     * 2、微信服务处理完成之后会跳转回用户redirect_uri地址，此时会带上一些参数，如：code
+-     * 
+-     * @return 用户的openid
+-     */
+-    public function GetOpenid()
++	/**
++	 * 通过跳转获取用户的openid，跳转流程如下：
++	 * 1、设置自己需要调回的url及其其他参数，跳转到微信服务器
++	 * 2、微信服务处理完成之后会跳转回用户redirect_uri地址，此时会带上一些参数，如：code
++	 *
++	 * @return string 用户的openid
++	 * @throws Exception
++	 */
++    public function GetOpenid(): string
+     {
+         if (!isset($_GET['code'])) {
+             $this->login();
+-        } else {
+-            $code = $_GET['code'];
+-            $openid = $this->GetOpenidFromMp($code);
+-            return $openid;
+         }
++        $code = $_GET['code'];
++        return $this->GetOpenidFromMp($code);
+     }
+ 
+     /**
+@@ -76,13 +77,14 @@
+         exit;
+     }
+ 
+-    /**
+-     * 从公众平台获取openid
+-     * @param string $code 微信跳转回来带上的code
+-     * 
+-     * @return string openid
+-     */
+-    public function GetOpenidFromMp($code)
++	/**
++	 * 从公众平台获取openid
++	 * @param string $code 微信跳转回来带上的code
++	 *
++	 * @return string openid
++	 * @throws Exception
++	 */
++    public function GetOpenidFromMp(string $code): string
+     {
+         $param = [
+             "appid" => $this->appid,
+@@ -97,19 +99,20 @@
+             $this->data = $data;
+             return $data['openid'];
+         } elseif (isset($data['errcode'])) {
+-            throw new \Exception('Openid获取失败 [' . $data['errcode'] . ']' . $data['errmsg']);
++            throw new Exception('Openid获取失败 [' . $data['errcode'] . ']' . $data['errmsg']);
+         } else {
+-            throw new \Exception('Openid获取失败，原因未知');
++            throw new Exception('Openid获取失败，原因未知');
+         }
+     }
+ 
+-    /**
+-     * 微信小程序获取Openid
+-     * @param string $code 登录时获取的code
+-     * 
+-     * @return string openid
+-     */
+-    public function AppGetOpenid($code)
++	/**
++	 * 微信小程序获取Openid
++	 * @param string $code 登录时获取的code
++	 *
++	 * @return string openid
++	 * @throws Exception
++	 */
++    public function AppGetOpenid(string $code): string
+     {
+         $param = [
+             "appid" => $this->appid,
+@@ -124,18 +127,18 @@
+             $this->data = $data;
+             return $data['openid'];
+         } elseif (isset($data['errcode'])) {
+-            throw new \Exception('获取openid失败 [' . $data['errcode'] . ']' . $data['errmsg']);
++            throw new Exception('获取openid失败 [' . $data['errcode'] . ']' . $data['errmsg']);
+         } else {
+-            throw new \Exception('获取openid失败，原因未知');
++            throw new Exception('获取openid失败，原因未知');
+         }
+     }
+ 
+     /**
+      * 发起GET请求
+-     * @param $url 请求url
++     * @param string $url 请求url
+      * @return string
+      */
+-    private function curl($url)
++    private function curl(string $url): string
+     {
+         $ch = curl_init();
+         curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+--- a/src/PaymentService.php
++++ b/src/PaymentService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace WeChatPay;
++
++use Exception;
+ 
+ /**
+  * 基础支付服务类
+@@ -8,7 +10,7 @@
+  */
+ class PaymentService extends BaseService
+ {
+-    public function __construct($config)
++    public function __construct(array $config)
+     {
+         parent::__construct($config);
+ 
+@@ -26,12 +28,13 @@
+         }
+     }
+ 
+-    /**
+-     * 统一下单
+-     * @param $params 下单参数
+-     * @return mixed
+-     */
+-    public function unifiedOrder($params)
++	/**
++	 * 统一下单
++	 * @param array $params 下单参数
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function unifiedOrder(array $params)
+     {
+         $url = 'https://api.mch.weixin.qq.com/pay/unifiedorder';
+         if (empty($params['out_trade_no'])) {
+@@ -49,12 +52,13 @@
+         return $this->execute($url, $params);
+     }
+ 
+-    /**
+-     * NATIVE支付
+-     * @param $params 下单参数
+-     * @return mixed {"code_url":"二维码链接"}
+-     */
+-    public function nativePay($params)
++	/**
++	 * NATIVE支付
++	 * @param array $params 下单参数
++	 * @return mixed {"code_url":"二维码链接"}
++	 * @throws Exception
++	 */
++    public function nativePay(array $params)
+     {
+         if (empty($params['product_id'])) {
+             throw new \InvalidArgumentException('缺少NATIVE支付必填参数product_id');
+@@ -63,12 +67,13 @@
+         return $this->unifiedOrder($params);
+     }
+ 
+-    /**
+-     * JSAPI支付
+-     * @param $params 下单参数
+-     * @return array Jsapi支付json数据
+-     */
+-    public function jsapiPay($params)
++	/**
++	 * JSAPI支付
++	 * @param array $params 下单参数
++	 * @return array Jsapi支付json数据
++	 * @throws Exception
++	 */
++    public function jsapiPay(array $params)
+     {
+         if (empty($params['openid'])) {
+             throw new \InvalidArgumentException('缺少JSAPI支付必填参数openid');
+@@ -80,13 +85,14 @@
+ 
+     /**
+      * 获取JSAPI支付的参数
+-     * @param $prepay_id 预支付交易会话标识
++     * @param string $prepay_id 预支付交易会话标识
+      * @return array json数据
+      */
+-    private function getJsApiParameters($prepay_id)
+-    {
++    private function getJsApiParameters(string $prepay_id): array
++    {
++        $appId = !empty($this->subAppId) ? $this->subAppId : $this->appId;
+         $params = [
+-            'appId' => $this->appId,
++            'appId' => $appId,
+             'timeStamp' => time() . '',
+             'nonceStr' => $this->getNonceStr(),
+             'package' => 'prepay_id=' . $prepay_id,
+@@ -96,12 +102,13 @@
+         return $params;
+     }
+ 
+-    /**
+-     * APP支付
+-     * @param $params 下单参数
+-     * @return mixed APP支付json数据
+-     */
+-    public function appPay($params)
++	/**
++	 * APP支付
++	 * @param array $params 下单参数
++	 * @return array APP支付json数据
++	 * @throws Exception
++	 */
++    public function appPay(array $params): array
+     {
+         $params['trade_type'] = 'APP';
+         $result = $this->unifiedOrder($params);
+@@ -110,13 +117,14 @@
+ 
+     /**
+      * 获取APP支付的参数
+-     * @param $prepay_id 预支付交易会话标识
++     * @param string $prepay_id 预支付交易会话标识
+      * @return array
+      */
+-    private function getAppParameters($prepay_id)
+-    {
++    private function getAppParameters(string $prepay_id): array
++    {
++        $appId = !empty($this->subAppId) ? $this->subAppId : $this->appId;
+         $params = [
+-            'appid' => $this->appId,
++            'appid' => $appId,
+             'partnerid' => $this->mchId,
+             'prepayid' => $prepay_id,
+             'package' => 'Sign=WXPay',
+@@ -127,23 +135,25 @@
+         return $params;
+     }
+ 
+-    /**
+-     * H5支付
+-     * @param $params 下单参数
+-     * @return mixed {"mweb_url":"支付跳转链接"}
+-     */
+-    public function h5Pay($params)
++	/**
++	 * H5支付
++	 * @param array $params 下单参数
++	 * @return mixed {"mweb_url":"支付跳转链接"}
++	 * @throws Exception
++	 */
++    public function h5Pay(array $params)
+     {
+         $params['trade_type'] = 'MWEB';
+         return $this->unifiedOrder($params);
+     }
+ 
+-    /**
+-     * 付款码支付
+-     * @param $params 下单参数
+-     * @return mixed {"openid":"用户标识","is_subscribe":"N","total_fee":888,"cash_fee":888,"transaction_id":"微信支付订单号","out_trade_no":"商户订单号","time_end":"支付完成时间"}
+-     */
+-    public function microPay($params)
++	/**
++	 * 付款码支付
++	 * @param array $params 下单参数
++	 * @return mixed {"openid":"用户标识","is_subscribe":"N","total_fee":888,"cash_fee":888,"transaction_id":"微信支付订单号","out_trade_no":"商户订单号","time_end":"支付完成时间"}
++	 * @throws Exception
++	 */
++    public function microPay(array $params)
+     {
+         $url = 'https://api.mch.weixin.qq.com/pay/micropay';
+         if (empty($params['out_trade_no'])) {
+@@ -158,17 +168,17 @@
+         if (empty($params['auth_code'])) {
+             throw new \InvalidArgumentException('缺少付款码支付接口必填参数auth_code');
+         }
+-        $params['trade_type'] = 'MICROPAY';
+-        return $this->execute($url, $params);
+-    }
+-
+-    /**
+-     * 撤销订单
+-     * @param $transaction_id 微信订单号
+-     * @param $out_trade_no 商户订单号
+-     * @return mixed
+-     */
+-    public function reverse($transaction_id = null, $out_trade_no = null)
++        return $this->execute($url, $params);
++    }
++
++	/**
++	 * 撤销订单
++	 * @param string|null $transaction_id 微信订单号
++	 * @param string|null $out_trade_no 商户订单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function reverse(?string $transaction_id = null, ?string $out_trade_no = null)
+     {
+         $url = 'https://api.mch.weixin.qq.com/secapi/pay/reverse';
+         $params = [];
+@@ -180,13 +190,14 @@
+         return $this->execute($url, $params, true);
+     }
+ 
+-    /**
+-     * 查询订单，微信订单号、商户订单号至少填一个
+-     * @param $transaction_id 微信订单号
+-     * @param $out_trade_no 商户订单号
+-     * @return mixed
+-     */
+-    public function orderQuery($transaction_id = null, $out_trade_no = null)
++	/**
++	 * 查询订单，微信订单号、商户订单号至少填一个
++	 * @param string|null $transaction_id 微信订单号
++	 * @param string|null $out_trade_no 商户订单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function orderQuery(?string $transaction_id = null, ?string $out_trade_no = null)
+     {
+         $url = 'https://api.mch.weixin.qq.com/pay/orderquery';
+         $params = [];
+@@ -200,25 +211,26 @@
+ 
+     /**
+      * 判断订单是否已完成
+-     * @param $transaction_id 微信订单号
++     * @param string $transaction_id 微信订单号
+      * @return bool
+      */
+-    public function orderQueryResult($transaction_id)
++    public function orderQueryResult(string $transaction_id): bool
+     {
+         try {
+             $data = $this->orderQuery($transaction_id);
+             return $data['trade_state'] == 'SUCCESS' || $data['trade_state'] == 'REFUND';
+-        } catch (\Exception $e) {
++        } catch (Exception $e) {
+             return false;
+         }
+     }
+ 
+-    /**
+-     * 关闭订单
+-     * @param $out_trade_no 商户订单号
+-     * @return mixed
+-     */
+-    public function closeOrder($out_trade_no)
++	/**
++	 * 关闭订单
++	 * @param string $out_trade_no 商户订单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function closeOrder(string $out_trade_no)
+     {
+         $url = 'https://api.mch.weixin.qq.com/pay/orderquery';
+         $params = [
+@@ -227,12 +239,13 @@
+         return $this->execute($url, $params);
+     }
+ 
+-    /**
+-     * 申请退款
+-     * @param $params
+-     * @return mixed
+-     */
+-    public function refund($params)
++	/**
++	 * 申请退款
++	 * @param array $params
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function refund(array $params)
+     {
+         $url = 'https://api.mch.weixin.qq.com/secapi/pay/refund';
+         if (empty($params['transaction_id']) && empty($params['out_trade_no'])) {
+@@ -250,12 +263,13 @@
+         return $this->execute($url, $params, true);
+     }
+ 
+-    /**
+-     * 查询退款
+-     * @param $params
+-     * @return mixed
+-     */
+-    public function refundQuery($params)
++	/**
++	 * 查询退款
++	 * @param array $params
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function refundQuery(array $params)
+     {
+         $url = 'https://api.mch.weixin.qq.com/pay/refundquery';
+         if (empty($params['transaction_id']) && empty($params['out_trade_no']) && empty($params['out_refund_no']) && empty($params['refund_id'])) {
+@@ -264,12 +278,13 @@
+         return $this->execute($url, $params);
+     }
+ 
+-    /**
+-     * 下载对账单
+-     * @param $params
+-     * @return mixed
+-     */
+-    public function downloadBill($params)
++	/**
++	 * 下载对账单
++	 * @param array $params
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function downloadBill(array $params)
+     {
+         $url = 'https://api.mch.weixin.qq.com/pay/downloadbill';
+         if (empty($params['bill_date'])) {
+@@ -278,12 +293,13 @@
+         return $this->execute($url, $params);
+     }
+ 
+-    /**
+-     * 下载资金账单
+-     * @param $params
+-     * @return mixed
+-     */
+-    public function downloadFundFlow($params)
++	/**
++	 * 下载资金账单
++	 * @param array $params
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function downloadFundFlow(array $params)
+     {
+         $url = 'https://api.mch.weixin.qq.com/pay/downloadfundflow';
+         if (empty($params['bill_date'])) {
+@@ -295,41 +311,42 @@
+         return $this->execute($url, $params);
+     }
+ 
+-    /**
+-     * 支付结果通知
+-     * @return bool|mixed
+-     */
++	/**
++	 * 支付结果通知
++	 * @return bool|mixed
++	 * @throws Exception
++	 */
+     public function notify()
+     {
+         $xml = file_get_contents("php://input");
+         if (empty($xml)) {
+-            throw new \Exception('NO_DATA');
++            throw new Exception('NO_DATA');
+         }
+         $result = $this->xml2array($xml);
+         if (!$result) {
+-            throw new \Exception('XML_ERROR');
++            throw new Exception('XML_ERROR');
+         }
+         if ($result['return_code'] != 'SUCCESS') {
+-            throw new \Exception($result['return_msg']);
++            throw new Exception($result['return_msg']);
+         }
+         if (!$this->checkSign($result)) {
+-            throw new \Exception('签名校验失败');
++            throw new Exception('签名校验失败');
+         }
+         if (!isset($result['transaction_id'])) {
+-            throw new \Exception('缺少订单号参数');
++            throw new Exception('缺少订单号参数');
+         }
+         if (!$this->orderQueryResult($result['transaction_id'])) {
+-            throw new \Exception('订单未完成');
++            throw new Exception('订单未完成');
+         }
+         return $result;
+     }
+ 
+     /**
+      * 退款结果通知
+-     * @param &$errmsg 错误信息
+-     * @return bool|mixed
+-     */
+-    public function refundNotify(&$errmsg)
++     * @param array &$errmsg 错误信息
++     * @return bool|string
++     */
++    public function refundNotify(array &$errmsg): bool
+     {
+         $xml = file_get_contents("php://input");
+         if (empty($xml)) {
+@@ -347,16 +364,15 @@
+         }
+         $req_info = base64_decode($result['req_info']);
+         $md5_key = md5($this->apiKey);
+-        $data = openssl_decrypt($req_info, 'aes-256-ecb', $md5_key);
+-        return $data;
++	    return openssl_decrypt($req_info, 'aes-256-ecb', $md5_key);
+     }
+ 
+     /**
+      * 回复通知
+-     * @param $isSuccess 是否成功
+-     * @param $msg 失败原因
+-     */
+-    public function replyNotify($isSuccess = true, $msg = '')
++     * @param bool $isSuccess 是否成功
++     * @param string|null $msg 失败原因
++     */
++    public function replyNotify(bool $isSuccess = true, ?string $msg = '', bool $return = false)
+     {
+         $data = [];
+         if ($isSuccess) {
+@@ -367,6 +383,7 @@
+             $data['return_msg'] = $msg;
+         }
+         $xml = $this->array2Xml($data);
++        if ($return) return $xml;
+         echo $xml;
+     }
+ }
+--- a/src/ProfitsharingService.php
++++ b/src/ProfitsharingService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace WeChatPay;
++
++use Exception;
+ 
+ /**
+  * 分账服务类
+@@ -8,13 +10,11 @@
+  */
+ class ProfitsharingService extends BaseService
+ {
+-    public function __construct($config)
++    public function __construct(array $config)
+     {
+         parent::__construct($config);
+ 
+         $this->publicParams = [
+-            'appid'      => $this->appId,
+-            'mch_id'     => $this->mchId,
+             'nonce_str'  => $this->getNonceStr(),
+             'sign_type'  => 'HMAC-SHA256',
+         ];
+@@ -26,98 +26,101 @@
+         }
+     }
+ 
+-    /**
+-     * 添加分账接收方
+-     * @param $account 分账接收方账号
+-     * @param $name 用户姓名(填写后校验)
+-     * @return mixed
+-     */
+-    public function addReceiver($account, $name = null)
++	/**
++	 * 添加分账接收方
++	 * @param string $type 分账接收方类型
++	 * @param string $account 分账接收方账号
++	 * @param string|null $name 用户姓名(填写后校验)
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function addReceiver(string $type, string $account, ?string $name = null)
+     {
+         $url = 'https://api.mch.weixin.qq.com/pay/profitsharingaddreceiver';
+         $receiver = [
+-            'type' => 'PERSONAL_OPENID',
++            'type' => $type,
+             'account' => $account,
+             'relation_type' => 'SERVICE_PROVIDER'
+         ];
+         if(!empty($name)) $receiver['name'] = $name;
+         $params = [
++            'appid' => $this->appId,
++            'mch_id' => $this->mchId,
+             'receiver' => json_encode($receiver, JSON_UNESCAPED_UNICODE)
+         ];
+         return $this->execute($url, $params);
+     }
+ 
+-    /**
+-     * 删除分账接收方
+-     * @param $account 分账接收方账号
+-     * @return mixed
+-     */
+-    public function deleteReceiver($account)
++	/**
++	 * 删除分账接收方
++	 * @param string $type 分账接收方类型
++	 * @param string $account 分账接收方账号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function deleteReceiver(string $type, string $account)
+     {
+         $url = 'https://api.mch.weixin.qq.com/pay/profitsharingremovereceiver';
+         $receiver = [
+-            'type' => 'PERSONAL_OPENID',
++            'type' => $type,
+             'account' => $account
+         ];
+         $params = [
++            'appid' => $this->appId,
++            'mch_id' => $this->mchId,
+             'receiver' => json_encode($receiver, JSON_UNESCAPED_UNICODE)
+         ];
+         return $this->execute($url, $params);
+     }
+ 
+-    /**
+-     * 请求单次分账
+-     * @param $out_order_no 商户分账单号
+-     * @param $transaction_id 微信订单号
+-     * @param $openid 分账接收方账号
+-     * @param $name 用户姓名(填写后校验)
+-     * @param int $amount 分账金额(分)
+-     * @return mixed {"transaction_id":"微信订单号","out_order_no":"商户分账单号","order_id":"微信分账单号","status":"分账单状态","receivers":""}
+-     */
+-    public function submit($out_order_no, $transaction_id, $openid, $name, $amount)
++	/**
++	 * 请求单次分账
++	 * @param array $params 请求参数 (transaction_id, out_order_no, receivers)
++	 * @return mixed {"transaction_id":"微信订单号","out_order_no":"商户分账单号","order_id":"微信分账单号","status":"分账单状态","receivers":""}
++	 * @throws Exception
++	 */
++    public function submit(array $params)
+     {
+         $url = 'https://api.mch.weixin.qq.com/secapi/pay/profitsharing';
+-        $receiver = [
+-            'type' => 'PERSONAL_OPENID',
+-            'account' => $openid,
+-            'amount' => $amount,
+-            'description' => '订单分账'
++        $public_params = [
++            'appid' => $this->appId,
++            'mch_id' => $this->mchId,
+         ];
+-        if(!empty($name)) $receiver['name'] = $name;
+-        $params = [
+-            'out_order_no' => $out_order_no,
+-            'transaction_id' => $transaction_id,
+-            'receivers' => json_encode([$receiver], JSON_UNESCAPED_UNICODE)
+-        ];
++        $params = array_merge($public_params, $params);
+         return $this->execute($url, $params, true);
+     }
+ 
+-    /**
+-     * 查询分账结果
+-     * @param $out_order_no 商户分账单号
+-     * @param $transaction_id 微信订单号
+-     * @return mixed {"transaction_id":"微信订单号","out_order_no":"商户分账单号","order_id":"微信分账单号","status":"分账单状态","receivers":""}
+-     */
+-    public function query($out_order_no, $transaction_id)
++	/**
++	 * 查询分账结果
++	 * @param string $out_order_no 商户分账单号
++	 * @param string $transaction_id 微信订单号
++	 * @return mixed {"transaction_id":"微信订单号","out_order_no":"商户分账单号","order_id":"微信分账单号","status":"分账单状态","receivers":""}
++	 * @throws Exception
++	 */
++    public function query(string $out_order_no, string $transaction_id)
+     {
+         $url = 'https://api.mch.weixin.qq.com/pay/profitsharingquery';
+         $params = [
++            'mch_id' => $this->mchId,
+             'out_order_no' => $out_order_no,
+             'transaction_id' => $transaction_id
+         ];
+         return $this->execute($url, $params);
+     }
+ 
+-    /**
+-     * 解冻剩余资金
+-     * @param $out_order_no 商户分账单号
+-     * @param $transaction_id 微信订单号
+-     * @return mixed {"transaction_id":"微信订单号","out_order_no":"商户分账单号","order_id":"微信分账单号"}
+-     */
+-    public function unfreeze($out_order_no, $transaction_id)
++	/**
++	 * 解冻剩余资金
++	 * @param string $out_order_no 商户分账单号
++	 * @param string $transaction_id 微信订单号
++	 * @return mixed {"transaction_id":"微信订单号","out_order_no":"商户分账单号","order_id":"微信分账单号"}
++	 * @throws Exception
++	 */
++    public function unfreeze(string $out_order_no, string $transaction_id)
+     {
+         $url = 'https://api.mch.weixin.qq.com/secapi/pay/profitsharingfinish';
+         $params = [
++            'appid' => $this->appId,
++            'mch_id' => $this->mchId,
+             'out_order_no' => $out_order_no,
+             'transaction_id' => $transaction_id,
+             'description' => '分账已完成'
+@@ -125,26 +128,29 @@
+         return $this->execute($url, $params, true);
+     }
+ 
+-    /**
+-     * 查询订单待分账金额
+-     * @param $transaction_id 微信订单号
+-     * @return mixed {"transaction_id":"微信订单号","unsplit_amount":"订单剩余待分金额"}
+-     */
+-    public function orderAmountQuery($transaction_id)
++	/**
++	 * 查询订单待分账金额
++	 * @param string $transaction_id 微信订单号
++	 * @return mixed {"transaction_id":"微信订单号","unsplit_amount":"订单剩余待分金额"}
++	 * @throws Exception
++	 */
++    public function orderAmountQuery(string $transaction_id)
+     {
+         $url = 'https://api.mch.weixin.qq.com/pay/profitsharingorderamountquery';
+         $params = [
++            'mch_id' => $this->mchId,
+             'transaction_id' => $transaction_id,
+         ];
+         return $this->execute($url, $params);
+     }
+ 
+-    /**
+-     * 分账回退
+-     * @param $params 请求参数
+-     * @return mixed
+-     */
+-    public function return($params)
++	/**
++	 * 分账回退
++	 * @param array $params 请求参数
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function return(array $params)
+     {
+         $url = 'https://api.mch.weixin.qq.com/secapi/pay/profitsharingreturn';
+         if (empty($params['order_id']) && empty($params['out_order_no'])) {
+@@ -153,18 +159,27 @@
+         if (empty($params['out_return_no'])) {
+             throw new \InvalidArgumentException('out_return_no参数不能为空');
+         }
++        $public_params = [
++            'appid' => $this->appId,
++            'mch_id' => $this->mchId,
++        ];
++        $params = array_merge($public_params, $params);
+         return $this->execute($url, $params, true);
+     }
+ 
+-    /**
+-     * 分账回退结果查询
+-     * @param $params 请求参数
+-     * @return mixed
+-     */
+-    public function returnQuery($out_return_no, $out_order_no)
++	/**
++	 * 分账回退结果查询
++	 * @param string $out_return_no
++	 * @param string $out_order_no
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function returnQuery(string $out_return_no, string $out_order_no)
+     {
+         $url = 'https://api.mch.weixin.qq.com/pay/profitsharingreturnquery';
+         $params = [
++            'appid' => $this->appId,
++            'mch_id' => $this->mchId,
+             'out_order_no' => $out_order_no,
+             'out_return_no' => $out_return_no
+         ];
+--- /dev/null
++++ b/src/RsaTool.php
+@@ -0,0 +1,75 @@
++<?php
++
++namespace WeChatPay;
++
++class RsaTool
++{
++    /**
++     * @var string - Equal to `sequence(oid(1.2.840.113549.1.1.1), null))`
++     * @link https://datatracker.ietf.org/doc/html/rfc3447#appendix-A.2
++     */
++    private const ASN1_OID_RSAENCRYPTION = '300d06092a864886f70d0101010500';
++    private const ASN1_SEQUENCE = 48;
++    private const CHR_NUL = "\0";
++    private const CHR_ETX = "\3";
++
++    /**
++     * Translate the \$thing strlen from `X690` style to the `ASN.1` 128bit hexadecimal length string
++     *
++     * @param string $thing - The string
++     *
++     * @return string The `ASN.1` 128bit hexadecimal length string
++     */
++    private static function encodeLength(string $thing): string
++    {
++        $num = strlen($thing);
++        if ($num <= 0x7F) {
++            return sprintf('%c', $num);
++        }
++
++        $tmp = ltrim(pack('N', $num), self::CHR_NUL);
++        return pack('Ca*', strlen($tmp) | 0x80, $tmp);
++    }
++
++    /**
++     * Convert the `PKCS#1` format RSA Public Key to `SPKI` format
++     *
++     * @param string $thing - The base64-encoded string, without evelope style
++     *
++     * @return string The `SPKI` style public key without evelope string
++     */
++    public static function pkcs1ToSpki(string $thing): string
++    {
++        $raw = self::CHR_NUL . base64_decode($thing);
++        $new = pack('H*', self::ASN1_OID_RSAENCRYPTION) . self::CHR_ETX . self::encodeLength($raw) . $raw;
++
++        return base64_encode(pack('Ca*a*', self::ASN1_SEQUENCE, self::encodeLength($new), $new));
++    }
++
++    public static function pemToBase64(string $data): string
++    {
++        $line = explode("\n", $data);
++        $base64 = '';
++        foreach($line as $row){
++            if(empty($row) || strpos($row, '-----BEGIN')!==false || strpos($row, '-----END')!==false) continue;
++            $base64 .= trim($row);
++        }
++        return $base64;
++    }
++    
++    public static function base64ToPem(string $data, $type): string
++    {
++        if(empty($data) || strpos($data, '-----BEGIN')!==false) return $data;
++        $pem = "-----BEGIN ".$type."-----\n" .
++            wordwrap($data, 64, "\n", true) .
++            "\n-----END ".$type."-----";
++        return $pem;
++    }
++
++    public static function pkcs1ToSpkiPem(string $thing): string
++    {
++        $raw = self::pemToBase64($thing);
++        $new = self::pkcs1ToSpki($raw);
++        return self::base64ToPem($new, 'PUBLIC KEY');
++    }
++}
+\ No newline at end of file
+--- a/src/TransferService.php
++++ b/src/TransferService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace WeChatPay;
++
++use Exception;
+ 
+ /**
+  * 转账服务类
+@@ -22,16 +24,17 @@
+         ];
+     }
+ 
+-    /**
+-     * 企业付款到零钱
+-     * @param $partner_trade_no 商户唯一订单号
+-     * @param $openid 用户openid
+-     * @param $name 用户姓名(填写后校验)
+-     * @param $amount 金额
+-     * @param $desc 备注
+-     * @return mixed {"partner_trade_no":"商户唯一订单号","payment_no":"微信付款单号","payment_time":"付款成功时间"}
+-     */
+-    public function transfer($partner_trade_no, $openid, $name, $amount, $desc)
++	/**
++	 * 企业付款到零钱
++	 * @param string $partner_trade_no 商户唯一订单号
++	 * @param string $openid 用户openid
++	 * @param string $name 用户姓名(填写后校验)
++	 * @param numeric $amount 金额
++	 * @param string $desc 备注
++	 * @return mixed {"partner_trade_no":"商户唯一订单号","payment_no":"微信付款单号","payment_time":"付款成功时间"}
++	 * @throws Exception
++	 */
++    public function transfer(string $partner_trade_no, string $openid, string $name, $amount, string $desc)
+     {
+         $url = 'https://api.mch.weixin.qq.com/mmpaymkttransfers/promotion/transfers';
+         $params = [
+@@ -39,6 +42,7 @@
+             'mchid' => $this->mchId,
+             'partner_trade_no' => $partner_trade_no,
+             'openid' => $openid,
++            'check_name' => 'NO_CHECK',
+             'amount' => $amount,
+             'desc' => $desc
+         ];
+@@ -49,12 +53,13 @@
+         return $this->execute($url, $params, true);
+     }
+ 
+-    /**
+-     * 查询付款
+-     * @param $partner_trade_no 商户唯一订单号
+-     * @return mixed {"partner_trade_no":"商户唯一订单号","detail_id":"微信付款单号","status":"转账状态","reason":"失败原因","openid":"用户openid","transfer_name":"用户姓名","payment_amount":"付款金额","transfer_time":"转账时间","payment_time":"付款成功时间","desc":"付款备注"}
+-     */
+-    public function transferQuery($partner_trade_no)
++	/**
++	 * 查询付款
++	 * @param string $partner_trade_no 商户唯一订单号
++	 * @return mixed {"partner_trade_no":"商户唯一订单号","detail_id":"微信付款单号","status":"转账状态","reason":"失败原因","openid":"用户openid","transfer_name":"用户姓名","payment_amount":"付款金额","transfer_time":"转账时间","payment_time":"付款成功时间","desc":"付款备注"}
++	 * @throws Exception
++	 */
++    public function transferQuery(string $partner_trade_no)
+     {
+         $url = 'https://api.mch.weixin.qq.com/mmpaymkttransfers/gettransferinfo';
+         $params = [
+@@ -67,33 +72,41 @@
+ 
+     /**
+      * 企业付款到银行卡
+-     * @param $partner_trade_no 商户唯一订单号
+-     * @param $bank_no 收款方银行卡号
+-     * @param $true_name 收款方用户名
+-     * @param $bank_code 收款方开户行(https://pay.weixin.qq.com/wiki/doc/api/tools/mch_pay_yhk.php?chapter=24_4)
+-     * @param $amount 金额
+-     * @param $desc 备注
++     * @param string $partner_trade_no 商户唯一订单号
++     * @param string $bank_no 收款方银行卡号
++     * @param string $name 收款方用户名
++     * @param string $bank_code 收款方开户行(https://pay.weixin.qq.com/wiki/doc/api/tools/mch_pay_yhk.php?chapter=24_4)
++     * @param numeric $amount 金额
++     * @param string $desc 备注
+      * @return mixed {"partner_trade_no":"商户唯一订单号","payment_no":"微信付款单号","cmms_amt":"手续费金额"}
++     * @throws Exception
+      */
+-    public function transferToBank($partner_trade_no, $bank_no, $name, $bank_code, $amount, $desc)
++    public function transferToBank(string $partner_trade_no, string $bank_no, string $name, string $bank_code, $amount, string $desc)
+     {
+         $pubKey = null;
++        if (empty($this->publicKeyPath)) {
++            throw new Exception('RSA加密公钥路径不能为空');
++        }
+         if (file_exists($this->publicKeyPath)) {
+             $pubKey = file_get_contents($this->publicKeyPath);
+         }
+         if (!$pubKey) {
+             $pubKey = $this->getPublicKey();
+             if (!file_put_contents($this->publicKeyPath, $pubKey)) {
+-                throw new \Exception('RSA加密公钥文件写入失败');
++                throw new Exception('RSA加密公钥文件写入失败');
+             }
++        }
++        $pubkeyid = openssl_pkey_get_public($pubKey);
++        if (!$pubkeyid) {
++            throw new Exception('RSA加密公钥不正确');
+         }
+ 
+         $url = 'https://api.mch.weixin.qq.com/mmpaysptrans/pay_bank';
+         $params = [
+             'mch_id' => $this->mchId,
+             'partner_trade_no' => $partner_trade_no,
+-            'enc_bank_no' => $this->encryptData($bank_no, $pubKey),
+-            'enc_true_name' => $this->encryptData($$name, $pubKey),
++            'enc_bank_no' => $this->encryptData($bank_no, $pubkeyid),
++            'enc_true_name' => $this->encryptData($name, $pubkeyid),
+             'bank_code' => $bank_code,
+             'amount' => $amount,
+             'desc' => $desc
+@@ -103,10 +116,11 @@
+ 
+     /**
+      * 查询付款银行卡
+-     * @param $partner_trade_no 商户唯一订单号
++     * @param string $partner_trade_no 商户唯一订单号
+      * @return mixed {"partner_trade_no":"商户唯一订单号","payment_no":"微信付款单号","bank_no_md5":"收款用户银行卡号(MD5加密)","true_name_md5":"收款人真实姓名(MD5加密)","amount":"金额","cmms_amt":"手续费金额","status":"转账状态","create_time":"商户下单时间","pay_succ_time":"成功付款时间","reason":"失败原因"}
++     * @throws Exception
+      */
+-    public function queryBank($partner_trade_no)
++    public function queryBank(string $partner_trade_no)
+     {
+         $url = 'https://api.mch.weixin.qq.com/mmpaysptrans/query_bank';
+         $params = [
+@@ -118,6 +132,7 @@
+ 
+     /**
+      * 获取RSA加密公钥
++     * @throws Exception
+      */
+     public function getPublicKey()
+     {
+@@ -126,14 +141,21 @@
+             'mch_id' => $this->mchId,
+         ];
+         $result = $this->execute($url, $params, true);
+-        return $result['pub_key'];
++        $pub_key = $result['pub_key'];
++        $pub_key = RsaTool::pkcs1ToSpkiPem($pub_key);
++        return $pub_key;
+     }
+ 
+-    private function encryptData($data, $pubKey)
++	/**
++	 * RSA加密
++	 * @param string $data
++	 * @param $pubKey
++	 * @return string
++	 * @throws Exception
++	 */
++    private function encryptData(string $data, $pubkeyid): string
+     {
+-        $pubkeyid = openssl_get_publickey($pubKey);
+-        openssl_public_encrypt($data, $encrypted, $pubkeyid);
+-        $encrypted = base64_encode($encrypted);
+-        return $encrypted;
++        openssl_public_encrypt($data, $encrypted, $pubkeyid, OPENSSL_PKCS1_OAEP_PADDING);
++	    return base64_encode($encrypted);
+     }
+ }
+--- a/src/V3/BaseService.php
++++ b/src/V3/BaseService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace WeChatPay\V3;
++
++use Exception;
+ 
+ class BaseService
+ {
+@@ -34,24 +36,31 @@
+     //「商户API证书」的「证书序列号」
+     protected $merchantCertificateSerial;
+ 
++    //「微信支付公钥」文件路径
++    protected $platformPublicKeyFilePath;
++
+     //「微信支付平台证书」文件路径
+     protected $platformCertificateFilePath;
+ 
++    //微信支付公钥/平台证书序列号
++    protected $platformCertificateSerial;
++
+     //商户API私钥
+     protected $merchantPrivateKeyInstance;
+ 
+-    //微信支付平台证书
++    //微信支付公钥/平台证书
+     protected $platformPublicKeyInstance;
+ 
+-    //微信支付平台证书序列号
+-    protected $platformCertificateSerial;
++    //是否国际版商户
++    private $isGlobal = false;
+ 
+     private $download_cert = false;
+ 
+-    /**
+-     * @param $config 微信支付配置信息
+-     */
+-    public function __construct($config)
++	/**
++	 * @param array $config 微信支付配置信息
++	 * @throws Exception
++	 */
++    public function __construct(array $config)
+     {
+         if (empty($config['appid'])) {
+             throw new \InvalidArgumentException('应用APPID不能为空');
+@@ -79,7 +88,11 @@
+         $this->apiKey = $config['apikey'];
+         $this->merchantPrivateKeyFilePath = $config['merchantPrivateKeyFilePath'];
+         $this->merchantCertificateSerial = $config['merchantCertificateSerial'];
++        if (isset($config['platformPublicKeyFilePath'])) {
++            $this->platformPublicKeyFilePath = $config['platformPublicKeyFilePath'];
++        }
+         $this->platformCertificateFilePath = $config['platformCertificateFilePath'];
++        $this->platformCertificateSerial = $config['platformCertificateSerial'];
+         if (isset($config['sub_mchid'])) {
+             $this->subMchId = $config['sub_mchid'];
+         }
+@@ -89,43 +102,74 @@
+         if (isset($config['ecommerce'])) {
+             $this->ecommerce = $config['ecommerce'];
+         }
++        if (isset($config['isGlobal'])) {
++            $this->isGlobal = $config['isGlobal'];
++        }
+ 
+         $this->initCertificate();
+     }
+ 
+     /**
+      * 初始化证书与私钥
++     * @throws Exception
+      */
+     private function initCertificate()
+     {
+         //读取商户API私钥
+-        $this->merchantPrivateKeyInstance = openssl_get_privatekey(file_get_contents($this->merchantPrivateKeyFilePath));
++        $this->merchantPrivateKeyInstance = openssl_pkey_get_private(file_get_contents($this->merchantPrivateKeyFilePath));
+         if (!$this->merchantPrivateKeyInstance) {
+-            throw new \Exception("商户API私钥错误");
+-        }
+-        //读取微信支付平台证书
++            throw new Exception("商户API私钥错误");
++        }
++        //读取微信支付公钥或平台证书
++        if (!empty($this->platformPublicKeyFilePath) && file_exists($this->platformPublicKeyFilePath) && !empty($this->platformCertificateSerial)) {
++            $this->loadPlatformPublicKey();
++        } else {
++            $this->loadPlatformCertificate();
++        }
++    }
++
++    /**
++     * 加载微信支付公钥
++     * @throws Exception
++     */
++    private function loadPlatformPublicKey()
++    {
++        $publicKey = file_get_contents($this->platformPublicKeyFilePath);
++        $this->platformPublicKeyInstance = openssl_pkey_get_public($publicKey);
++        if (!$this->platformPublicKeyInstance) {
++            throw new Exception("微信支付公钥错误");
++        }
++    }
++
++    /**
++     * 加载微信支付平台证书
++     * @throws Exception
++     */
++    private function loadPlatformCertificate()
++    {
+         if (file_exists($this->platformCertificateFilePath)) {
+             $certificate = file_get_contents($this->platformCertificateFilePath);
+-            $this->platformPublicKeyInstance = openssl_x509_read($certificate);
++            $this->platformPublicKeyInstance = openssl_pkey_get_public($certificate);
+             if ($this->platformPublicKeyInstance) {
+                 $cert_info = openssl_x509_parse($certificate);
+                 if ($cert_info && isset($cert_info['serialNumberHex'])) {
+                     $this->platformCertificateSerial = $cert_info['serialNumberHex'];
+                 }
+-            }
+-        }
+-        //没有微信支付平台证书，则下载证书
+-        if (!$this->platformPublicKeyInstance) {
++            } else {
++                throw new Exception("微信支付平台证书错误");
++            }
++        } else {
+             $this->downloadCertificate();
+         }
+     }
+ 
+     /**
+      * 下载微信支付平台证书
++     * @throws Exception
+      */
+     private function downloadCertificate()
+     {
+-        $result = $this->execute('GET', '/v3/certificates');
++        $result = $this->execute('GET', $this->isGlobal ? '/v3/global/certificates' : '/v3/certificates');
+         $effective_time = 0;
+         foreach ($result['data'] as $item) {
+             if (strtotime($item['effective_time']) > $effective_time) {
+@@ -136,15 +180,15 @@
+ 
+         $certificate = $this->decryptToString($encert['ciphertext'], $encert['nonce'], $encert['associated_data']);
+         if (!$certificate) {
+-            throw new \Exception('微信支付平台证书解密失败');
++            throw new Exception('微信支付平台证书解密失败');
+         }
+         if (!file_put_contents($this->platformCertificateFilePath, $certificate)) {
+-            throw new \Exception('微信支付平台证书保存失败，可能无文件写入权限');
++            throw new Exception('微信支付平台证书保存失败，可能无文件写入权限');
+         }
+         //从证书解析公钥与序列号
+         $this->platformPublicKeyInstance = openssl_x509_read($certificate);
+         if (!$this->platformPublicKeyInstance) {
+-            throw new \Exception("微信支付平台证书错误");
++            throw new Exception("微信支付平台证书错误");
+         }
+         $cert_info = openssl_x509_parse($certificate);
+         if ($cert_info && isset($cert_info['serialNumberHex'])) {
+@@ -154,15 +198,16 @@
+     }
+ 
+ 
+-    /**
+-     * 请求接口并解析返回数据
+-     * @param $method 请求方式 GET POST PUT
+-     * @param $path 请求路径
+-     * @param $params 请求参数
+-     * @param $cert 是否包含平台公钥序列号
+-     * @return mixed
+-     */
+-    public function execute($method, $path, $params = [], $cert = false)
++	/**
++	 * 请求接口并解析返回数据
++	 * @param string $method 请求方式 GET POST PUT
++	 * @param string $path 请求路径
++	 * @param array $params 请求参数
++	 * @param bool $cert 是否包含平台公钥序列号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function execute(string $method, string $path, array $params = [], bool $cert = false)
+     {
+         $url = self::$GATEWAY . $path;
+         $body = '';
+@@ -170,7 +215,7 @@
+             if (count($params) > 0) {
+                 $url .= '?' . http_build_query($params);
+             }
+-        } else {
++        } elseif(!empty($params)) {
+             $body = json_encode($params);
+         }
+ 
+@@ -187,20 +232,21 @@
+         [$httpCode, $header, $response] = $this->curl($method, $url, $header, $body);
+         $result = json_decode($response, true);
+         if ($httpCode >= 200 && $httpCode <= 299) {
+-            if (!$this->checkResponseSign($response, $header)) {
+-                throw new \Exception("微信支付返回数据验签失败");
++            if ($path != '/v3/certificates' && $path != '/v3/global/certificates' && !$this->checkResponseSign($response, $header)) {
++                throw new Exception("微信支付返回数据验签失败");
+             }
+             return $result;
+         }
+         throw new WeChatPayException($result, $httpCode);
+     }
+ 
+-    /**
+-     * 下载账单/图片
+-     * @param $download_url 下载地址
+-     * @return mixed
+-     */
+-    public function download($download_url)
++	/**
++	 * 下载账单/图片
++	 * @param string $download_url 下载地址
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function download(string $download_url)
+     {
+         $method = 'GET';
+         $authorization = $this->getAuthorization($method, $download_url);
+@@ -214,17 +260,19 @@
+         }
+     }
+ 
+-    /**
+-     * 上传文件
+-     * @param $path 请求路径
+-     * @param $file_path 本地文件路径
+-     * @param $file_name 文件名
+-     */
+-    public function upload($path, $file_path, $file_name)
++	/**
++	 * 上传文件
++	 * @param string $path 请求路径
++	 * @param string $file_path 本地文件路径
++	 * @param string $file_name 文件名
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function upload(string $path, string $file_path, string $file_name)
+     {
+         $url = self::$GATEWAY . $path;
+         if (!file_exists($file_path)) {
+-            throw new \Exception("文件不存在");
++            throw new Exception("文件不存在");
+         }
+         $meta = [
+             'filename' => $file_name,
+@@ -243,7 +291,7 @@
+         $result = json_decode($response, true);
+         if ($httpCode >= 200 && $httpCode <= 299) {
+             if (!$this->checkResponseSign($response, $header)) {
+-                throw new \Exception("微信支付返回数据验签失败");
++                throw new Exception("微信支付返回数据验签失败");
+             }
+             return $result;
+         }
+@@ -252,11 +300,12 @@
+ 
+     /**
+      * 返回数据验签
+-     * @param $body 返回内容
+-     * @param $header 返回头部
++     * @param string $body 返回内容
++     * @param string $header 返回头部
+      * @return bool
+-     */
+-    protected function checkResponseSign($body, $header)
++     * @throws Exception
++     */
++    protected function checkResponseSign(string $body, string $header): bool
+     {
+         if (!$this->platformCertificateSerial) return true;
+ 
+@@ -275,11 +324,20 @@
+ 
+         if (empty($signature)) return false;
+         if ($serial != $this->platformCertificateSerial) {
+-            if (!$this->download_cert) {
+-                $this->downloadCertificate();
+-            }
+-            if ($serial != $this->platformCertificateSerial) {
+-                throw new \Exception('平台证书序列号不匹配');
++            if (substr($serial, 0, 11) == 'PUB_KEY_ID_') {
++                throw new Exception('微信支付公钥ID不匹配');
++            } else {
++                if (substr($this->platformCertificateSerial, 0, 11) == 'PUB_KEY_ID_') {
++                    $this->loadPlatformCertificate();
++                }
++                if ($serial != $this->platformCertificateSerial) {
++                    if (!$this->download_cert) {
++                        $this->downloadCertificate();
++                    }
++                    if ($serial != $this->platformCertificateSerial) {
++                        throw new Exception('平台证书序列号不匹配');
++                    }
++                }
+             }
+         }
+ 
+@@ -288,13 +346,13 @@
+ 
+     /**
+      * 验证签名
+-     * @param $timestamp 应答时间戳
+-     * @param $nonce 应答随机串
+-     * @param $body 应答报文主体
+-     * @param $signature 应答签名
++     * @param string $timestamp 应答时间戳
++     * @param string $nonce 应答随机串
++     * @param string $body 应答报文主体
++     * @param string $signature 应答签名
+      * @return bool
+      */
+-    protected function checkSign($timestamp, $nonce, $body, $signature)
++    protected function checkSign(string $timestamp, string $nonce, string $body, string $signature): bool
+     {
+         $message = $timestamp . "\n" . $nonce . "\n" . $body . "\n";
+         $result = openssl_verify($message, base64_decode($signature), $this->platformPublicKeyInstance, OPENSSL_ALGO_SHA256);
+@@ -303,10 +361,10 @@
+ 
+     /**
+      * 生成签名
+-     * @param array $pieces - 待签名数组
++     * @param array $arr - 待签名数组
+      * @return string
+      */
+-    protected function makeSign($arr)
++    protected function makeSign(array $arr): string
+     {
+         $message = implode("\n", array_merge($arr, ['']));
+         openssl_sign($message, $sign, $this->merchantPrivateKeyInstance, OPENSSL_ALGO_SHA256);
+@@ -315,26 +373,26 @@
+ 
+     /**
+      * 生成authorization
+-     * @param $method 请求方式 GET POST PUT
+-     * @param $url 请求URL
+-     * @param $body 请求内容 GET时留空
+-     */
+-    protected function getAuthorization($method, $url, $body = '')
++     * @param string $method 请求方式 GET POST PUT
++     * @param string $url 请求URL
++     * @param string $body 请求内容 GET时留空
++     */
++    protected function getAuthorization(string $method, string $url, string $body = ''): string
+     {
+         $url_values = parse_url($url);
+         $url = $url_values['path'] . (isset($url_values['query']) ? ('?' . $url_values['query']) : '');
+         $timestamp = (string)time();
+         $nonce = $this->getNonceStr();
+         $sign = $this->makeSign([$method, $url, $timestamp, $nonce, $body]);
+-        $token = sprintf('mchid="%s",nonce_str="%s",timestamp="%d",serial_no="%s",signature="%s"', $this->mchId, $nonce, $timestamp, $this->merchantCertificateSerial, $sign);
+-        return $token;
+-    }
+-
+-    /**
+-     * 异步回调处理
+-     * @return array 回调解密后的数据
+-     */
+-    public function notify()
++	    return sprintf('mchid="%s",nonce_str="%s",timestamp="%d",serial_no="%s",signature="%s"', $this->mchId, $nonce, $timestamp, $this->merchantCertificateSerial, $sign);
++    }
++
++	/**
++	 * 异步回调处理
++	 * @return array 回调解密后的数据
++	 * @throws Exception
++	 */
++    public function notify(): array
+     {
+         $inWechatpaySignature = $_SERVER['HTTP_WECHATPAY_SIGNATURE'];
+         $inWechatpayTimestamp = $_SERVER['HTTP_WECHATPAY_TIMESTAMP'];
+@@ -343,15 +401,24 @@
+         $inBody = file_get_contents('php://input');
+ 
+         if (empty($inBody)) {
+-            throw new \Exception('no data');
++            throw new Exception('no data');
+         }
+         if ($this->platformCertificateSerial != $inWechatpaySerial) {
+-            throw new \Exception('平台证书序列号不匹配');
++            if (substr($inWechatpaySerial, 0, 11) == 'PUB_KEY_ID_') {
++                throw new Exception('微信支付公钥ID不匹配');
++            } else {
++                if (substr($this->platformCertificateSerial, 0, 11) == 'PUB_KEY_ID_') {
++                    $this->loadPlatformCertificate();
++                }
++                if ($inWechatpaySerial != $this->platformCertificateSerial) {
++                    throw new Exception('平台证书序列号不匹配');
++                }
++            }
+         }
+ 
+         // 使用平台API证书验签
+         if (!$this->checkSign($inWechatpayTimestamp, $inWechatpayNonce, $inBody, $inWechatpaySignature)) {
+-            throw new \Exception('签名校验失败');
++            throw new Exception('签名校验失败');
+         }
+ 
+         // 转换通知的JSON文本消息为PHP Array数组
+@@ -364,18 +431,20 @@
+         ]] = $inBodyArray;
+         // 加密文本消息解密
+         $inBodyResource = $this->decryptToString($ciphertext, $nonce, $associated_data);
++        if (!$inBodyResource) {
++            throw new Exception('数据解密失败');
++        }
+         // 把解密后的文本转换为PHP Array数组
+-        $inBodyResourceArray = json_decode($inBodyResource, true);
+-        // print_r($inBodyResourceArray);
+-        return $inBodyResourceArray;
++	    // print_r($inBodyResourceArray);
++        return json_decode($inBodyResource, true);
+     }
+ 
+     /**
+      * 回复通知
+-     * @param $isSuccess 是否成功
+-     * @param $msg 失败原因
+-     */
+-    public function replyNotify($isSuccess = true, $msg = '')
++     * @param bool $isSuccess 是否成功
++     * @param string|null $msg 失败原因
++     */
++    public function replyNotify(bool $isSuccess = true, ?string $msg = '', bool $return = false)
+     {
+         $data = [];
+         if ($isSuccess) {
+@@ -385,6 +454,7 @@
+             $data['code'] = 'FAIL';
+             $data['message'] = $msg;
+         }
++        if ($return) return $data;
+         $json = json_encode($data, JSON_UNESCAPED_UNICODE);
+         echo $json;
+     }
+@@ -393,9 +463,9 @@
+     /**
+      * 产生随机字符串，不长于32位
+      * @param int $length
+-     * @return 产生的随机字符串
+-     */
+-    protected function getNonceStr($length = 32)
++     * @return string 产生的随机字符串
++     */
++    protected function getNonceStr(int $length = 32): string
+     {
+         $chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+         $str = "";
+@@ -413,8 +483,7 @@
+     public function rsaEncrypt($str)
+     {
+         if (openssl_public_encrypt($str, $encrypted, $this->platformPublicKeyInstance, OPENSSL_PKCS1_OAEP_PADDING)) {
+-            $text = base64_encode($encrypted);
+-            return $text;
++	        return base64_encode($encrypted);
+         }
+         return false;
+     }
+@@ -432,15 +501,16 @@
+         return false;
+     }
+ 
+-    /**
+-     * 解密AEAD AES 256gcm密文
+-     * @param string $ciphertext AES GCM cipher text
+-     * @param string $nonceStr AES GCM nonce
+-     * @param string $associatedData AES GCM additional authentication data
+-     *
+-     * @return string|bool Decrypted string on success or FALSE on failure
+-     */
+-    protected function decryptToString($ciphertext, $nonceStr, $associatedData)
++	/**
++	 * 解密AEAD AES 256gcm密文
++	 * @param string $ciphertext AES GCM cipher text
++	 * @param string $nonceStr AES GCM nonce
++	 * @param string $associatedData AES GCM additional authentication data
++	 *
++	 * @return string|bool Decrypted string on success or FALSE on failure
++	 * @throws Exception
++	 */
++    protected function decryptToString(string $ciphertext, string $nonceStr, string $associatedData)
+     {
+         $ciphertext = base64_decode($ciphertext);
+         if (strlen($ciphertext) <= 16) {
+@@ -457,19 +527,20 @@
+             return openssl_decrypt($ctext, 'aes-256-gcm', $this->apiKey, OPENSSL_RAW_DATA, $nonceStr, $authTag, $associatedData);
+         }
+ 
+-        throw new \Exception('AEAD_AES_256_GCM需要PHP 7.1以上或者安装libsodium-php');
+-    }
+-
+-    /**
+-     * 发起curl请求
+-     * @param $method 请求方式 GET POST PUT
+-     * @param $url 请求URL
+-     * @param $header 请求头部
+-     * @param $body POST内容
+-     * @param $timeout 超时时间
+-     * @return array [http状态码,响应头部,响应数据]
+-     */
+-    protected function curl($method, $url, $header, $body = null, $timeout = 10)
++        throw new Exception('AEAD_AES_256_GCM需要PHP 7.1以上或者安装libsodium-php');
++    }
++
++	/**
++	 * 发起curl请求
++	 * @param string $method 请求方式 GET POST PUT
++	 * @param string $url 请求URL
++	 * @param array $header 请求头部
++	 * @param null $body POST内容
++	 * @param int $timeout 超时时间
++	 * @return array [http状态码,响应头部,响应数据]
++	 * @throws Exception
++	 */
++    protected function curl(string $method, string $url, array $header, $body = null, int $timeout = 10): array
+     {
+         $ch = curl_init();
+         $curlVersion = curl_version();
+@@ -483,10 +554,10 @@
+         curl_setopt($ch, CURLOPT_USERAGENT, $ua);
+         curl_setopt($ch, CURLOPT_HEADER, true);
+         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+-        if ($method == 'POST' && $body) {
++        if ($method == 'POST') {
+             curl_setopt($ch, CURLOPT_POST, true);
+             curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+-        } elseif ($method == 'PUT' && $body) {
++        } elseif ($method == 'PUT') {
+             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+             curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+         } elseif ($method == 'DELETE') {
+@@ -496,7 +567,7 @@
+         if (curl_errno($ch) > 0) {
+             $errmsg = curl_error($ch);
+             curl_close($ch);
+-            throw new \Exception($errmsg, 0);
++            throw new Exception($errmsg, 0);
+         }
+         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+         $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+--- a/src/V3/ComplainService.php
++++ b/src/V3/ComplainService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace WeChatPay\V3;
++
++use Exception;
+ 
+ /**
+  * 消费者投诉服务类
+@@ -8,20 +10,21 @@
+  */
+ class ComplainService extends BaseService
+ {
+-    public function __construct($config)
++    public function __construct(array $config)
+     {
+         parent::__construct($config);
+     }
+ 
+-    /**
+-     * 查询投诉单列表
+-     * @param $begin_date 开始日期，格式为yyyy-MM-DD
+-     * @param $end_date 结束日期，格式为yyyy-MM-DD
+-     * @param $page_no 分页号，从1开始
+-     * @param $page_size 分页大小1-50，默认为10
+-     * @return mixed {"limit":10,"offset":0,"total_count":100,"data":[]}
+-     */
+-    public function batchQuery($begin_date, $end_date, $page_no = 1, $page_size = 10)
++	/**
++	 * 查询投诉单列表
++	 * @param string $begin_date 开始日期，格式为yyyy-MM-DD
++	 * @param string $end_date 结束日期，格式为yyyy-MM-DD
++	 * @param int $page_no 分页号，从1开始
++	 * @param int $page_size 分页大小1-50，默认为10
++	 * @return mixed {"limit":10,"offset":0,"total_count":100,"data":[]}
++	 * @throws Exception
++	 */
++    public function batchQuery(string $begin_date, string $end_date, int $page_no = 1, int $page_size = 10)
+     {
+         $path = '/v3/merchant-service/complaints-v2';
+         $offset = $page_size * ($page_no - 1);
+@@ -34,34 +37,37 @@
+         return $this->execute('GET', $path, $params);
+     }
+ 
+-    /**
+-     * 查询投诉单详情
+-     * @param $complaint_id 投诉单号
+-     * @return mixed
+-     */
+-    public function query($complaint_id)
++	/**
++	 * 查询投诉单详情
++	 * @param string $complaint_id 投诉单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function query(string $complaint_id)
+     {
+         $path = '/v3/merchant-service/complaints-v2/'.$complaint_id;
+         return $this->execute('GET', $path);
+     }
+ 
+-    /**
+-     * 查询投诉协商历史
+-     * @param $complaint_id 投诉单号
+-     * @return mixed
+-     */
+-    public function queryHistorys($complaint_id)
++	/**
++	 * 查询投诉协商历史
++	 * @param string $complaint_id 投诉单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function queryHistorys(string $complaint_id)
+     {
+         $path = '/v3/merchant-service/complaints-v2/'.$complaint_id.'/negotiation-historys';
+         return $this->execute('GET', $path);
+     }
+ 
+-    /**
+-     * 创建投诉通知回调地址
+-     * @param $url 通知地址
+-     * @return mixed
+-     */
+-    public function createNotifications($url)
++	/**
++	 * 创建投诉通知回调地址
++	 * @param string $url 通知地址
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function createNotifications(string $url)
+     {
+         $path = '/v3/merchant-service/complaint-notifications';
+         $params = [
+@@ -70,22 +76,24 @@
+         return $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * 查询投诉通知回调地址
+-     * @return mixed {"mchid":"商户号","url":"通知地址"}
+-     */
++	/**
++	 * 查询投诉通知回调地址
++	 * @return mixed {"mchid":"商户号","url":"通知地址"}
++	 * @throws Exception
++	 */
+     public function queryNotifications()
+     {
+         $path = '/v3/merchant-service/complaint-notifications';
+         return $this->execute('GET', $path);
+     }
+ 
+-    /**
+-     * 更新投诉通知回调地址
+-     * @param $url 通知地址
+-     * @return mixed
+-     */
+-    public function updateNotifications($url)
++	/**
++	 * 更新投诉通知回调地址
++	 * @param string $url 通知地址
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function updateNotifications(string $url)
+     {
+         $path = '/v3/merchant-service/complaint-notifications';
+         $params = [
+@@ -94,25 +102,27 @@
+         return $this->execute('PUT', $path, $params);
+     }
+ 
+-    /**
+-     * 删除投诉通知回调地址
+-     * @return void
+-     */
++	/**
++	 * 删除投诉通知回调地址
++	 * @return void
++	 * @throws Exception
++	 */
+     public function deleteNotifications()
+     {
+         $path = '/v3/merchant-service/complaint-notifications';
+         $this->execute('DELETE', $path);
+     }
+ 
+-    /**
+-     * 回复用户
+-     * @param $complaint_id 投诉单号
+-     * @param $complainted_mchid 被诉商户号
+-     * @param $response_content 回复内容
+-     * @param $response_images 回复图片列表
+-     * @return void
+-     */
+-    public function response($complaint_id, $complainted_mchid, $response_content, $response_images)
++	/**
++	 * 回复用户
++	 * @param string $complaint_id 投诉单号
++	 * @param string $complainted_mchid 被诉商户号
++	 * @param string $response_content 回复内容
++	 * @param array $response_images 回复图片列表
++	 * @return void
++	 * @throws Exception
++	 */
++    public function response(string $complaint_id, string $complainted_mchid, string $response_content, array $response_images)
+     {
+         $path = '/v3/merchant-service/complaints-v2/'.$complaint_id.'/response';
+         $params = [
+@@ -123,13 +133,14 @@
+         $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * 反馈处理完成
+-     * @param $complaint_id 投诉单号
+-     * @param $complainted_mchid 被诉商户号
+-     * @return void
+-     */
+-    public function complete($complaint_id, $complainted_mchid)
++	/**
++	 * 反馈处理完成
++	 * @param string $complaint_id 投诉单号
++	 * @param string $complainted_mchid 被诉商户号
++	 * @return void
++	 * @throws Exception
++	 */
++    public function complete(string $complaint_id, string $complainted_mchid)
+     {
+         $path = '/v3/merchant-service/complaints-v2/'.$complaint_id.'/complete';
+         $params = [
+@@ -138,40 +149,42 @@
+         $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * 更新退款审批结果
+-     * @param $complaint_id 投诉单号
+-     * @param $params 请求参数
+-     * @return void
+-     */
+-    public function updateRefundProgress($complaint_id, $params)
++	/**
++	 * 更新退款审批结果
++	 * @param string $complaint_id 投诉单号
++	 * @param array $params 请求参数
++	 * @return void
++	 * @throws Exception
++	 */
++    public function updateRefundProgress(string $complaint_id, array $params)
+     {
+         $path = '/v3/merchant-service/complaints-v2/'.$complaint_id.'/update-refund-progress';
+         $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * 上传反馈图片
+-     * @param $file_path 文件路径
+-     * @param $file_name 文件名
+-     * @return string
+-     */
+-    public function uploadImage($file_path, $file_name)
++	/**
++	 * 上传反馈图片
++	 * @param string $file_path 文件路径
++	 * @param string $file_name 文件名
++	 * @return string
++	 * @throws Exception
++	 */
++    public function uploadImage(string $file_path, string $file_name): string
+     {
+         $path = '/v3/merchant-service/images/upload';
+         $result = $this->upload($path, $file_path, $file_name);
+         return $result['media_id'];
+     }
+ 
+-    /**
+-     * 下载图片
+-     * @param $media_id 媒体文件标识ID
+-     * @return string
+-     */
+-    public function getImage($media_id)
++	/**
++	 * 下载图片
++	 * @param string $media_id 媒体文件标识ID
++	 * @return string
++	 * @throws Exception
++	 */
++    public function getImage(string $media_id): string
+     {
+         $url = self::$GATEWAY.'/v3/merchant-service/images/'.urlencode($media_id);
+-        $result = $this->download($url);
+-        return $result;
++	    return $this->download($url);
+     }
+ }
+\ No newline at end of file
+--- /dev/null
++++ b/src/V3/GlobalPaymentService.php
+@@ -0,0 +1,373 @@
++<?php
++
++namespace WeChatPay\V3;
++
++use Exception;
++
++/**
++ * 全球版支付服务类
++ * @see https://pay.weixin.qq.com/wiki/doc/api_external/index_ch.shtml
++ */
++class GlobalPaymentService extends BaseService
++{
++    public function __construct(array $config)
++    {
++        parent::__construct($config);
++    }
++
++    /**
++     * 付款码支付
++     * @param array $params 下单参数
++     * @return mixed
++     * @throws Exception
++     */
++    public function microPay(array $params){
++        $path = '/v3/global/micropay/transactions/pay';
++        if (!empty($this->subMchId)) {
++            $publicParams = [
++                'sp_appid' => $this->appId,
++                'sp_mchid' => $this->mchId,
++                'sub_mchid' => $this->subMchId,
++            ];
++            if (!empty($this->subAppId)) {
++                $publicParams['sub_appid'] = $this->subAppId;
++            }
++        } else {
++            $publicParams = [
++                'appid' => $this->appId,
++                'mchid' => $this->mchId,
++            ];
++        }
++        $params = array_merge($publicParams, $params);
++        $params['trade_type'] = 'MICROPAY';
++        return $this->execute('POST', $path, $params);
++    }
++
++	/**
++	 * NATIVE支付
++	 * @param array $params 下单参数
++	 * @return mixed {"code_url":"二维码链接"}
++	 * @throws Exception
++	 */
++    public function nativePay(array $params){
++        $path = '/v3/global/transactions/native';
++        if (!empty($this->subMchId)) {
++            $publicParams = [
++                'sp_appid' => $this->appId,
++                'sp_mchid' => $this->mchId,
++                'sub_mchid' => $this->subMchId,
++            ];
++            if (!empty($this->subAppId)) {
++                $publicParams['sub_appid'] = $this->subAppId;
++            }
++        } else {
++            $publicParams = [
++                'appid' => $this->appId,
++                'mchid' => $this->mchId,
++            ];
++        }
++        $params = array_merge($publicParams, $params);
++        $params['trade_type'] = 'NATIVE';
++        return $this->execute('POST', $path, $params);
++    }
++
++	/**
++	 * JSAPI支付
++	 * @param array $params 下单参数
++	 * @return array Jsapi支付json数据
++	 * @throws Exception
++	 */
++    public function jsapiPay(array $params): array
++    {
++        $path = '/v3/global/transactions/jsapi';
++        if (!empty($this->subMchId)) {
++            $publicParams = [
++                'sp_appid' => $this->appId,
++                'sp_mchid' => $this->mchId,
++                'sub_mchid' => $this->subMchId,
++            ];
++            if (!empty($this->subAppId)) {
++                $publicParams['sub_appid'] = $this->subAppId;
++            }
++        } else {
++            $publicParams = [
++                'appid' => $this->appId,
++                'mchid' => $this->mchId,
++            ];
++        }
++        $params = array_merge($publicParams, $params);
++        $params['trade_type'] = 'JSAPI';
++        $result = $this->execute('POST', $path, $params);
++        return $this->getJsApiParameters($result['prepay_id']);
++    }
++
++    /**
++     * 获取JSAPI支付的参数
++     * @param string $prepay_id 预支付交易会话标识
++     * @return array json数据
++     */
++    private function getJsApiParameters(string $prepay_id): array
++    {
++        $params = [
++            'appId' => $this->appId,
++            'timeStamp' => time().'',
++            'nonceStr' => $this->getNonceStr(),
++            'package' => 'prepay_id=' . $prepay_id,
++        ];
++        $params['paySign'] = $this->makeSign([$params['appId'], $params['timeStamp'], $params['nonceStr'], $params['package']]);
++        $params['signType'] = 'RSA';
++        return $params;
++    }
++
++	/**
++	 * H5支付
++	 * @param array $params 下单参数
++	 * @return mixed {"h5_url":"支付跳转链接"}
++	 * @throws Exception
++	 */
++    public function h5Pay(array $params){
++        $path = '/v3/global/transactions/mweb';
++        if (!empty($this->subMchId)) {
++            $publicParams = [
++                'sp_appid' => $this->appId,
++                'sp_mchid' => $this->mchId,
++                'sub_mchid' => $this->subMchId,
++            ];
++            if (!empty($this->subAppId)) {
++                $publicParams['sub_appid'] = $this->subAppId;
++            }
++        } else {
++            $publicParams = [
++                'appid' => $this->appId,
++                'mchid' => $this->mchId,
++            ];
++        }
++        $params = array_merge($publicParams, $params);
++        $params['trade_type'] = 'MWEB';
++        return $this->execute('POST', $path, $params);
++    }
++
++	/**
++	 * APP支付
++	 * @param array $params 下单参数
++	 * @return array APP支付json数据
++	 * @throws Exception
++	 */
++    public function appPay(array $params): array
++    {
++        $path = '/v3/global/transactions/app';
++        if (!empty($this->subMchId)) {
++            $publicParams = [
++                'sp_appid' => $this->appId,
++                'sp_mchid' => $this->mchId,
++                'sub_mchid' => $this->subMchId,
++            ];
++            if (!empty($this->subAppId)) {
++                $publicParams['sub_appid'] = $this->subAppId;
++            }
++        } else {
++            $publicParams = [
++                'appid' => $this->appId,
++                'mchid' => $this->mchId,
++            ];
++        }
++        $params = array_merge($publicParams, $params);
++        $params['trade_type'] = 'APP';
++        $result = $this->execute('POST', $path, $params);
++        return $this->getAppParameters($result['prepay_id']);
++    }
++
++    /**
++     * 获取APP支付的参数
++     * @param string $prepay_id 预支付交易会话标识
++     * @return array
++     */
++    private function getAppParameters(string $prepay_id): array
++    {
++        $params = [
++            'appid' => $this->appId,
++            'partnerid' => $this->mchId,
++            'prepayid' => $prepay_id,
++            'package' => 'Sign=WXPay',
++            'noncestr' => $this->getNonceStr(),
++            'timestamp' => time().'',
++        ];
++        $params['sign'] = $this->makeSign([$params['appid'], $params['timestamp'], $params['noncestr'], $params['prepayid']]);
++        return $params;
++    }
++
++	/**
++	 * 查询订单，微信订单号、商户订单号至少填一个
++	 * @param string|null $transaction_id 微信订单号
++	 * @param string|null $out_trade_no 商户订单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function orderQuery(?string $transaction_id = null, ?string $out_trade_no = null){
++        if(!empty($transaction_id)){
++            $path = '/v3/global/transactions/id/'.$transaction_id;
++        }elseif(!empty($out_trade_no)){
++            $path = '/v3/global/transactions/out-trade-no/'.$out_trade_no;
++        }else{
++            throw new Exception('微信支付订单号和商户订单号不能同时为空');
++        }
++        
++        if (!empty($this->subMchId)) {
++            $params = [
++                'sp_mchid' => $this->mchId,
++                'sub_mchid' => $this->subMchId,
++            ];
++        } else {
++            $params = [
++                'mchid' => $this->mchId,
++            ];
++        }
++        return $this->execute('GET', $path, $params);
++    }
++
++    /**
++     * 判断订单是否已完成
++     * @param string $transaction_id 微信订单号
++     * @return bool
++     */
++    public function orderQueryResult(string $transaction_id): bool
++    {
++        try {
++            $data = $this->orderQuery($transaction_id);
++            return $data['trade_state'] == 'SUCCESS' || $data['trade_state'] == 'REFUND';
++        } catch (Exception $e) {
++            return false;
++        }
++    }
++
++	/**
++	 * 关闭订单
++	 * @param string $out_trade_no 商户订单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function closeOrder(string $out_trade_no){
++        $path = '/v3/global/transactions/out-trade-no/'.$out_trade_no.'/close';
++        if (!empty($this->subMchId)) {
++            $params = [
++                'sp_mchid' => $this->mchId,
++                'sub_mchid' => $this->subMchId,
++            ];
++        } else {
++            $params = [
++                'mchid' => $this->mchId,
++            ];
++        }
++        return $this->execute('POST', $path, $params);
++    }
++
++    /**
++     * 撤销订单
++     * @param string $out_trade_no 商户订单号
++     * @return mixed
++     * @throws Exception
++     */
++    public function reverseOrder(string $out_trade_no){
++        $path = '/v3/global/micropay/transactions/out-trade-no/'.$out_trade_no.'/reverse';
++        if (!empty($this->subMchId)) {
++            $params = [
++                'sp_mchid' => $this->mchId,
++                'sub_mchid' => $this->subMchId,
++            ];
++        } else {
++            $params = [
++                'mchid' => $this->mchId,
++            ];
++        }
++        return $this->execute('POST', $path, $params);
++    }
++
++    /**
++     * 申请退款
++     * @param array $params
++     * @return mixed
++     * @throws Exception
++     */
++    public function refund($params){
++        $path = '/v3/global/refunds';
++        if (!empty($this->subMchId)) {
++            $publicParams = [
++                'sp_appid' => $this->appId,
++                'sp_mchid' => $this->mchId,
++                'sub_mchid' => $this->subMchId,
++            ];
++            if (!empty($this->subAppId)) {
++                $publicParams['sub_appid'] = $this->subAppId;
++            }
++        } else {
++            $publicParams = [
++                'appid' => $this->appId,
++                'mchid' => $this->mchId,
++            ];
++        }
++        $params = array_merge($publicParams, $params);
++        return $this->execute('POST', $path, $params);
++    }
++
++	/**
++	 * 查询退款
++	 * @param string $out_refund_no
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function refundQuery(string $out_refund_no){
++        $path = '/v3/global/refunds/out-refund-no/'.$out_refund_no;
++        if (!empty($this->subMchId)) {
++            $params = [
++                'sp_mchid' => $this->mchId,
++                'sub_mchid' => $this->subMchId,
++            ];
++        } else {
++            $params = [
++                'mchid' => $this->mchId,
++            ];
++        }
++        return $this->execute('GET', $path, $params);
++    }
++
++	/**
++	 * 下载对账单
++	 * @param string $date
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function tradeBill(string $date){
++        $path = '/v3/global/statements';
++        if (!empty($this->subMchId)) {
++            $params = [
++                'sp_mchid' => $this->mchId,
++                'sub_mchid' => $this->subMchId,
++            ];
++        } else {
++            $params = [
++                'mchid' => $this->mchId,
++            ];
++        }
++        $params['date'] = $date;
++        return $this->execute('GET', $path, $params);
++    }
++
++	/**
++	 * 支付通知处理
++	 * @return array 支付成功通知参数
++	 * @throws Exception
++	 */
++    public function notify(): array
++    {
++        $data = parent::notify();
++        if (!$data || !isset($data['id'])) {
++            throw new Exception('缺少订单号参数');
++        }
++        if (!$this->orderQueryResult($data['id'])) {
++            throw new Exception('订单未完成');
++        }
++        return $data;
++    }
++
++
++}
+\ No newline at end of file
+--- a/src/V3/PartnerPaymentService.php
++++ b/src/V3/PartnerPaymentService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace WeChatPay\V3;
++
++use Exception;
+ 
+ /**
+  * 服务商基础支付服务类
+@@ -8,18 +10,23 @@
+  */
+ class PartnerPaymentService extends BaseService
+ {
+-    public function __construct($config)
+-    {
++    public function __construct(array $config)
++    {
++        if(strpos($config['sub_mchid'], ',')){
++            $sub_mchids = explode(',', $config['sub_mchid']);
++            $config['sub_mchid'] = $sub_mchids[array_rand($sub_mchids)];
++        }
+         parent::__construct($config);
+     }
+ 
+ 
+-    /**
+-     * NATIVE支付
+-     * @param $params 下单参数
+-     * @return mixed {"code_url":"二维码链接"}
+-     */
+-    public function nativePay($params){
++	/**
++	 * NATIVE支付
++	 * @param array $params 下单参数
++	 * @return mixed {"code_url":"二维码链接"}
++	 * @throws Exception
++	 */
++    public function nativePay(array $params){
+         $path = '/v3/pay/partner/transactions/native';
+         $publicParams = [
+             'sp_appid' => $this->appId,
+@@ -31,12 +38,13 @@
+         return $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * JSAPI支付
+-     * @param $params 下单参数
+-     * @return array Jsapi支付json数据
+-     */
+-    public function jsapiPay($params){
++	/**
++	 * JSAPI支付
++	 * @param array $params 下单参数
++	 * @return array Jsapi支付json数据
++	 * @throws Exception
++	 */
++    public function jsapiPay(array $params){
+         $path = '/v3/pay/partner/transactions/jsapi';
+         $publicParams = [
+             'sp_appid' => $this->appId,
+@@ -51,13 +59,14 @@
+ 
+     /**
+      * 获取JSAPI支付的参数
+-     * @param $prepay_id 预支付交易会话标识
++     * @param string $prepay_id 预支付交易会话标识
+      * @return array json数据
+      */
+-    private function getJsApiParameters($prepay_id)
+-    {
+-        $params = [
+-            'appId' => $this->appId,
++    private function getJsApiParameters(string $prepay_id): array
++    {
++        $appId = !empty($this->subAppId) ? $this->subAppId : $this->appId;
++        $params = [
++            'appId' => $appId,
+             'timeStamp' => time().'',
+             'nonceStr' => $this->getNonceStr(),
+             'package' => 'prepay_id=' . $prepay_id,
+@@ -67,12 +76,13 @@
+         return $params;
+     }
+ 
+-    /**
+-     * H5支付
+-     * @param $params 下单参数
+-     * @return mixed {"h5_url":"支付跳转链接"}
+-     */
+-    public function h5Pay($params){
++	/**
++	 * H5支付
++	 * @param array $params 下单参数
++	 * @return mixed {"h5_url":"支付跳转链接"}
++	 * @throws Exception
++	 */
++    public function h5Pay(array $params){
+         $path = '/v3/pay/partner/transactions/h5';
+         $publicParams = [
+             'sp_appid' => $this->appId,
+@@ -84,12 +94,13 @@
+         return $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * APP支付
+-     * @param $params 下单参数
+-     * @return mixed {"prepay_id":"预支付交易会话标识"}
+-     */
+-    public function appPay($params){
++	/**
++	 * APP支付
++	 * @param array $params 下单参数
++	 * @return array {"prepay_id":"预支付交易会话标识"}
++	 * @throws Exception
++	 */
++    public function appPay(array $params){
+         $path = '/v3/pay/partner/transactions/app';
+         $publicParams = [
+             'sp_appid' => $this->appId,
+@@ -104,13 +115,14 @@
+ 
+     /**
+      * 获取APP支付的参数
+-     * @param $prepay_id 预支付交易会话标识
++     * @param string $prepay_id 预支付交易会话标识
+      * @return array
+      */
+-    private function getAppParameters($prepay_id)
+-    {
+-        $params = [
+-            'appid' => $this->appId,
++    private function getAppParameters(string $prepay_id): array
++    {
++        $appId = !empty($this->subAppId) ? $this->subAppId : $this->appId;
++        $params = [
++            'appid' => $appId,
+             'partnerid' => $this->mchId,
+             'prepayid' => $prepay_id,
+             'package' => 'Sign=WXPay',
+@@ -121,19 +133,20 @@
+         return $params;
+     }
+ 
+-    /**
+-     * 查询订单，微信订单号、商户订单号至少填一个
+-     * @param $transaction_id 微信订单号
+-     * @param $out_trade_no 商户订单号
+-     * @return mixed
+-     */
+-    public function orderQuery($transaction_id = null, $out_trade_no = null){
++	/**
++	 * 查询订单，微信订单号、商户订单号至少填一个
++	 * @param string|null $transaction_id 微信订单号
++	 * @param string|null $out_trade_no 商户订单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function orderQuery(?string $transaction_id = null, ?string $out_trade_no = null){
+         if(!empty($transaction_id)){
+             $path = '/v3/pay/partner/transactions/id/'.$transaction_id;
+         }elseif(!empty($out_trade_no)){
+             $path = '/v3/pay/partner/transactions/out-trade-no/'.$out_trade_no;
+         }else{
+-            throw new \Exception('微信支付订单号和商户订单号不能同时为空');
++            throw new Exception('微信支付订单号和商户订单号不能同时为空');
+         }
+         
+         $params = [
+@@ -145,25 +158,26 @@
+ 
+     /**
+      * 判断订单是否已完成
+-     * @param $transaction_id 微信订单号
++     * @param string $transaction_id 微信订单号
+      * @return bool
+      */
+-    public function orderQueryResult($transaction_id)
++    public function orderQueryResult(string $transaction_id): bool
+     {
+         try {
+             $data = $this->orderQuery($transaction_id);
+             return $data['trade_state'] == 'SUCCESS' || $data['trade_state'] == 'REFUND';
+-        } catch (\Exception $e) {
++        } catch (Exception $e) {
+             return false;
+         }
+     }
+ 
+-    /**
+-     * 关闭订单
+-     * @param $out_trade_no 商户订单号
+-     * @return mixed
+-     */
+-    public function closeOrder($out_trade_no){
++	/**
++	 * 关闭订单
++	 * @param string $out_trade_no 商户订单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function closeOrder(string $out_trade_no){
+         $path = '/v3/pay/partner/transactions/out-trade-no/'.$out_trade_no.'/close';
+         $params = [
+             'sp_mchid' => $this->mchId,
+@@ -172,12 +186,13 @@
+         return $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * 申请退款
+-     * @param $params
+-     * @return mixed
+-     */
+-    public function refund($params){
++	/**
++	 * 申请退款
++	 * @param array $params
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function refund(array $params){
+         $path = '/v3/refund/domestic/refunds';
+         $publicParams = [
+             'sub_mchid' => $this->subMchId,
+@@ -186,12 +201,13 @@
+         return $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * 查询退款
+-     * @param $params
+-     * @return mixed
+-     */
+-    public function refundQuery($out_refund_no){
++	/**
++	 * 查询退款
++	 * @param string $out_refund_no
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function refundQuery(string $out_refund_no){
+         $path = '/v3/refund/domestic/refunds/'.$out_refund_no;
+         $params = [
+             'sub_mchid' => $this->subMchId,
+@@ -199,12 +215,13 @@
+         return $this->execute('GET', $path, $params);
+     }
+ 
+-    /**
+-     * 申请交易账单
+-     * @param $params
+-     * @return mixed
+-     */
+-    public function tradeBill($params){
++	/**
++	 * 申请交易账单
++	 * @param array $params
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function tradeBill(array $params){
+         $path = '/v3/bill/tradebill';
+         $publicParams = [
+             'sub_mchid' => $this->subMchId,
+@@ -213,22 +230,24 @@
+         return $this->execute('GET', $path, $params);
+     }
+ 
+-    /**
+-     * 申请资金账单
+-     * @param $params
+-     * @return mixed
+-     */
+-    public function fundflowBill($params){
++	/**
++	 * 申请资金账单
++	 * @param array $params
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function fundflowBill(array $params){
+         $path = '/v3/bill/fundflowbill';
+         return $this->execute('GET', $path, $params);
+     }
+ 
+-    /**
+-     * 申请单个子商户资金账单
+-     * @param $params
+-     * @return mixed
+-     */
+-    public function subMerchantFundflowBill($params){
++	/**
++	 * 申请单个子商户资金账单
++	 * @param array $params
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function subMerchantFundflowBill(array $params){
+         $path = '/v3/bill/sub-merchant-fundflowbill';
+         $publicParams = [
+             'sub_mchid' => $this->subMchId,
+@@ -237,29 +256,31 @@
+         return $this->execute('GET', $path, $params);
+     }
+ 
+-    /**
+-     * 支付通知处理
+-     * @return array 支付成功通知参数
+-     */
+-    public function notify()
++	/**
++	 * 支付通知处理
++	 * @return array 支付成功通知参数
++	 * @throws Exception
++	 */
++    public function notify(): array
+     {
+         $data = parent::notify();
+         if (!$data || !isset($data['transaction_id']) && !isset($data['combine_out_trade_no'])) {
+-            throw new \Exception('缺少订单号参数');
++            throw new Exception('缺少订单号参数');
+         }
+         if (!isset($data['combine_out_trade_no']) && !$this->orderQueryResult($data['transaction_id'])) {
+-            throw new \Exception('订单未完成');
++            throw new Exception('订单未完成');
+         }
+         return $data;
+     }
+ 
+ 
+-    /**
+-     * 合单Native支付
+-     * @param $params 下单参数
+-     * @return mixed {"code_url":"二维码链接"}
+-     */
+-    public function combineNativePay($params){
++	/**
++	 * 合单Native支付
++	 * @param array $params 下单参数
++	 * @return mixed {"code_url":"二维码链接"}
++	 * @throws Exception
++	 */
++    public function combineNativePay(array $params){
+         $path = '/v3/combine-transactions/native';
+         $publicParams = [
+             'combine_appid' => $this->appId,
+@@ -267,19 +288,21 @@
+         ];
+         foreach($params['sub_orders'] as &$order){
+             $order['mchid'] = $this->mchId;
+-            $order['sub_mchid'] = $this->subMchId;
+-            $order['sub_appid'] = $this->subAppId;
+-        }
+-        $params = array_merge($publicParams, $params);
+-        return $this->execute('POST', $path, $params);
+-    }
+-
+-    /**
+-     * 合单JSAPI支付
+-     * @param $params 下单参数
+-     * @return array Jsapi支付json数据
+-     */
+-    public function combineJsapiPay($params){
++            if(!isset($order['sub_mchid'])) $order['sub_mchid'] = $this->subMchId;
++            if(!isset($order['sub_appid'])) $order['sub_appid'] = $this->subAppId;
++        }
++        $params = array_merge($publicParams, $params);
++        return $this->execute('POST', $path, $params);
++    }
++
++	/**
++	 * 合单JSAPI支付
++	 * @param array $params 下单参数
++	 * @return array Jsapi支付json数据
++	 * @throws Exception
++	 */
++    public function combineJsapiPay(array $params): array
++    {
+         $path = '/v3/combine-transactions/jsapi';
+         $publicParams = [
+             'combine_appid' => $this->appId,
+@@ -287,20 +310,21 @@
+         ];
+         foreach($params['sub_orders'] as &$order){
+             $order['mchid'] = $this->mchId;
+-            $order['sub_mchid'] = $this->subMchId;
+-            $order['sub_appid'] = $this->subAppId;
++            if(!isset($order['sub_mchid'])) $order['sub_mchid'] = $this->subMchId;
++            if(!isset($order['sub_appid'])) $order['sub_appid'] = $this->subAppId;
+         }
+         $params = array_merge($publicParams, $params);
+         $result = $this->execute('POST', $path, $params);
+         return $this->getJsApiParameters($result['prepay_id']);
+     }
+ 
+-    /**
+-     * 合单H5支付
+-     * @param $params 下单参数
+-     * @return mixed {"h5_url":"支付跳转链接"}
+-     */
+-    public function combineH5Pay($params){
++	/**
++	 * 合单H5支付
++	 * @param array $params 下单参数
++	 * @return mixed {"h5_url":"支付跳转链接"}
++	 * @throws Exception
++	 */
++    public function combineH5Pay(array $params){
+         $path = '/v3/combine-transactions/h5';
+         $publicParams = [
+             'combine_appid' => $this->appId,
+@@ -308,19 +332,20 @@
+         ];
+         foreach($params['sub_orders'] as &$order){
+             $order['mchid'] = $this->mchId;
+-            $order['sub_mchid'] = $this->subMchId;
+-            $order['sub_appid'] = $this->subAppId;
+-        }
+-        $params = array_merge($publicParams, $params);
+-        return $this->execute('POST', $path, $params);
+-    }
+-
+-    /**
+-     * 合单APP支付
+-     * @param $params 下单参数
+-     * @return mixed {"prepay_id":"预支付交易会话标识"}
+-     */
+-    public function combineAppPay($params){
++            if(!isset($order['sub_mchid'])) $order['sub_mchid'] = $this->subMchId;
++            if(!isset($order['sub_appid'])) $order['sub_appid'] = $this->subAppId;
++        }
++        $params = array_merge($publicParams, $params);
++        return $this->execute('POST', $path, $params);
++    }
++
++	/**
++	 * 合单APP支付
++	 * @param array $params 下单参数
++	 * @return mixed {"prepay_id":"预支付交易会话标识"}
++	 * @throws Exception
++	 */
++    public function combineAppPay(array $params){
+         $path = '/v3/combine-transactions/app';
+         $publicParams = [
+             'combine_appid' => $this->appId,
+@@ -328,31 +353,34 @@
+         ];
+         foreach($params['sub_orders'] as &$order){
+             $order['mchid'] = $this->mchId;
+-            $order['sub_mchid'] = $this->subMchId;
+-            $order['sub_appid'] = $this->subAppId;
+-        }
+-        $params = array_merge($publicParams, $params);
+-        return $this->execute('POST', $path, $params);
+-    }
+-
+-    /**
+-     * 合单查询订单
+-     * @param $combine_out_trade_no 合单商户订单号
+-     * @return mixed
+-     */
+-    public function combineQueryOrder($combine_out_trade_no){
++            if(!isset($order['sub_mchid'])) $order['sub_mchid'] = $this->subMchId;
++            if(!isset($order['sub_appid'])) $order['sub_appid'] = $this->subAppId;
++        }
++        $params = array_merge($publicParams, $params);
++        $result = $this->execute('POST', $path, $params);
++        return $this->getAppParameters($result['prepay_id']);
++    }
++
++	/**
++	 * 合单查询订单
++	 * @param string $combine_out_trade_no 合单商户订单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function combineQueryOrder(string $combine_out_trade_no){
+         $path = '/v3/combine-transactions/out-trade-no/'.$combine_out_trade_no;
+         
+         return $this->execute('GET', $path, []);
+     }
+ 
+-    /**
+-     * 合单关闭订单
+-     * @param $combine_out_trade_no 合单商户订单号
+-     * @param $out_trade_no_list 子单订单号列表
+-     * @return mixed
+-     */
+-    public function combineCloseOrder($combine_out_trade_no, $out_trade_no_list){
++	/**
++	 * 合单关闭订单
++	 * @param string $combine_out_trade_no 合单商户订单号
++	 * @param array $out_trade_no_list 子单订单号列表
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function combineCloseOrder(string $combine_out_trade_no, array $out_trade_no_list){
+         $path = '/v3/combine-transactions/out-trade-no/'.$combine_out_trade_no.'/close';
+         $sub_orders = [];
+         foreach($out_trade_no_list as $out_trade_no){
+--- a/src/V3/PaymentService.php
++++ b/src/V3/PaymentService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace WeChatPay\V3;
++
++use Exception;
+ 
+ /**
+  * 基础支付服务类
+@@ -8,18 +10,19 @@
+  */
+ class PaymentService extends BaseService
+ {
+-    public function __construct($config)
++    public function __construct(array $config)
+     {
+         parent::__construct($config);
+     }
+ 
+ 
+-    /**
+-     * NATIVE支付
+-     * @param $params 下单参数
+-     * @return mixed {"code_url":"二维码链接"}
+-     */
+-    public function nativePay($params){
++	/**
++	 * NATIVE支付
++	 * @param array $params 下单参数
++	 * @return mixed {"code_url":"二维码链接"}
++	 * @throws Exception
++	 */
++    public function nativePay(array $params){
+         $path = '/v3/pay/transactions/native';
+         $publicParams = [
+             'appid' => $this->appId,
+@@ -29,12 +32,14 @@
+         return $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * JSAPI支付
+-     * @param $params 下单参数
+-     * @return array Jsapi支付json数据
+-     */
+-    public function jsapiPay($params){
++	/**
++	 * JSAPI支付
++	 * @param array $params 下单参数
++	 * @return array Jsapi支付json数据
++	 * @throws Exception
++	 */
++    public function jsapiPay(array $params): array
++    {
+         $path = '/v3/pay/transactions/jsapi';
+         $publicParams = [
+             'appid' => $this->appId,
+@@ -47,10 +52,10 @@
+ 
+     /**
+      * 获取JSAPI支付的参数
+-     * @param $prepay_id 预支付交易会话标识
++     * @param string $prepay_id 预支付交易会话标识
+      * @return array json数据
+      */
+-    private function getJsApiParameters($prepay_id)
++    private function getJsApiParameters(string $prepay_id): array
+     {
+         $params = [
+             'appId' => $this->appId,
+@@ -63,12 +68,13 @@
+         return $params;
+     }
+ 
+-    /**
+-     * H5支付
+-     * @param $params 下单参数
+-     * @return mixed {"h5_url":"支付跳转链接"}
+-     */
+-    public function h5Pay($params){
++	/**
++	 * H5支付
++	 * @param array $params 下单参数
++	 * @return mixed {"h5_url":"支付跳转链接"}
++	 * @throws Exception
++	 */
++    public function h5Pay(array $params){
+         $path = '/v3/pay/transactions/h5';
+         $publicParams = [
+             'appid' => $this->appId,
+@@ -78,12 +84,14 @@
+         return $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * APP支付
+-     * @param $params 下单参数
+-     * @return array APP支付json数据
+-     */
+-    public function appPay($params){
++	/**
++	 * APP支付
++	 * @param array $params 下单参数
++	 * @return array APP支付json数据
++	 * @throws Exception
++	 */
++    public function appPay(array $params): array
++    {
+         $path = '/v3/pay/transactions/app';
+         $publicParams = [
+             'appid' => $this->appId,
+@@ -96,10 +104,10 @@
+ 
+     /**
+      * 获取APP支付的参数
+-     * @param $prepay_id 预支付交易会话标识
++     * @param string $prepay_id 预支付交易会话标识
+      * @return array
+      */
+-    private function getAppParameters($prepay_id)
++    private function getAppParameters(string $prepay_id): array
+     {
+         $params = [
+             'appid' => $this->appId,
+@@ -113,19 +121,20 @@
+         return $params;
+     }
+ 
+-    /**
+-     * 查询订单，微信订单号、商户订单号至少填一个
+-     * @param $transaction_id 微信订单号
+-     * @param $out_trade_no 商户订单号
+-     * @return mixed
+-     */
+-    public function orderQuery($transaction_id = null, $out_trade_no = null){
++	/**
++	 * 查询订单，微信订单号、商户订单号至少填一个
++	 * @param string|null $transaction_id 微信订单号
++	 * @param string|null $out_trade_no 商户订单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function orderQuery(?string $transaction_id = null, ?string $out_trade_no = null){
+         if(!empty($transaction_id)){
+             $path = '/v3/pay/transactions/id/'.$transaction_id;
+         }elseif(!empty($out_trade_no)){
+             $path = '/v3/pay/transactions/out-trade-no/'.$out_trade_no;
+         }else{
+-            throw new \Exception('微信支付订单号和商户订单号不能同时为空');
++            throw new Exception('微信支付订单号和商户订单号不能同时为空');
+         }
+         
+         $params = [
+@@ -136,25 +145,26 @@
+ 
+     /**
+      * 判断订单是否已完成
+-     * @param $transaction_id 微信订单号
++     * @param string $transaction_id 微信订单号
+      * @return bool
+      */
+-    public function orderQueryResult($transaction_id)
++    public function orderQueryResult(string $transaction_id): bool
+     {
+         try {
+             $data = $this->orderQuery($transaction_id);
+             return $data['trade_state'] == 'SUCCESS' || $data['trade_state'] == 'REFUND';
+-        } catch (\Exception $e) {
++        } catch (Exception $e) {
+             return false;
+         }
+     }
+ 
+-    /**
+-     * 关闭订单
+-     * @param $out_trade_no 商户订单号
+-     * @return mixed
+-     */
+-    public function closeOrder($out_trade_no){
++	/**
++	 * 关闭订单
++	 * @param string $out_trade_no 商户订单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function closeOrder(string $out_trade_no){
+         $path = '/v3/pay/transactions/out-trade-no/'.$out_trade_no.'/close';
+         $params = [
+             'mchid' => $this->mchId,
+@@ -162,69 +172,75 @@
+         return $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * 申请退款
+-     * @param $params
+-     * @return mixed
+-     */
+-    public function refund($params){
++	/**
++	 * 申请退款
++	 * @param array $params
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function refund(array $params){
+         $path = '/v3/refund/domestic/refunds';
+         return $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * 查询退款
+-     * @param $params
+-     * @return mixed
+-     */
+-    public function refundQuery($out_refund_no){
++	/**
++	 * 查询退款
++	 * @param string $out_refund_no
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function refundQuery(string $out_refund_no){
+         $path = '/v3/refund/domestic/refunds/'.$out_refund_no;
+         return $this->execute('GET', $path, []);
+     }
+ 
+-    /**
+-     * 申请交易账单
+-     * @param $params
+-     * @return mixed
+-     */
+-    public function tradeBill($params){
++	/**
++	 * 申请交易账单
++	 * @param array $params
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function tradeBill(array $params){
+         $path = '/v3/bill/tradebill';
+         return $this->execute('GET', $path, $params);
+     }
+ 
+-    /**
+-     * 申请资金账单
+-     * @param $params
+-     * @return mixed
+-     */
+-    public function fundflowBill($params){
++	/**
++	 * 申请资金账单
++	 * @param array $params
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function fundflowBill(array $params){
+         $path = '/v3/bill/fundflowbill';
+         return $this->execute('GET', $path, $params);
+     }
+ 
+-    /**
+-     * 支付通知处理
+-     * @return array 支付成功通知参数
+-     */
+-    public function notify()
++	/**
++	 * 支付通知处理
++	 * @return array 支付成功通知参数
++	 * @throws Exception
++	 */
++    public function notify(): array
+     {
+         $data = parent::notify();
+         if (!$data || !isset($data['transaction_id']) && !isset($data['combine_out_trade_no'])) {
+-            throw new \Exception('缺少订单号参数');
++            throw new Exception('缺少订单号参数');
+         }
+         if (!isset($data['combine_out_trade_no']) && !$this->orderQueryResult($data['transaction_id'])) {
+-            throw new \Exception('订单未完成');
++            throw new Exception('订单未完成');
+         }
+         return $data;
+     }
+ 
+ 
+-    /**
+-     * 合单Native支付
+-     * @param $params 下单参数
+-     * @return mixed {"code_url":"二维码链接"}
+-     */
+-    public function combineNativePay($params){
++	/**
++	 * 合单Native支付
++	 * @param array $params 下单参数
++	 * @return mixed {"code_url":"二维码链接"}
++	 * @throws Exception
++	 */
++    public function combineNativePay(array $params){
+         $path = '/v3/combine-transactions/native';
+         $publicParams = [
+             'combine_appid' => $this->appId,
+@@ -237,12 +253,14 @@
+         return $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * 合单JSAPI支付
+-     * @param $params 下单参数
+-     * @return array Jsapi支付json数据
+-     */
+-    public function combineJsapiPay($params){
++	/**
++	 * 合单JSAPI支付
++	 * @param array $params 下单参数
++	 * @return array Jsapi支付json数据
++	 * @throws Exception
++	 */
++    public function combineJsapiPay(array $params): array
++    {
+         $path = '/v3/combine-transactions/jsapi';
+         $publicParams = [
+             'combine_appid' => $this->appId,
+@@ -256,12 +274,13 @@
+         return $this->getJsApiParameters($result['prepay_id']);
+     }
+ 
+-    /**
+-     * 合单H5支付
+-     * @param $params 下单参数
+-     * @return mixed {"h5_url":"支付跳转链接"}
+-     */
+-    public function combineH5Pay($params){
++	/**
++	 * 合单H5支付
++	 * @param array $params 下单参数
++	 * @return mixed {"h5_url":"支付跳转链接"}
++	 * @throws Exception
++	 */
++    public function combineH5Pay(array $params){
+         $path = '/v3/combine-transactions/h5';
+         $publicParams = [
+             'combine_appid' => $this->appId,
+@@ -274,12 +293,13 @@
+         return $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * 合单APP支付
+-     * @param $params 下单参数
+-     * @return mixed {"prepay_id":"预支付交易会话标识"}
+-     */
+-    public function combineAppPay($params){
++	/**
++	 * 合单APP支付
++	 * @param array $params 下单参数
++	 * @return mixed {"prepay_id":"预支付交易会话标识"}
++	 * @throws Exception
++	 */
++    public function combineAppPay(array $params){
+         $path = '/v3/combine-transactions/app';
+         $publicParams = [
+             'combine_appid' => $this->appId,
+@@ -292,24 +312,26 @@
+         return $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * 合单查询订单
+-     * @param $combine_out_trade_no 合单商户订单号
+-     * @return mixed
+-     */
+-    public function combineQueryOrder($combine_out_trade_no){
++	/**
++	 * 合单查询订单
++	 * @param string $combine_out_trade_no 合单商户订单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function combineQueryOrder(string $combine_out_trade_no){
+         $path = '/v3/combine-transactions/out-trade-no/'.$combine_out_trade_no;
+         
+         return $this->execute('GET', $path, []);
+     }
+ 
+-    /**
+-     * 合单关闭订单
+-     * @param $combine_out_trade_no 合单商户订单号
+-     * @param $out_trade_no_list 子单订单号列表
+-     * @return mixed
+-     */
+-    public function combineCloseOrder($combine_out_trade_no, $out_trade_no_list){
++	/**
++	 * 合单关闭订单
++	 * @param string $combine_out_trade_no 合单商户订单号
++	 * @param array $out_trade_no_list 子单订单号列表
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function combineCloseOrder(string $combine_out_trade_no, array $out_trade_no_list){
+         $path = '/v3/combine-transactions/out-trade-no/'.$combine_out_trade_no.'/close';
+         $sub_orders = [];
+         foreach($out_trade_no_list as $out_trade_no){
+--- a/src/V3/ProfitsharingService.php
++++ b/src/V3/ProfitsharingService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace WeChatPay\V3;
++
++use Exception;
+ 
+ /**
+  * 分账服务类
+@@ -8,24 +10,26 @@
+  */
+ class ProfitsharingService extends BaseService
+ {
+-    public function __construct($config)
++    public function __construct(array $config)
+     {
+         parent::__construct($config);
+     }
+ 
+ 
+-    /**
+-     * 添加分账接收方
+-     * @param $account 分账接收方账号
+-     * @param $name 用户姓名(填写后校验)
+-     * @return mixed
+-     */
+-    public function addReceiver($account, $name = null)
++	/**
++	 * 添加分账接收方
++	 * @param string $type 分账接收方类型
++	 * @param string $account 分账接收方账号
++	 * @param string|null $name 用户姓名(填写后校验)
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function addReceiver(string $type, string $account, ?string $name = null)
+     {
+         $path = $this->ecommerce ? '/v3/ecommerce/profitsharing/receivers/add' : '/v3/profitsharing/receivers/add';
+         $params = [
+             'appid' => $this->appId,
+-            'type' => 'PERSONAL_OPENID',
++            'type' => $type,
+             'account' => $account,
+             'relation_type' => 'SUPPLIER',
+         ];
+@@ -40,29 +44,32 @@
+         return $this->execute('POST', $path, $params, true);
+     }
+ 
+-    /**
+-     * 删除分账接收方
+-     * @param $account 分账接收方账号
+-     * @return mixed
+-     */
+-    public function deleteReceiver($account)
++	/**
++	 * 删除分账接收方
++	 * @param string $type 分账接收方类型
++	 * @param string $account 分账接收方账号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function deleteReceiver(string $type, string $account)
+     {
+         $path = $this->ecommerce ? '/v3/ecommerce/profitsharing/receivers/delete' : '/v3/profitsharing/receivers/delete';
+         $params = [
+             'appid' => $this->appId,
+-            'type' => 'PERSONAL_OPENID',
++            'type' => $type,
+             'account' => $account,
+         ];
+         if (!empty($this->subMchId)) $params['sub_mchid'] = $this->subMchId;
+         return $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * 请求分账
+-     * @param $params 请求参数
+-     * @return mixed {"transaction_id":"微信订单号","out_order_no":"商户分账单号","order_id":"微信分账单号","status":"分账单状态","receivers":""}
+-     */
+-    public function submit($params)
++	/**
++	 * 请求分账
++	 * @param array $params 请求参数
++	 * @return mixed {"transaction_id":"微信订单号","out_order_no":"商户分账单号","order_id":"微信分账单号","status":"分账单状态","receivers":""}
++	 * @throws Exception
++	 */
++    public function submit(array $params)
+     {
+         $path = $this->ecommerce ? '/v3/ecommerce/profitsharing/orders' : '/v3/profitsharing/orders';
+         $publicParams = [
+@@ -73,29 +80,34 @@
+         return $this->execute('POST', $path, $params, true);
+     }
+ 
+-    /**
+-     * 查询分账结果
+-     * @param $out_order_no 商户分账单号
+-     * @param $transaction_id 微信订单号
+-     * @return mixed {"transaction_id":"微信订单号","out_order_no":"商户分账单号","order_id":"微信分账单号","status":"分账单状态","receivers":""}
+-     */
+-    public function query($out_order_no, $transaction_id)
++	/**
++	 * 查询分账结果
++	 * @param string $out_order_no 商户分账单号
++	 * @param string $transaction_id 微信订单号
++	 * @return mixed {"transaction_id":"微信订单号","out_order_no":"商户分账单号","order_id":"微信分账单号","status":"分账单状态","receivers":""}
++	 * @throws Exception
++	 */
++    public function query(string $out_order_no, string $transaction_id)
+     {
+-        $path = $this->ecommerce ? '/v3/ecommerce/profitsharing/orders/' . $out_order_no : '/v3/profitsharing/orders/' . $out_order_no;
++        $path = $this->ecommerce ? '/v3/ecommerce/profitsharing/orders' : '/v3/profitsharing/orders/' . $out_order_no;
+         $params = [
+             'transaction_id' => $transaction_id,
+         ];
++        if ($this->ecommerce) {
++            $params['out_order_no'] = $out_order_no;
++        }
+         if (!empty($this->subMchId)) $params['sub_mchid'] = $this->subMchId;
+         return $this->execute('GET', $path, $params);
+     }
+ 
+-    /**
+-     * 解冻剩余资金
+-     * @param $out_order_no 商户分账单号
+-     * @param $transaction_id 微信订单号
+-     * @return mixed {"transaction_id":"微信订单号","out_order_no":"商户分账单号","order_id":"微信分账单号"}
+-     */
+-    public function unfreeze($out_order_no, $transaction_id)
++	/**
++	 * 解冻剩余资金
++	 * @param string $out_order_no 商户分账单号
++	 * @param string $transaction_id 微信订单号
++	 * @return mixed {"transaction_id":"微信订单号","out_order_no":"商户分账单号","order_id":"微信分账单号"}
++	 * @throws Exception
++	 */
++    public function unfreeze(string $out_order_no, string $transaction_id)
+     {
+         $path = $this->ecommerce ? '/v3/ecommerce/profitsharing/finish-order' : '/v3/profitsharing/orders/unfreeze';
+         $params = [
+@@ -107,36 +119,39 @@
+         return $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * 查询订单待分账金额
+-     * @param $transaction_id 微信订单号
+-     * @return mixed {"transaction_id":"微信订单号","unsplit_amount":"订单剩余待分金额"}
+-     */
+-    public function orderAmountQuery($transaction_id)
++	/**
++	 * 查询订单待分账金额
++	 * @param string $transaction_id 微信订单号
++	 * @return mixed {"transaction_id":"微信订单号","unsplit_amount":"订单剩余待分金额"}
++	 * @throws Exception
++	 */
++    public function orderAmountQuery(string $transaction_id)
+     {
+         $path = $this->ecommerce ? '/v3/ecommerce/profitsharing/orders/' . $transaction_id . '/amounts' : '/v3/profitsharing/transactions/' . $transaction_id . '/amounts';
+         return $this->execute('GET', $path);
+     }
+ 
+-    /**
+-     * 请求分账回退
+-     * @param $params 请求参数
+-     * @return mixed
+-     */
+-    public function return($params)
++	/**
++	 * 请求分账回退
++	 * @param array $params 请求参数
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function return(array $params)
+     {
+         $path = $this->ecommerce ? '/v3/ecommerce/profitsharing/returnorders' : '/v3/profitsharing/return-orders';
+         if (!empty($this->subMchId)) $params['sub_mchid'] = $this->subMchId;
+         return $this->execute('POST', $path, $params);
+     }
+ 
+-    /**
+-     * 查询分账回退结果
+-     * @param $out_return_no 商户回退单号
+-     * @param $out_order_no 商户分账单号
+-     * @return mixed
+-     */
+-    public function returnQuery($out_return_no, $out_order_no)
++	/**
++	 * 查询分账回退结果
++	 * @param string $out_return_no 商户回退单号
++	 * @param string $out_order_no 商户分账单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function returnQuery(string $out_return_no, string $out_order_no)
+     {
+         $path = $this->ecommerce ? '/v3/ecommerce/profitsharing/returnorders' : '/v3/profitsharing/return-orders/' . $out_return_no;
+         $params = [
+--- a/src/V3/TransferService.php
++++ b/src/V3/TransferService.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ namespace WeChatPay\V3;
++
++use Exception;
+ 
+ /**
+  * 商家转账服务类
+@@ -8,18 +10,19 @@
+  */
+ class TransferService extends BaseService
+ {
+-    public function __construct($config)
++    public function __construct(array $config)
+     {
+         parent::__construct($config);
+     }
+ 
+ 
+-    /**
+-     * 发起批量转账
+-     * @param $params 请求参数
+-     * @return mixed {"out_batch_no":"商家批次单号","batch_id":"微信批次单号","create_time":"批次创建时间"}
+-     */
+-    public function transfer($params)
++	/**
++	 * 发起批量转账
++	 * @param array $params 请求参数
++	 * @return mixed {"out_batch_no":"商家批次单号","batch_id":"微信批次单号","create_time":"批次创建时间"}
++	 * @throws Exception
++	 */
++    public function transfer(array $params)
+     {
+         $path = '/v3/transfer/batches';
+         $publicParams = [
+@@ -29,48 +32,231 @@
+         return $this->execute('POST', $path, $params, true);
+     }
+ 
+-    /**
+-     * 微信批次单号查询转账批次单
+-     * @param $batch_id 微信批次单号
+-     * @param $params 查询参数
+-     * @return mixed {"transfer_batch":{},"transfer_detail_list":[]}
+-     */
+-    public function transferbatch($batch_id, $params){
++	/**
++	 * 微信批次单号查询转账批次单
++	 * @param string $batch_id 微信批次单号
++	 * @param array $params 查询参数
++	 * @return mixed {"transfer_batch":{},"transfer_detail_list":[]}
++	 * @throws Exception
++	 */
++    public function transferbatch(string $batch_id, array $params){
+         $path = '/v3/transfer/batches/batch-id/'.$batch_id;
+         return $this->execute('GET', $path, $params);
+     }
+ 
+-    /**
+-     * 微信明细单号查询转账明细单
+-     * @param $batch_id 微信批次单号
+-     * @param $detail_id 微信明细单号
+-     * @return mixed
+-     */
+-    public function transferdetail($batch_id, $detail_id){
++	/**
++	 * 微信明细单号查询转账明细单
++	 * @param string $batch_id 微信批次单号
++	 * @param string $detail_id 微信明细单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function transferdetail(string $batch_id, string $detail_id){
+         $path = '/v3/transfer/batches/batch-id/'.$batch_id.'/details/detail-id/'.$detail_id;
+         return $this->execute('GET', $path);
+     }
+ 
+-    /**
+-     * 商家批次单号查询转账批次单
+-     * @param $out_batch_no 商家批次单号
+-     * @param $params 查询参数
+-     * @return mixed {"transfer_batch":{},"transfer_detail_list":[]}
+-     */
+-    public function transferoutbatch($out_batch_no, $params){
++	/**
++	 * 商家批次单号查询转账批次单
++	 * @param string $out_batch_no 商家批次单号
++	 * @param array $params 查询参数
++	 * @return mixed {"transfer_batch":{},"transfer_detail_list":[]}
++	 * @throws Exception
++	 */
++    public function transferoutbatch(string $out_batch_no, array $params){
+         $path = '/v3/transfer/batches/out-batch-no/'.$out_batch_no;
+         return $this->execute('GET', $path, $params);
+     }
+ 
+-    /**
+-     * 商家明细单号查询转账明细单
+-     * @param $out_batch_no 商家批次单号
+-     * @param $out_detail_no 商家明细单号
+-     * @return mixed
+-     */
+-    public function transferoutdetail($out_batch_no, $out_detail_no){
++	/**
++	 * 商家明细单号查询转账明细单
++	 * @param string $out_batch_no 商家批次单号
++	 * @param string $out_detail_no 商家明细单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function transferoutdetail(string $out_batch_no, string $out_detail_no){
+         $path = '/v3/transfer/batches/out-batch-no/'.$out_batch_no.'/details/out-detail-no/'.$out_detail_no;
+         return $this->execute('GET', $path);
+     }
+ 
++	/**
++	 * 转账账单电子回单申请
++	 * @param string $out_batch_no 商家批次单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function transferBatchReceiptApply(string $out_batch_no)
++    {
++        $path = '/v3/transfer/bill-receipt';
++        $params = [
++            'out_batch_no' => $out_batch_no
++        ];
++        return $this->execute('POST', $path, $params);
++    }
++
++	/**
++	 * 查询转账账单电子回单
++	 * @param string $out_batch_no 商家批次单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function transferBatchReceiptQuery(string $out_batch_no)
++    {
++        $path = '/v3/transfer/bill-receipt/'.$out_batch_no;
++        return $this->execute('GET', $path);
++    }
++
++	/**
++	 * 转账明细电子回单申请
++	 * @param string $out_batch_no 商家批次单号
++	 * @param string $out_detail_no 商家明细单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function transferDetailReceiptApply(string $out_batch_no, string $out_detail_no)
++    {
++        $path = '/v3/transfer-detail/electronic-receipts';
++        $params = [
++            'accept_type' => 'BATCH_TRANSFER',
++            'out_batch_no' => $out_batch_no,
++            'out_detail_no' => $out_detail_no
++        ];
++        return $this->execute('POST', $path, $params);
++    }
++
++	/**
++	 * 查询转账明细电子回单
++	 * @param string $out_batch_no 商家批次单号
++	 * @param string $out_detail_no 商家明细单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function transferDetailReceiptQuery(string $out_batch_no, string $out_detail_no)
++    {
++        $path = '/v3/transfer-detail/electronic-receipts';
++        $params = [
++            'accept_type' => 'BATCH_TRANSFER',
++            'out_batch_no' => $out_batch_no,
++            'out_detail_no' => $out_detail_no
++        ];
++        return $this->execute('GET', $path, $params);
++    }
++
++
++    /**
++	 * 发起转账
++	 * @param array $params 请求参数
++	 * @return mixed {"out_bill_no":"商户单号","transfer_bill_no":"微信转账单号","create_time":"批次创建时间","state":"单据状态","fail_reason":"失败原因","package_info":"跳转领取页面的package信息"}
++	 * @throws Exception
++	 */
++    public function mchTransfer(array $params)
++    {
++        $path = '/v3/fund-app/mch-transfer/transfer-bills';
++        $publicParams = [
++            'appid' => $this->appId,
++        ];
++        $params = array_merge($publicParams, $params);
++        return $this->execute('POST', $path, $params, true);
++    }
++
++    /**
++	 * 撤销转账
++	 * @param string $out_bill_no 商户单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function cancelTransfer(string $out_bill_no)
++    {
++        $path = '/v3/fund-app/mch-transfer/transfer-bills/out-bill-no/'.$out_bill_no.'/cancel';
++        return $this->execute('POST', $path);
++    }
++
++    /**
++	 * 商户单号查询转账单
++	 * @param string $out_bill_no 商户单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function queryTransferByOutNo(string $out_bill_no){
++        $path = '/v3/fund-app/mch-transfer/transfer-bills/out-bill-no/'.$out_bill_no;
++        return $this->execute('GET', $path);
++    }
++
++    /**
++	 * 微信单号查询转账单
++	 * @param string $transfer_bill_no 微信单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function queryTransfer(string $transfer_bill_no){
++        $path = '/v3/fund-app/mch-transfer/transfer-bills/transfer-bill-no/'.$transfer_bill_no;
++        return $this->execute('GET', $path);
++    }
++
++    /**
++	 * 发起QQ钱包转账
++	 * @param array $params 请求参数
++	 * @return mixed {"out_bill_no":"商户单号","transfer_bill_no":"微信转账单号","create_time":"批次创建时间","state":"单据状态","fail_reason":"失败原因","package_info":"跳转领取页面的package信息"}
++	 * @throws Exception
++	 */
++    public function transferToQQ(array $params)
++    {
++        $path = '/v3/fund-app/mch-transfer/transfer-to-qq-wallet-bills';
++        $publicParams = [
++            'appid' => $this->appId,
++        ];
++        $params = array_merge($publicParams, $params);
++        return $this->execute('POST', $path, $params, true);
++    }
++
++    /**
++	 * 撤销QQ钱包转账
++	 * @param string $out_bill_no 商户单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function cancelQQTransfer(string $out_bill_no)
++    {
++        $path = '/v3/fund-app/mch-transfer/transfer-to-qq-wallet-bills/'.$out_bill_no.'/cancel';
++        return $this->execute('POST', $path);
++    }
++
++    /**
++	 * 商户单号查询QQ钱包转账单
++	 * @param string $out_bill_no 商户单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function queryQQTransfer(string $out_bill_no){
++        $path = '/v3/fund-app/mch-transfer/transfer-to-qq-wallet-bills/'.$out_bill_no;
++        return $this->execute('GET', $path);
++    }
++
++    /**
++	 * 申请电子回单
++	 * @param string $out_bill_no 商户单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function transferReceiptApply(string $out_bill_no)
++    {
++        $path = '/v3/fund-app/mch-transfer/elecsign/out-bill-no';
++        $params = [
++            'out_bill_no' => $out_bill_no,
++        ];
++        return $this->execute('POST', $path, $params);
++    }
++
++	/**
++	 * 查询电子回单
++	 * @param string $out_bill_no 商户单号
++	 * @return mixed
++	 * @throws Exception
++	 */
++    public function transferReceiptQuery(string $out_bill_no)
++    {
++        $path = '/v3/fund-app/mch-transfer/elecsign/out-bill-no/'.$out_bill_no;
++        return $this->execute('GET', $path);
++    }
+ }
+--- a/src/V3/WeChatPayException.php
++++ b/src/V3/WeChatPayException.php
+@@ -8,17 +8,19 @@
+ class WeChatPayException extends \Exception
+ {
+     private $res = [];
++    private $errCode;
+     private $httpCode;
+ 
+-    /**
+-     * @param array $res
+-     * @param string $code
+-     */
++	/**
++	 * @param array $res
++	 * @param string $httpCode
++	 */
+     public function __construct($res, $httpCode)
+     {
+         $this->res = $res;
+         $this->httpCode = $httpCode;
+         if(is_array($res)){
++            $this->errCode = $res['code'];
+             $message = '['.$res['code'].']'.$res['message'].(isset($res['detail']['issue'])?'('.$res['detail']['issue'].')':'');
+         }else{
+             $message = '返回数据解析失败(http_code='.$httpCode.')';
+@@ -26,12 +28,17 @@
+         parent::__construct($message);
+     }
+ 
+-    public function getResponse()
++    public function getResponse(): array
+     {
+         return $this->res;
+     }
++    
++    public function getErrCode()
++    {
++        return $this->errCode;
++    }
+ 
+-    public function getHttpCode()
++    public function getHttpCode(): string
+     {
+         return $this->httpCode;
+     }
+--- a/src/WeChatPayException.php
++++ b/src/WeChatPayException.php
+@@ -8,6 +8,7 @@
+ class WeChatPayException extends \Exception
+ {
+     private $res = [];
++    private $errCode;
+ 
+     /**
+      * @param array $res
+@@ -16,6 +17,7 @@
+     {
+         $this->res = $res;
+         if (isset($res['err_code'])) {
++            $this->errCode = $res['err_code'];
+             $message = '['.$res['err_code'].']'.$res['err_code_des'];
+         } elseif (isset($res['return_code'])) {
+             $message = '['.$res['return_code'].']'.$res['return_msg'];
+@@ -25,8 +27,13 @@
+         parent::__construct($message);
+     }
+ 
+-    public function getResponse()
++    public function getResponse(): array
+     {
+         return $this->res;
+     }
++
++    public function getErrCode()
++    {
++        return $this->errCode;
++    }
+ }
+\ No newline at end of file

@@ -38,9 +38,10 @@ class Plugin {
 
 	static public function loadForPay($s){
 		global $DB,$conf,$order,$channel,$ordername;
-		if(preg_match('/^(.[a-zA-Z0-9]+)\/([0-9]+)\/$/',$s, $matchs)){
+		if(is_string($s) && preg_match('/^([a-zA-Z][a-zA-Z0-9]*)\/([0-9]{1,19})\/$/D',$s, $matchs)){
 			$func = $matchs[1];
 			$trade_no = $matchs[2];
+			if(!in_array($func,['submit','mapi','qrcode','notify','return','alipay','wxpay','qqpay','bank','jdpay','douyinpay','pcstatus','pcalipay','xstatus','alipayjs','wxjspay','wxminipay','wxwappay','ok','jspay','wap','h5','apppay','scanpay','applet','transfernotify','complainnotify','mchrisknotify','checkpay','getpayurl'],true))throw new Exception('支付路由不存在');
 
 			$order = $DB->getRow("SELECT A.*,B.name typename,B.showname typeshowname FROM pre_order A left join pre_type B on A.type=B.id WHERE trade_no=:trade_no limit 1", [':trade_no'=>$trade_no]);
 			$userrow = $DB->find('user', 'gid,ordername,channelinfo', ['uid'=>$order['uid']]);
@@ -155,6 +156,7 @@ class Plugin {
 	}
 
 	static public function loadClass($plugin, $func, $trade_no){
+		if(!is_string($plugin)||!preg_match('/^[a-zA-Z0-9_]+$/D',$plugin))throw new Exception('插件名称无效');
 		$filename = PLUGIN_ROOT.$plugin.'/'.$plugin.'_plugin.php';
 		$classname = '\\'.$plugin.'_plugin';
         if (file_exists($filename)) {
@@ -162,7 +164,7 @@ class Plugin {
             define("PAY_ROOT", PLUGIN_ROOT.$plugin.'/');
             define("TRADE_NO", $trade_no);
             include $filename;
-            if (class_exists($classname, false) && method_exists($classname, $func)) {
+            if (class_exists($classname, false) && is_callable([$classname,$func])) {
                 return $classname::$func();
             } else {
 				if($func == 'mapi' && class_exists($classname, false) && method_exists($classname, 'submit')){

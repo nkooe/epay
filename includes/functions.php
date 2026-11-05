@@ -30,8 +30,8 @@ function curl_get($url)
 	$httpheader[] = "Accept-Language: zh-CN,zh;q=0.8";
 	$httpheader[] = "Connection: close";
 	curl_setopt($ch, CURLOPT_HTTPHEADER, $httpheader);
-	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 	curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36');
 	curl_setopt($ch, CURLOPT_TIMEOUT, 5);
@@ -43,8 +43,8 @@ function get_curl($url, $post=0, $referer=0, $cookie=0, $header=0, $ua=0, $nobao
 {
 	$ch = curl_init();
 	curl_setopt($ch, CURLOPT_URL, $url);
-	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 	$httpheader[] = "Accept: */*";
 	$httpheader[] = "Accept-Encoding: gzip,deflate,sdch";
 	$httpheader[] = "Accept-Language: zh-CN,zh;q=0.8";
@@ -78,6 +78,10 @@ function get_curl($url, $post=0, $referer=0, $cookie=0, $header=0, $ua=0, $nobao
 	if ($location) {
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 	}
+	curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+	curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+	curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+	curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
 	curl_setopt($ch, CURLOPT_ENCODING, "gzip");
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 	$ret = curl_exec($ch);
@@ -85,24 +89,17 @@ function get_curl($url, $post=0, $referer=0, $cookie=0, $header=0, $ua=0, $nobao
 	return $ret;
 }
 function real_ip($type=0){
-	$ip = $_SERVER['REMOTE_ADDR'];
-	if($type<=0 && isset($_SERVER['HTTP_X_FORWARDED_FOR']) && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-		$ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-		foreach ($ips as $xip) {
-			$xip = trim($xip);
-			if (filter_var($xip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-				$ip = $xip;
-				break;
-			}
-		}
-	} elseif ($type<=0 && isset($_SERVER['HTTP_CLIENT_IP']) && filter_var($_SERVER['HTTP_CLIENT_IP'], FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-		$ip = $_SERVER['HTTP_CLIENT_IP'];
-	} elseif ($type<=1 && isset($_SERVER['HTTP_CF_CONNECTING_IP']) && filter_var($_SERVER['HTTP_CF_CONNECTING_IP'], FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-		$ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
-	} elseif ($type<=1 && isset($_SERVER['HTTP_X_REAL_IP']) && filter_var($_SERVER['HTTP_X_REAL_IP'], FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-		$ip = $_SERVER['HTTP_X_REAL_IP'];
-	}
-	return $ip;
+    require_once __DIR__.'/lib/Security/ClientAddress.php';
+    return \lib\Security\ClientAddress::resolve($_SERVER,$type);
+}
+function setAuthCookie($name,$value,$expires,$path=null){
+    require_once __DIR__.'/lib/Security/ClientAddress.php';
+    $options=['expires'=>$expires,'secure'=>\lib\Security\ClientAddress::secure($_SERVER),'httponly'=>true,'samesite'=>'Lax'];
+    if($path!==null)$options['path']=$path;
+    return setcookie($name,$value,$options);
+}
+function webAdminSessionStamp(array $config){
+    return hash_hmac('sha256',json_encode([$config['admin_user']??'',$config['admin_pwd']??'',$config['totp_open']??'0',$config['totp_secret']??'']),SYS_KEY);
 }
 function get_ip_city($ip)
 {
@@ -660,9 +657,7 @@ function processOrderAccounting(&$srow){
 		}
 	}else if($srow['tid']==5){ //充值保证金
 		$param = json_decode($srow['param'], true);
-		$userrow = $DB->find('user', 'deposit', ['uid'=>$param['uid']]);
-		$deposit = $userrow['deposit'] > 0 ? round($userrow['deposit'] + $srow['money'], 2) : $srow['money'];
-		$DB->exec("UPDATE pre_user SET deposit=:deposit WHERE uid=:uid", [':deposit'=>$deposit, ':uid'=>$param['uid']]);
+		(new \lib\Merchant\Deposit(\lib\AdminApp\Runtime::legacyStore($DB)))->credit($param['uid'],$srow['money']);
 	}else{
 		if($channel['mode']==1){
 			if($reducemoney>0)
@@ -769,8 +764,8 @@ function processOrderAfterCommit(array $srow){
 	global $conf;
 	if(!empty($srow['black'])){
 		if(($conf['black_payact']??0) == 2){
-			$params = ['trade_no'=>$srow['trade_no'], 'money'=>$srow['realmoney'], 'key'=>md5($srow['trade_no'].SYS_KEY.$srow['trade_no'])];
-			get_curl($conf['localurl'].'api.php?act=refundapi', http_build_query($params));
+            $refund=\lib\Order::refund(date('YmdHis').random_int(10000,99999),$srow['trade_no'],$srow['realmoney'],1,(int)$srow['uid']);
+            if(($refund['code']??-1)!==0)error_log('Automatic blacklisted order refund failed: '.$srow['trade_no']);
 		}
 		return;
 	}
@@ -781,44 +776,17 @@ function processOrderAfterCommit(array $srow){
 }
 
 function changeUserMoney($uid, $money, $add=true, $type=null, $orderid=null){
-	global $DB;
-	if($money<=0)return;
-	if($type=='代付退回' && !empty($orderid)){
-		$isrefund = $DB->getColumn("SELECT id FROM pre_record WHERE uid=:uid AND type='代付退回' AND trade_no=:orderid LIMIT 1", [':uid'=>$uid, ':orderid'=>$orderid]);
-		if($isrefund)return;
-	}
-	$store = \lib\AdminApp\Runtime::legacyStore($DB);
-	$ownTransaction = !$store->pdo->inTransaction();
-	if($ownTransaction) $store->pdo->beginTransaction();
-	try{
-		$oldmoney = $store->value("SELECT money FROM pre_user WHERE uid=?".$store->lockClause(), [$uid]);
-		if($oldmoney === false) throw new RuntimeException('商户账户不存在，资金变更已停止');
-		$action = $add ? 1 : 2;
-		$newmoney = $add ? bcadd((string)$oldmoney, (string)$money, 2) : bcsub((string)$oldmoney, (string)$money, 2);
-		if(bccomp($newmoney,'99999999.99',2)>0 || bccomp($newmoney,'-99999999.99',2)<0) throw new RuntimeException('余额超出数据库金额范围');
-		$res = $store->update('user', ['money'=>$newmoney], 'uid', $uid);
-		$store->insert('record', ['uid'=>$uid, 'action'=>$action, 'money'=>$money, 'oldmoney'=>$oldmoney, 'newmoney'=>$newmoney, 'type'=>$type, 'trade_no'=>$orderid, 'date'=>date('Y-m-d H:i:s')]);
-		if($ownTransaction) $store->pdo->commit();
-		return $res;
-	}catch(Throwable $e){
-		if($ownTransaction && $store->pdo->inTransaction()) $store->pdo->rollBack();
-		throw $e;
-	}
+    global $DB;
+    if($money<=0)return;
+    // Internal calculations historically use more decimal places; normalize once here.
+    if(!is_numeric($money)||!is_finite((float)$money))throw new RuntimeException('金额无效');
+    $money=number_format(round((float)$money,2),2,'.','');
+    if(bccomp($money,'0',2)<=0)return;
+    return \lib\Finance\Ledger::change(\lib\AdminApp\Runtime::legacyStore($DB),$uid,$money,$add,$type,$orderid,!in_array($type,['购买会员','实名认证'],true));
 }
 
 function changeUserMoney2($uid, $oldmoney, $money, $add=true, $type=null, $orderid=null){
-	global $DB;
-	if($money<=0)return;
-	if($add == true){
-		$action = 1;
-		$newmoney = round($oldmoney+$money, 2);
-	}else{
-		$action = 2;
-		$newmoney = round($oldmoney-$money, 2);
-	}
-	$res = $DB->exec("UPDATE pre_user SET money=:money WHERE uid=:uid", [':money'=>$newmoney, ':uid'=>$uid]);
-	$DB->insert('record', ['uid'=>$uid, 'action'=>$action, 'money'=>$money, 'oldmoney'=>$oldmoney, 'newmoney'=>$newmoney, 'type'=>$type, 'trade_no'=>$orderid, 'date'=>'NOW()']);
-	return $res;
+    return changeUserMoney($uid,$money,$add,$type,$orderid);
 }
 
 function changeUserGroup($uid, $gid, $endtime = null){
@@ -916,11 +884,14 @@ function is_idcard( $id )
 }
 
 function checkRefererHost(){
-	if(!$_SERVER['HTTP_REFERER'])return false;
-	$url_arr = parse_url($_SERVER['HTTP_REFERER']);
-	$http_host = $_SERVER['HTTP_HOST'];
-	if(strpos($http_host,':'))$http_host = substr($http_host, 0, strpos($http_host, ':'));
-	return $url_arr['host'] === $http_host;
+    $source=$_SERVER['HTTP_ORIGIN']??($_SERVER['HTTP_REFERER']??'');
+    if(!is_string($source)||$source==='')return false;
+    if(($_SERVER['HTTP_SEC_FETCH_SITE']??'')==='cross-site')return false;
+    $url=parse_url($source);$scheme=\lib\Security\ClientAddress::secure($_SERVER)?'https':'http';
+    $host=parse_url($scheme.'://'.($_SERVER['HTTP_HOST']??''));
+    if(!$url||!$host||isset($url['user'])||isset($url['pass'])||!isset($url['host'],$url['scheme'],$host['host']))return false;
+    $port=static function($u){return $u['port']??(strtolower($u['scheme'])==='https'?443:80);};
+    return strtolower($url['scheme'])===$scheme&&strtolower($url['host'])===strtolower($host['host'])&&$port($url)===$port($host);
 }
 function randFloat($min=0, $max=1){
 	return $min + mt_rand()/mt_getrandmax() * ($max-$min);
@@ -1499,8 +1470,8 @@ function check_proxy($url)
 	$httpheader[] = "Accept-Language: zh-CN,zh;q=0.8";
 	$httpheader[] = "Connection: close";
 	curl_setopt($ch, CURLOPT_HTTPHEADER, $httpheader);
-	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 	curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36');
 	curl_setopt($ch, CURLOPT_TIMEOUT, 3);

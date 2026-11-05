@@ -8,12 +8,19 @@ $login_limit_file = '@login.lock';
 
 if(!function_exists("imagecreate") || !file_exists('code.php'))$verifycode=0;
 include("../includes/common.php");
+$webLogin=new \lib\Security\WebLogin($DB,$conf,$clientip);
+if(isset($_GET['act'])&&!\lib\Security\ClientAddress::secure($_SERVER)
+  &&!in_array($_SERVER['REMOTE_ADDR']??'',['127.0.0.1','::1'],true)){
+  http_response_code(426);exit(json_encode(['code'=>-1,'msg'=>'管理员登录必须通过 HTTPS 访问']));
+}
 
 if(isset($_GET['act']) && $_GET['act']=='login'){
   if(!checkRefererHost())exit('{"code":403}');
-  $username = trim($_POST['username']);
-  $password = trim($_POST['password']);
-  $code = trim($_POST['code']);
+  if(($_SERVER['REQUEST_METHOD']??'')!=='POST')exit('{"code":405}');
+  $username = is_string($_POST['username']??null)?trim($_POST['username']):'';
+  try{$webLogin->ratePassword($username);}catch(\lib\AdminApp\ApiError $e){exit(json_encode(['code'=>-1,'msg'=>$e->getMessage()]));}
+  $password = is_string($_POST['password']??null)?trim($_POST['password']):'';
+  $code = is_string($_POST['code']??null)?trim($_POST['code']):'';
   $enc_type = isset($_POST['enc']) ? $_POST['enc'] : '0';
   if(empty($username) || empty($password)){
     exit(json_encode(['code'=>-1,'msg'=>'用户名或密码不能为空']));
@@ -22,7 +29,7 @@ if(isset($_GET['act']) && $_GET['act']=='login'){
     exit(json_encode(['code'=>-1,'msg'=>'验证码错误']));
   }
   $errcount = $DB->getColumn("SELECT count(*) FROM `pre_log` WHERE `ip`=:ip AND `date`>DATE_SUB(NOW(),INTERVAL 1 DAY) AND `uid`=0 AND `type`='登录失败'", [':ip'=>$clientip]);
-  if($errcount >= $login_limit_count && file_exists($login_limit_file) && !$conf['totp_open']){
+  if($errcount >= $login_limit_count && file_exists($login_limit_file)){
     exit(json_encode(['code'=>-1,'msg'=>'多次登录失败，暂时禁止登录。可删除@login.lock文件解除限制']));
   }
   if($enc_type == '1'){
@@ -34,7 +41,8 @@ if(isset($_GET['act']) && $_GET['act']=='login'){
     }
     $password = $plain;
   }
-  if($username == $conf['admin_user'] && $password == $conf['admin_pwd']){
+  if(hash_equals((string)$conf['admin_user'],$username) && hash_equals((string)$conf['admin_pwd'],$password)){
+    $webLogin->passwordVerified();
     if ($conf['totp_open'] == 1 && !empty($conf['totp_secret'])) {
       if (file_exists($login_limit_file)) {
           unlink($login_limit_file);
@@ -45,11 +53,7 @@ if(isset($_GET['act']) && $_GET['act']=='login'){
     if (file_exists($login_limit_file)) {
       unlink($login_limit_file);
     }
-		$session=md5($username.$password.$password_hash);
-		$expiretime=time() + 2592000;
-		$token=authcode("{$username}\t{$session}\t{$expiretime}", 'ENCODE', SYS_KEY);
-		setcookie("admin_token", $token, $expiretime, null, null, null, true);
-    unset($_SESSION['vc_code']);
+    $webLogin->complete();
     exit(json_encode(['code'=>0]));
   }else{
     $DB->insert('log', ['uid'=>0, 'type'=>'登录失败', 'date'=>'NOW()', 'ip'=>$clientip]);
@@ -66,28 +70,20 @@ if(isset($_GET['act']) && $_GET['act']=='login'){
   }
 }elseif(isset($_GET['act']) && $_GET['act']=='totp'){
   if(!checkRefererHost())exit('{"code":403}');
-  $code = trim($_POST['code']);
+  $code = is_string($_POST['code']??null)?trim($_POST['code']):'';
   if (empty($code)) exit(json_encode(['code'=>-1,'msg'=>'请输入动态口令']));
   if ($conf['totp_open'] != 1 || empty($conf['totp_secret'])) {
     exit(json_encode(['code'=>-1,'msg'=>'未启用TOTP二次验证']));
   }
-  try {
-    $totp = \lib\TOTP::create($conf['totp_secret']);
-    if (!$totp->verify($code)) {
-      exit(json_encode(['code'=>-1,'msg'=>'动态口令错误']));
-    }
-  } catch (Exception $e) {
-    exit(json_encode(['code'=>-1,'msg'=>$e->getMessage()]));
-  }
-  $DB->insert('log', ['uid'=>0, 'type'=>'登录后台', 'date'=>'NOW()', 'ip'=>$clientip]);
-  $session=md5($conf['admin_user'].$conf['admin_pwd'].$password_hash);
-  $expiretime=time() + 2592000;
-  $token=authcode("{$conf['admin_user']}\t{$session}\t{$expiretime}", 'ENCODE', SYS_KEY);
-  setcookie("admin_token", $token, $expiretime, null, null, null, true);
+  if(($_SERVER['REQUEST_METHOD']??'')!=='POST')exit('{"code":405}');
+  try{$webLogin->verifyTotp($code);}
+  catch(\lib\AdminApp\ApiError $e){exit(json_encode(['code'=>-1,'msg'=>$e->getMessage()]));}
+  $DB->insert('log',['uid'=>0,'type'=>'登录后台','date'=>'NOW()','ip'=>$clientip]);
+  $webLogin->complete();
   exit(json_encode(['code'=>0]));
 }elseif(isset($_GET['logout'])){
 	if(!checkRefererHost())exit();
-	setcookie("admin_token", "", time() - 2592000);
+	setAuthCookie('admin_token','',time()-2592000);
 	exit("<script language='javascript'>window.location.href='./login.php';</script>");
 }elseif($islogin==1){
 	exit("<script language='javascript'>alert('您已登录！');window.location.href='./';</script>");

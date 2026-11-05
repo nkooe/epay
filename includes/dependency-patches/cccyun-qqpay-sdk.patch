@@ -1,0 +1,59 @@
+--- a/src/BaseService.php
++++ b/src/BaseService.php
+@@ -215,7 +215,7 @@
+         curl_setopt($ch, CURLOPT_HEADER, false);
+         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+         if ($useCert) {
+-            if (!file_exists($this->sslCertPath) || !file_exists($this->sslKeyPath)) {
++            if (empty($this->sslCertPath) || empty($this->sslKeyPath) || !file_exists($this->sslCertPath) || !file_exists($this->sslKeyPath)) {
+                 throw new \Exception('商户证书文件不存在');
+             }
+             //使用证书：cert 与 key 分别属于两个.pem文件
+--- a/src/PaymentService.php
++++ b/src/PaymentService.php
+@@ -302,7 +302,7 @@
+      * @param $isSuccess 是否成功
+      * @param $msg 失败原因
+      */
+-    public function replyNotify($isSuccess = true, $msg = '')
++    public function replyNotify($isSuccess = true, $msg = '', bool $return = false)
+     {
+         $data = [];
+         if ($isSuccess) {
+@@ -312,6 +312,7 @@
+             $data['return_msg'] = $msg;
+         }
+         $xml = $this->array2Xml($data);
++        if ($return) return $xml;
+         echo $xml;
+     }
+ }
+--- a/src/QQPayException.php
++++ b/src/QQPayException.php
+@@ -8,6 +8,7 @@
+ class QQPayException extends \Exception
+ {
+     private $res = [];
++    private $errCode;
+ 
+     /**
+      * @param array $res
+@@ -16,6 +17,7 @@
+     {
+         $this->res = $res;
+         if (isset($res['err_code'])) {
++            $this->errCode = $res['err_code'];
+             $message = '['.$res['err_code'].']'.$res['err_code_des'];
+         } elseif (isset($res['return_code'])) {
+             $message = '['.$res['return_code'].']'.$res['return_msg'];
+@@ -29,4 +31,9 @@
+     {
+         return $this->res;
+     }
++
++    public function getErrCode()
++    {
++        return $this->errCode;
++    }
+ }
+\ No newline at end of file

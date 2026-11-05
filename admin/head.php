@@ -31,6 +31,7 @@ if($admin_cdnpublic==1){
     <script src="<?php echo $cdnpublic?>html5shiv/3.7.3/html5shiv.min.js"></script>
     <script src="<?php echo $cdnpublic?>respond.js/1.4.2/respond.min.js"></script>
   <![endif]-->
+  <script src="../assets/js/admin-financial.js?v=1.2.36"></script>
 </head>
 <body class="admin-portal<?php echo $islogin==1?'':' admin-signed-out'; ?>">
 <?php if($islogin==1){?>
