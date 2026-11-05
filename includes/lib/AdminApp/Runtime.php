@@ -56,7 +56,6 @@ final class Runtime
         $GLOBALS['date']=date('Y-m-d H:i:s');$GLOBALS['clientip']=$_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';$GLOBALS['userrow']=['channelinfo'=>null];
         require_once $root.'includes/functions.php';
 
-        if(!isset($_SERVER['HTTP_PHP_VERSION']))$_SERVER['HTTP_PHP_VERSION']=PHP_VERSION;
         self::composer($root.'includes/vendor');
     }
     private static function composer($vendor)
