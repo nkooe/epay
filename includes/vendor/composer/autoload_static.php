@@ -12,62 +12,62 @@ class ComposerStaticInitEpayRuntimeDependencies
     );
 
     public static $prefixLengthsPsr4 = array (
-        'W' => 
+        'W' =>
         array (
             'WeChatPay\\' => 10,
         ),
-        'R' => 
+        'R' =>
         array (
             'Rtgm\\' => 5,
         ),
-        'Q' => 
+        'Q' =>
         array (
             'QQPay\\' => 6,
         ),
-        'P' => 
+        'P' =>
         array (
             'ParagonIE\\Sodium\\' => 17,
         ),
-        'M' => 
+        'M' =>
         array (
             'Mdanter\\Ecc\\' => 12,
         ),
-        'F' => 
+        'F' =>
         array (
             'FG\\' => 3,
         ),
-        'A' => 
+        'A' =>
         array (
             'Alipay\\' => 7,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'WeChatPay\\' => 
+        'WeChatPay\\' =>
         array (
             0 => __DIR__ . '/..' . '/cccyun/wechatpay-sdk/src',
         ),
-        'Rtgm\\' => 
+        'Rtgm\\' =>
         array (
             0 => __DIR__ . '/..' . '/lpilp/guomi/src',
         ),
-        'QQPay\\' => 
+        'QQPay\\' =>
         array (
             0 => __DIR__ . '/..' . '/cccyun/qqpay-sdk/src',
         ),
-        'ParagonIE\\Sodium\\' => 
+        'ParagonIE\\Sodium\\' =>
         array (
             0 => __DIR__ . '/..' . '/paragonie/sodium_compat/namespaced',
         ),
-        'Mdanter\\Ecc\\' => 
+        'Mdanter\\Ecc\\' =>
         array (
             0 => __DIR__ . '/..' . '/paragonie/ecc/src',
         ),
-        'FG\\' => 
+        'FG\\' =>
         array (
             0 => __DIR__ . '/..' . '/genkgo/php-asn1/lib',
         ),
-        'Alipay\\' => 
+        'Alipay\\' =>
         array (
             0 => __DIR__ . '/..' . '/cccyun/alipay-sdk/src',
         ),

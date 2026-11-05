@@ -3,15 +3,16 @@ import argparse,hashlib,importlib.util,json,subprocess
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--php',default='php');p.add_argument('--composer',required=True,help='Verified Composer 2.8.12 PHAR');args=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--php',default='php');p.add_argument('--composer',required=True,help='Verified Composer 2.11.1 PHAR');args=p.parse_args()
     manifest=json.loads((ROOT/'includes/dependency-integrity.json').read_text(encoding='utf-8'))
     for pkg in manifest['packages']:
         if not pkg['local_patch']:continue
         name=pkg['local_patch'];actual=hashlib.sha256((ROOT/name).read_bytes().replace(b'\r\n',b'\n')).hexdigest()
         if actual!=manifest['sha256'][name]:raise RuntimeError('Patch hash mismatch: '+name)
     composer=[args.php,str(Path(args.composer).resolve())]
+    if hashlib.sha256(Path(args.composer).read_bytes()).hexdigest()!='6f1b891e1d4927d62740276c540fb490e47689e19e102c49e8da849794882f8c':raise RuntimeError('Composer PHAR checksum mismatch')
     version=subprocess.check_output(composer+['--version'],text=True)
-    if not version.startswith('Composer version 2.8.12 '):raise RuntimeError('Use verified Composer 2.8.12 to reproduce the loader')
+    if not version.startswith('Composer version 2.11.1 '):raise RuntimeError('Use verified Composer 2.11.1 to reproduce the loader')
     subprocess.run(composer+['install','--no-dev','--no-plugins','--no-scripts','--no-interaction','--prefer-dist'],cwd=ROOT/'includes',check=True)
     for pkg in manifest['packages']:
         if not pkg['local_patch']:continue

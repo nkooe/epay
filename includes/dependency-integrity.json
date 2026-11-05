@@ -1,7 +1,7 @@
 {
   "format": 1,
   "normalization": "CRLF to LF",
-  "composer_version": "2.8.12",
+  "composer_version": "2.11.1",
   "packages": [
     {
       "name": "cccyun/alipay-sdk",
@@ -302,7 +302,7 @@
     "includes/vendor/composer/autoload_namespaces.php": "ede505407590638a435137f4e060136f1008de79fc169b3de9793423b0cea38c",
     "includes/vendor/composer/autoload_psr4.php": "c89e91445ff7f11c731a3f4099432571595fd77afb6e50df953e065791ca37a8",
     "includes/vendor/composer/autoload_real.php": "2c3eb276b47619fbaac267ee6871bba5ea527722d667e97ec8375abc07c475c6",
-    "includes/vendor/composer/autoload_static.php": "bc292f38d4f882ad73d3b676a4c6692e0a5efe52041c34bc636b14889c3cfc79",
+    "includes/vendor/composer/autoload_static.php": "9a7ee017980eaac5d6d34b9f376245bd9637f71182fc1318032bd983bcac1faf",
     "includes/vendor/composer/ClassLoader.php": "d4b2313e562edf942838ec316d983c1a3459ca67da3e5658e861200b0b3693c2",
     "includes/vendor/composer/installed.json": "9ae87fef78888b62e669888571547674c92367fa7170898dfa023fdb9adc1083",
     "includes/vendor/composer/installed.php": "477c11bb8d53fc72276c8d7077f12891144210548d5a4cec2f2c00760a915d3c",
@@ -568,5 +568,6 @@
     "includes/vendor/paragonie/sodium_compat/src/Crypto.php": "ccd38921af833400608f03657582265c609b52b82a28358a813e3558b786c32c",
     "includes/vendor/paragonie/sodium_compat/src/File.php": "dddfcd5672b060e2d1bd1a40e492446e93a3d3ad5541d5b10715771d37db3135",
     "includes/vendor/paragonie/sodium_compat/src/SodiumException.php": "03429931c198e30819fc936bb0359146d5a1d2919bfdf179ac13cf33806f8d52"
-  }
+  },
+  "composer_phar_sha256": "6f1b891e1d4927d62740276c540fb490e47689e19e102c49e8da849794882f8c"
 }
