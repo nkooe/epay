@@ -252,7 +252,22 @@
     try { await saveKeys(); if (current === keyRequest) await keysModal.hide(); await refresh(); notice('密钥配置已保存'); } catch (err) { if (current === keyRequest) error('channelKeysError', err.message); else notice(err.message, true); }
   }); });
   $id('channelTestForm').addEventListener('submit', e => { e.preventDefault(); busy(e.submitter || e.target.querySelector('[type=submit]'), async () => {
-    try { const data = Object.fromEntries(new FormData(e.target)); const result = await api('test', {...data, id: testId}); window.location.assign(result.url); } catch (err) { error('channelTestError', err.message); }
+    let testWindow;
+    try {
+      error('channelTestError', '');
+      // Open during the user gesture so a delayed API response cannot trigger popup blocking.
+      testWindow = window.open('about:blank', '_blank');
+      if (!testWindow) throw new Error('浏览器已拦截测试窗口，请允许弹出窗口后重试');
+      testWindow.opener = null;
+      testWindow.document.title = '测试支付'; testWindow.document.body.textContent = '正在创建测试订单…';
+      const data = Object.fromEntries(new FormData(e.target)); const result = await api('test', {...data, id: testId});
+      if (testWindow.closed) {
+        error('channelTestError', '测试订单已创建，');
+        const link = node('a', '点击打开测试支付'); link.href = result.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+        $id('channelTestError').append(link); return;
+      }
+      testWindow.location.replace(result.url); window.jQuery('#channelTestModal').modal('hide');
+    } catch (err) { if (testWindow && !testWindow.closed) testWindow.close(); error('channelTestError', err.message); }
   }); });
   window.jQuery('#channelModal,#channelKeysModal,#channelTestModal').on('shown.bs.modal', function () { this.querySelector('input:not([type=hidden]),select,textarea,button[type=submit]')?.focus(); });
   (async () => {
