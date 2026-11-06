@@ -40,6 +40,7 @@ if($wechatid){
 }else{
 	$channel = \lib\Channel::get($channelid);
 	if(!$channel)sysmsg('当前支付通道信息不存在');
+    if(!empty($channel['owner_uid'])&&($islogin??0)!==1&&(($islogin2??0)!==1||(int)$channel['owner_uid']!==(int)($uid??0)))sysmsg('私有通道不属于当前商户');
 	if($channel['plugin'] == 'douyinpay'){
 		$is_douyin = true;
 	}elseif($channel['plugin'] == 'alipay' || $channel['plugin'] == 'alipaysl' || $channel['plugin'] == 'alipayd' || $channel['plugin'] == 'alipayrp'){

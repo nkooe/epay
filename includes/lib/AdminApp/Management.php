@@ -96,6 +96,7 @@ final class Management
         $fields=array_column($s['fields'],'key');$fields[]=$s['pk'];
         if($s['table']==='psreceiver'){$fields[]='account';$fields[]='name';$fields[]='rate';}
         if($s['table']==='group'){$fields[]='info';$fields[]='config';}
+        if($s['table']==='channel'){$fields[]='owner_uid';$fields[]='daystatus';}
 
         $r=$this->db->row('SELECT `'.implode('`,`',$fields).'` FROM pre_'.$s['table'].' WHERE `'.$s['pk'].'`=?'.($lock?$this->db->lockClause():''),[$id]);
         if(!$r)throw new ApiError('记录不存在',404);return $r;
@@ -129,6 +130,7 @@ final class Management
                 'merchant_public_key'=>(string)($row['publickey'] ?? '')
             ];
         }
+        if($resource==='channels'&&$row){$owner=(int)($row['owner_uid']??0);$result['note']='所属：'.($owner?'商户 #'.$owner:'平台').'。'.$result['note'];}
         return $result;
     }
     public function values(array $fields,array $values,$creating=false)
@@ -180,11 +182,13 @@ final class Management
             }
             if($resource==='types')$this->unique('type','name',$next['name'],'id',$id,['device'=>$next['device']]);
             if($resource==='channels'){
-                $this->unique('channel','name',$next['name'],'id',$id);
+                $this->unique('channel','name',$next['name'],'id',$id,['owner_uid'=>(int)($old['owner_uid']??0)]);
                 if(bccomp($next['rate'],'100',2)>0||bccomp($next['costrate'],'100',2)>0)throw new ApiError('比例不能超过 100%');
                 if(bccomp($next['paymax'],'0',2)>0&&bccomp($next['paymin'],$next['paymax'],2)>0)throw new ApiError('单笔最小金额不能超过最大金额');
                 if(!$create&&((string)$old['type']!==(string)$next['type']||(string)$old['plugin']!==(string)$next['plugin'])&&$this->db->value('SELECT COUNT(*) FROM pre_order WHERE channel=?',[$id]))throw new ApiError('已有订单的通道不能变更支付方式或插件，请新增通道');
                 if($create)$v['status']='0';
+                elseif((int)($old['owner_uid']??0)>0)$v['daystatus']=(new \lib\Merchant\OwnedChannels($this->db))->dailyStatus($old,$next);
+                if(!$create&&(int)($old['owner_uid']??0)>0&&((string)$old['type']!==(string)$next['type']||(string)$old['plugin']!==(string)$next['plugin']))$v=array_replace($v,['config'=>null,'apptype'=>null,'appwxmp'=>null,'appwxa'=>null,'status'=>0]);
             }
             if($resource==='blacklist'){if((int)$next['type']===1&&!filter_var($next['content'],FILTER_VALIDATE_IP))throw new ApiError('IP 地址格式无效');$this->unique('blacklist','content',$next['content'],'id',$id,['type'=>$next['type']]);}
             if($resource==='groups'){

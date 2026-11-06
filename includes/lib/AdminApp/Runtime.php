@@ -32,6 +32,7 @@ final class Runtime
     }
     public static function orderChannel(Store $db,array $order)
     {
+        \lib\Channel::assertOwner($order['uid'],$order['channel'],$order['subchannel']??0);
         $channel=!empty($order['subchannel'])?\lib\Channel::getSub($order['subchannel']):\lib\Channel::get($order['channel'],$db->value('SELECT channelinfo FROM pre_user WHERE uid=?',[$order['uid']]) ?: null);
         if(!$channel)throw new ApiError('订单通道不存在');return $channel;
     }
@@ -44,7 +45,7 @@ final class Runtime
     public static function boot(Store $db,array $config)
     {
         $root=dirname(__DIR__,3).'/';
-        foreach(['ROOT'=>$root,'SYSTEM_ROOT'=>$root.'includes/','PLUGIN_ROOT'=>$root.'plugins/','PAYPAGE_ROOT'=>$root.'includes/pages/','TEMPLATE_ROOT'=>$root.'template/','IN_CRONLITE'=>true,'SYS_KEY'=>$config['syskey'] ?? '','VERSION'=>'3097','DB_VERSION'=>Store::SCHEMA_VERSION,'DBQZ'=>rtrim($db->tablePrefix(),'_')] as $k=>$v)if(!defined($k))define($k,$v);
+        foreach(['ROOT'=>$root,'SYSTEM_ROOT'=>$root.'includes/','PLUGIN_ROOT'=>$root.'plugins/','PAYPAGE_ROOT'=>$root.'includes/pages/','TEMPLATE_ROOT'=>$root.'template/','IN_CRONLITE'=>true,'SYS_KEY'=>$config['syskey'] ?? '','VERSION'=>'3101','DB_VERSION'=>Store::SCHEMA_VERSION,'DBQZ'=>rtrim($db->tablePrefix(),'_')] as $k=>$v)if(!defined($k))define($k,$v);
         require_once $root.'includes/autoloader.php';
         if(!class_exists('lib\\PdoHelper',false))\Autoloader::register();
         $r=new \ReflectionClass(\lib\PdoHelper::class);$legacy=$r->newInstanceWithoutConstructor();

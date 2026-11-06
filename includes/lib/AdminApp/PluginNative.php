@@ -5,12 +5,19 @@ namespace lib\AdminApp;
 final class PluginNative
 {
     const QR=['yunwechatxd','yunalipayxd','yunkdskxd','yunskljxd','yunqnmxd','yundianyxd','yunxingyifuxd'];
-    private $db;private $ip;private $owner;
-    public function __construct(Store $db,$ip,$owner){$this->db=$db;$this->ip=$ip;$this->owner=$owner;}
+    private $db;private $ip;private $owner;private $merchantUid;
+    public function __construct(Store $db,$ip,$owner,$merchantUid=0){$this->db=$db;$this->ip=$ip;$this->owner=$owner;$this->merchantUid=(int)$merchantUid;}
+    private function assertMerchant($kind,$id)
+    {
+        if(!$this->merchantUid)return;
+        (new \lib\Merchant\OwnedChannels($this->db))->authorize($this->merchantUid);
+        if($kind!=='channel'||!$this->db->row('SELECT id FROM pre_channel WHERE id=? AND owner_uid=?',[$id,$this->merchantUid]))throw new ApiError('通道不存在或不属于当前商户',404);
+    }
     private function target(array $data)
     {
         $kind=$data['kind'] ?? 'channel';$id=(string)($data['id'] ?? '');
         if(!in_array($kind,['channel','subchannel'],true)||!preg_match('/^[1-9]\d{0,9}$/D',$id))throw new ApiError('通道编号无效');
+        $this->assertMerchant($kind,$id);
         Runtime::boot($this->db,$this->db->config());
         $channel=$kind==='subchannel'?\lib\Channel::getSub((int)$id):\lib\Channel::get((int)$id);
         if(!$channel)throw new ApiError('通道不存在',404);
@@ -27,7 +34,7 @@ final class PluginNative
         [$kind,$id,$c]=$this->target($data);$plugin=$c['plugin'];
         $qr=in_array($plugin,self::QR,true);
         $stores=$plugin==='shouqianba';$account=in_array($plugin,['shouqianba','shouqianbapro','shouqianbaxd'],true);
-        $certs=$kind==='channel'&&PluginCertificates::slots($plugin)?PluginCertificates::describe($plugin,(string)($c['appmchid'] ?? '')):null;
+        $certs=!$this->merchantUid&&$kind==='channel'&&PluginCertificates::slots($plugin)?PluginCertificates::describe($plugin,(string)($c['appmchid'] ?? '')):null;
         // PC/X 心跳按商户和主通道记录，无法表示子通道独立在线状态，因此只在主通道展示诊断。
         $monitor=$kind==='channel'&&in_array($plugin,['jktongypc','jktongyx'],true);
         $receipt=$plugin==='jktongypc'&&(string)$this->db->value('SELECT name FROM pre_type WHERE id=?',[$c['type']])==='wxpay';
@@ -42,7 +49,7 @@ final class PluginNative
         [$kind,$id,$c]=$this->target($data);
         if(!in_array($c['plugin'],['jktongypc','jktongyx'],true))throw new ApiError('此通道没有监控心跳',422);
         if($kind==='subchannel')throw new ApiError('监控心跳按主通道记录，子通道没有独立状态',422);
-        $uid=$data['merchant_id'] ?? ($c['plugin']==='jktongyx'?'1000':'0');
+        $uid=$this->merchantUid?:($data['merchant_id'] ?? ($c['plugin']==='jktongyx'?'1000':'0'));
         if(!is_scalar($uid)||!preg_match('/^(?:0|[1-9]\d{0,9})$/D',(string)$uid))throw new ApiError('商户编号无效');
         if((int)$uid>0&&!$this->db->row('SELECT uid FROM pre_user WHERE uid=?',[$uid]))throw new ApiError('商户不存在',404);
         $class=Runtime::prepare($c,'monitorStatus');$result=$class::monitorStatus($c,(int)$uid);
@@ -59,6 +66,7 @@ final class PluginNative
                 $this->db->row('SELECT id FROM pre_channel WHERE id=?'.$this->db->lockClause(),[$parent]);
             }
             $this->db->row('SELECT id FROM pre_'.($kind==='channel'?'channel':'subchannel').' WHERE id=?'.$this->db->lockClause(),[$id]);
+            $this->assertMerchant($kind,$id);
             if(!hash_equals($expected,$this->revision($kind,$id)))throw new ApiError('通道配置已变化，请刷新后重试',409);
             $table=$kind==='channel'?'channel':'subchannel';$column=$kind==='channel'?'config':'info';
             $config=json_decode((string)$this->db->value('SELECT '.$column.' FROM pre_'.$table.' WHERE id=?',[$id]),true) ?: [];
@@ -66,6 +74,7 @@ final class PluginNative
                 $row=$this->db->row('SELECT A.plugin,A.config FROM pre_channel A INNER JOIN pre_subchannel B ON B.channel=A.id WHERE B.id=?',[$id]);
                 $config=PluginConfig::childUpdates($row['plugin'],json_decode($row['config']?:'{}',true)?:[],$config,$updates);
             }else $config=array_merge($config,$updates);
+            if($this->merchantUid)\lib\Merchant\OwnedChannels::validateConfig($config);
             $json=json_encode($config,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
             if(strlen($json)>60000)throw new ApiError('通道凭据总长度超过限制',422);
             $this->db->update($table,[$column=>$json],'id',$id);
@@ -123,6 +132,7 @@ final class PluginNative
     public function run(array $data)
     {
         [$kind,$id,$c]=$this->target($data);
+        if($this->merchantUid&&!in_array($data['action']??'', ['qr-start','qr-poll','shared-session-sync','account-login','stores','store-bind','receipt-shops','receipt-bind','receipt-clear-sid'],true))throw new ApiError('商户不支持此插件操作',403);
         return Runtime::sharingLock($this->db,'plugin:'.$kind.':'.$id,function()use($kind,$id,$data){
             [,,$c]=$this->target($data);$plugin=$c['plugin'];$action=$data['action'] ?? '';
             if($action==='app-import'){
@@ -139,6 +149,7 @@ final class PluginNative
             }
             if(in_array($action,['receipt-shops','receipt-bind','receipt-clear-sid'],true)){
                 if($plugin!=='jktongypc'||(string)$this->db->value('SELECT name FROM pre_type WHERE id=?',[$c['type']])!=='wxpay')throw new ApiError('此通道不支持收款单店铺选择');
+                if($this->merchantUid){$class=Runtime::prepare($c,'reportedConfig');$reported=$class::reportedConfig($c);if(!empty($reported['merchant_id'])&&(int)$reported['merchant_id']!==$this->merchantUid)throw new ApiError('客户端上报不属于当前商户',403);}
                 $revision=$this->revision($kind,$id);
                 if($action!=='receipt-bind'&&(!is_string($data['revision'] ?? null)||!hash_equals($revision,$data['revision'])))throw new ApiError('通道配置已变化，请刷新后重试',409);
                 if($action==='receipt-clear-sid'){

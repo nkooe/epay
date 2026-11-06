@@ -1,14 +1,20 @@
 <?php
 $is_defend=true;
 include("../includes/common.php");
-if(!$conf['test_open'])sysmsg("未开启测试支付");
+$channelResult=false;
 if(isset($_GET['ok']) && isset($_GET['trade_no'])){
 	$trade_no=daddslashes($_GET['trade_no']);
-	$row=$DB->getRow("SELECT * FROM pre_order WHERE trade_no='{$trade_no}' AND uid='{$conf['test_pay_uid']}' limit 1");
+	$row=$DB->getRow("SELECT * FROM pre_order WHERE trade_no='{$trade_no}' limit 1");
+	$channelResult=$row && \lib\AdminApp\ChannelTest::validReturn($row,$_GET['channel_token']??null);
+	if(!$channelResult){
+		if(!$conf['test_open'])sysmsg("未开启测试支付");
+		if($row && ((int)$row['uid']!==(int)$conf['test_pay_uid'] || (int)($row['channel_test']??0)!==0))$row=null;
+	}
 	if(!$row)sysmsg('订单号不存在');
 	if($row['status']!=1)sysmsg('订单未完成支付');
 	$money = $row['money'];
 }else{
+	if(!$conf['test_open'])sysmsg("未开启测试支付");
 	$trade_no=date("YmdHis").rand(111,999);
 	$userrow = $DB->getRow("SELECT uid,gid FROM pre_user WHERE uid='{$conf['test_pay_uid']}' limit 1");
 	if(!$userrow)sysmsg("测试支付商户不存在");
@@ -50,7 +56,7 @@ $testCaptcha = !$testPaid && $conf['captcha_open_test'] == 1;
             <div><dt>商品名称</dt><dd><?php echo $testEscape($row['name'] ?? '支付测试'); ?></dd></div>
             <div><dt>订单号</dt><dd><?php echo $testEscape($trade_no); ?></dd></div>
         </dl>
-        <a class="test-pay-submit" href="test.php">继续测试</a>
+        <a class="test-pay-submit" href="<?php echo $channelResult ? '../admin/pay_channel.php' : 'test.php'; ?>"><?php echo $channelResult ? '返回通道管理' : '继续测试'; ?></a>
         <?php else: ?>
         <form class="test-pay-form" name="alipayment" id="testPaymentForm" action="ajax.php?act=testpay" method="post" novalidate>
             <input type="hidden" name="csrf_token" value="<?php echo $testEscape($csrf_token); ?>">

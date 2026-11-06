@@ -2,6 +2,7 @@
 include("../includes/common.php");
 if($islogin==1){}else exit("<script language='javascript'>window.location.href='./login.php';</script>");
 $submit2=true;
+$GLOBALS['merchantChannelAdminTest']=true;
 
 $trade_no=daddslashes($_GET['trade_no']);
 $order=$DB->getRow("SELECT * FROM pre_order WHERE trade_no='{$trade_no}' LIMIT 1");

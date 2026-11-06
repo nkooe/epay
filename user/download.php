@@ -241,6 +241,8 @@ case 'wximg':
 	$channelid = intval($_GET['channel']);
 	$subchannelid = intval($_GET['subchannel']);
 	$media_id = $_GET['mediaid'];
+	if($subchannelid>0&&!$DB->getRow('SELECT id FROM pre_subchannel WHERE id=:id AND uid=:uid',[':id'=>$subchannelid,':uid'=>$uid])){http_response_code(404);exit;}
+    if(!$subchannelid){$owner=$DB->getRow('SELECT owner_uid FROM pre_channel WHERE id=:id',[':id'=>$channelid]);if(!$owner||((int)$owner['owner_uid']>0&&(int)$owner['owner_uid']!==(int)$uid)){http_response_code(404);exit;}}
 	$channel = $subchannelid ? \lib\Channel::getSub($subchannelid) : \lib\Channel::get($channelid);
 	$model = \lib\Complain\CommUtil::getModel($channel);
 	$image = $model->getImage($media_id);

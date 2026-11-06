@@ -9,6 +9,18 @@
       "secret": false
     },
     {
+      "key": "merchant_channel_open",
+      "label": "允许商户配置通道",
+      "type": "select",
+      "default": "0",
+      "max": 1,
+      "options": {
+        "0": "关闭",
+        "1": "开启"
+      },
+      "hint": "开启后商户可管理自己的独立通道；关闭隐藏商户入口并禁止管理接口，已有收款配置保留。"
+    },
+    {
       "key": "title",
       "label": "首页标题",
       "type": "text",

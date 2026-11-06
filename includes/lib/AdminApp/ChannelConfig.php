@@ -7,11 +7,11 @@ final class ChannelConfig
     private $db;
     public function __construct(Store $db){$this->db=$db;}
     public static function revision(array $row){return hash('sha256',json_encode(array_intersect_key($row,array_flip(['plugin','type','config','apptype','appwxmp','appwxa']))));}
-    public function schema($id)
+    public function schema($id,$plaintext=false,$merchant=false)
     {
         $row=$this->db->row('SELECT * FROM pre_channel WHERE id=?',[$id]);
         if(!$row)throw new ApiError('通道不存在',404);
-        Runtime::boot($this->db,$this->db->config());
+        if(!$merchant)Runtime::boot($this->db,$this->db->config());
         $plugin=$row['plugin'];
         if(!preg_match('/^[A-Za-z0-9_]+$/D',$plugin))throw new ApiError('插件名称无效');
         // 插件目录受限时，隔离测试仍可读取表单说明。
@@ -21,10 +21,12 @@ final class ChannelConfig
         if(!class_exists($class,false)||!property_exists($class,'info'))throw new ApiError('插件不支持配置描述');
         $payType=(string)$this->db->value('SELECT name FROM pre_type WHERE id=?',[$row['type']]);
         $values=json_decode($row['config'] ?? '{}',true) ?: [];
+        if($merchant)\lib\Merchant\OwnedChannels::validateConfig($values);
         $channel=array_merge($row,$values);
         $info=is_callable([$class,'configForm'])?$class::configForm($channel,$payType):$class::$info;
         $fields=[];
         foreach(($info['inputs'] ?? []) as $key=>$input){
+            if($merchant&&in_array($key,['id','owner_uid','plugin','mode','rate','costrate','daytop','daymaxorder','status','daystatus','subid','config','appwxmp','appwxa'],true))continue;
             if(!preg_match('/^[A-Za-z0-9_]+$/D',(string)$key)||($plugin==='jktongypc'&&$key==='receipt_account_ref'))continue;
             $type=$input['type'] ?? 'text';$options=$input['options'] ?? [];
             $value=$values[$key] ?? '';
@@ -32,7 +34,7 @@ final class ChannelConfig
             if($value===''&&$type==='select'&&$options)$value=(string)array_key_first($options);
             if($type==='checkbox'&&!is_array($value))$value=[];
             $secret=(bool)preg_match('/key|secret|password|token|cert|private|sign|(?:^|_)sid$/i',$key.' '.($input['name'] ?? ''))||in_array($key,['sid','payment_link_sid','receipt_sid','app_data_url'],true);
-            $field=['key'=>(string)$key,'label'=>strip_tags($input['name'] ?? $key),'type'=>in_array($type,['select','checkbox','textarea'],true)?$type:'text','secret'=>$secret,'configured'=>$value!==''&&$value!==[],'value'=>$secret?'':$value,'options'=>(object)$options,'hint'=>strip_tags($input['note'] ?? '')];
+            $field=['key'=>(string)$key,'label'=>strip_tags($input['name'] ?? $key),'type'=>in_array($type,['select','checkbox','textarea'],true)?$type:'text','secret'=>$secret,'configured'=>$value!==''&&$value!==[],'value'=>$secret&&!$plaintext?'':$value,'options'=>(object)$options,'hint'=>strip_tags($input['note'] ?? '')];
             $when=[];
             if($plugin==='jktongypc'){
                 if($payType==='wxpay'){
@@ -50,15 +52,35 @@ final class ChannelConfig
             $field['show_when']=(object)$when;$fields[]=$field;
         }
         $interfaces=$info['select_'.$payType] ?? $info['select'] ?? [];
-        if($interfaces)$fields[]=['key'=>'apptype','label'=>'可用支付接口','type'=>'checkbox','secret'=>false,'value'=>empty($row['apptype'])?[]:explode(',',$row['apptype']),'options'=>(object)$interfaces,'required'=>true];
-        if($payType==='wxpay')foreach(['appwxmp'=>['bindwxmp',0,'绑定微信公众号'],'appwxa'=>['bindwxa',1,'绑定微信小程序']] as $key=>$spec){
+        if($interfaces)array_unshift($fields,['key'=>'apptype','label'=>'请选择可用的接口','type'=>'checkbox','secret'=>false,'value'=>empty($row['apptype'])?[]:explode(',',$row['apptype']),'options'=>(object)$interfaces,'required'=>true]);
+        if(!$merchant&&$payType==='wxpay')foreach(['appwxmp'=>['bindwxmp',0,'绑定微信公众号'],'appwxa'=>['bindwxa',1,'绑定微信小程序']] as $key=>$spec){
             if(empty($info[$spec[0]]))continue;
             $options=['0'=>'不绑定'];foreach($this->db->all('SELECT id,name,appid FROM pre_weixin WHERE type=? ORDER BY id',[$spec[1]]) as $wx)$options[(string)$wx['id']]=$wx['name'].'（'.$wx['appid'].'）';
             $fields[]=['key'=>$key,'label'=>$spec[2],'type'=>'select','secret'=>false,'value'=>(string)($row[$key] ?? '0'),'options'=>(object)$options];
         }
         $note=trim(strip_tags(preg_replace('/<(script|style)\b[^>]*>.*?<\/\1>/is','',$info['note'] ?? '')));
         if($plugin==='jktongypc')$note='支付状态按商户与通道分别计算。SID 留空保留手填值；没有手填值时使用对应商户上报。';
-        return ['id'=>$id,'name'=>$row['name'],'plugin'=>$plugin,'pay_type'=>$payType,'revision'=>self::revision($row),'fields'=>$fields,'note'=>$note,'special_actions'=>true];
+        return ['id'=>$id,'name'=>$row['name'],'plugin'=>$plugin,'pay_type'=>$payType,'revision'=>self::revision($row),'fields'=>$fields,'note'=>$note,'note_html'=>self::noteHtml($info['note']??''),'special_actions'=>true];
+    }
+    /** Preserve documentation formatting and public links without executing plugin admin scripts. */
+    public static function noteHtml($html)
+    {
+        $html=preg_replace('/<(script|style)\b[^>]*>.*?<\/\1>/is','',(string)$html);
+        $doc=new \DOMDocument();$previous=libxml_use_internal_errors(true);
+        try{$doc->loadHTML('<?xml encoding="utf-8" ?><div>'.$html.'</div>',LIBXML_NONET|LIBXML_NOERROR|LIBXML_NOWARNING);}finally{libxml_clear_errors();libxml_use_internal_errors($previous);}
+        $render=function($n)use(&$render){
+            if($n instanceof \DOMText)return htmlspecialchars($n->textContent,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
+            if(!($n instanceof \DOMElement))return '';
+            $tag=strtolower($n->tagName);$inner='';foreach($n->childNodes as $child)$inner.=$render($child);
+            if($tag==='a'){
+                $url=$n->getAttribute('href');
+                if(!filter_var($url,FILTER_VALIDATE_URL)||!preg_match('~^https?://~i',$url)||parse_url($url,PHP_URL_USER)!==null||parse_url($url,PHP_URL_PASS)!==null)return '';
+                return '<a href="'.htmlspecialchars($url,ENT_QUOTES,'UTF-8').'" target="_blank" rel="noopener noreferrer">'.$inner.'</a>';
+            }
+            if($tag==='br')return '<br>';
+            return in_array($tag,['p','strong','b','em','ul','ol','li','code'],true)?'<'.$tag.'>'.$inner.'</'.$tag.'>':$inner;
+        };
+        return $render($doc->documentElement);
     }
     public function save(array $data,$ip)
     {

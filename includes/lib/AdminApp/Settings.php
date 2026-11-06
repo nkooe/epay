@@ -27,9 +27,9 @@ final class Settings
             if($f['type']!=='select')continue;
             $options=(array)($f['options'] ?? []);
             if(preg_match('/^transfer_(alipay|wxpay|qqpay|bank)$/D',$key,$m)){
-                foreach($this->db->all('SELECT C.id,C.name FROM pre_channel C JOIN pre_plugin P ON P.name=C.plugin WHERE P.transtypes LIKE ?',['%'.$m[1].'%']) as $c)$options[(string)$c['id']]=$c['name'].' (#'.$c['id'].')';
+                foreach($this->db->all('SELECT C.id,C.name FROM pre_channel C JOIN pre_plugin P ON P.name=C.plugin WHERE C.owner_uid=0 AND P.transtypes LIKE ?',['%'.$m[1].'%']) as $c)$options[(string)$c['id']]=$c['name'].' (#'.$c['id'].')';
             }elseif(in_array($key,['alipay_web_login','alipay_mini_login','cert_channel','login_alipay'],true)){
-                foreach($this->db->all("SELECT C.id,C.name FROM pre_channel C JOIN pre_type T ON T.id=C.type WHERE T.name='alipay'") as $c)$options[(string)$c['id']]=$c['name'].' (#'.$c['id'].')';
+                foreach($this->db->all("SELECT C.id,C.name FROM pre_channel C JOIN pre_type T ON T.id=C.type WHERE C.owner_uid=0 AND T.name='alipay'") as $c)$options[(string)$c['id']]=$c['name'].' (#'.$c['id'].')';
             }elseif(in_array($key,['wxpay_web_login','login_wx','login_wxa'],true)){
                 foreach($this->db->all('SELECT id,name FROM pre_weixin WHERE type=?',[$key==='login_wxa'?1:0]) as $c)$options[(string)$c['id']]=$c['name'].' (#'.$c['id'].')';
             }elseif($key==='wework_paykfid'){

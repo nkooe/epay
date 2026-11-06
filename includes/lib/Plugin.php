@@ -50,13 +50,15 @@ class Plugin {
             if (!$order) {
 				$channel = \lib\Channel::get($trade_no, $userrow['channelinfo']);
 				if(!$channel) throw new Exception('该订单号不存在，请返回来源地重新发起请求！');
+				if(!empty($channel['owner_uid']))throw new Exception('私有通道必须通过所属商户订单访问');
 				$trade_no = null;
             }else{
 
 				if(in_array($func, ['submit','mapi','jsapi','qrcode','checkpay','getpayurl','alipay','alipayjs','wxpay','bank','jspay','wap','h5','wxminipay','apppay','applet'], true)) {
-					\lib\Channel::merchantPolicy()->assertRoute($order['uid'], $order['type'], $order['channel'], $order['subchannel'], $order['money']);
+					\lib\Channel::merchantPolicy()->assertRoute($order['uid'], $order['type'], $order['channel'], $order['subchannel'], $order['money'], !empty($order['channel_test']));
 				}
-				$channel = $order['subchannel'] > 0 ? \lib\Channel::getSub($order['subchannel']) : \lib\Channel::get($order['channel'], $userrow['channelinfo']);
+				\lib\Channel::assertOwner($order['uid'],$order['channel'],$order['subchannel']);
+		$channel = $order['subchannel'] > 0 ? \lib\Channel::getSub($order['subchannel']) : \lib\Channel::get($order['channel'], $userrow['channelinfo']);
 				if(!$channel) throw new Exception('当前支付通道信息不存在');
 				$channel['apptype'] = explode(',',$channel['apptype']);
 
@@ -137,13 +139,14 @@ class Plugin {
 
 	static public function loadForSubmit($plugin, $trade_no, $ismapi=false){
 		global $DB,$conf,$order,$channel,$ordername,$userrow;
-		\lib\Channel::merchantPolicy()->assertRoute($order['uid'], $order['type'], $order['channel'], $order['subchannel'], $order['money']);
+		\lib\Channel::merchantPolicy()->assertRoute($order['uid'], $order['type'], $order['channel'], $order['subchannel'], $order['money'], !empty($order['channel_test']));
 		if(preg_match('/^(.[a-zA-Z0-9]+)$/',$plugin) && preg_match('/^(.[0-9]+)$/',$trade_no)){
 			$func = 'submit';
 			if($ismapi) $func = 'mapi';
 
 			$channelinfo = $userrow?$userrow['channelinfo']:null;
-			$channel = $order['subchannel'] > 0 ? \lib\Channel::getSub($order['subchannel']) : \lib\Channel::get($order['channel'], $channelinfo);
+			\lib\Channel::assertOwner($order['uid'],$order['channel'],$order['subchannel']);
+		$channel = $order['subchannel'] > 0 ? \lib\Channel::getSub($order['subchannel']) : \lib\Channel::get($order['channel'], $channelinfo);
 			if(!$channel)throw new Exception('当前支付通道信息不存在');
 			$channel['apptype'] = explode(',',$channel['apptype']);
 			if(!empty($userrow['ordername']))$conf['ordername']=$userrow['ordername'];
@@ -207,6 +210,7 @@ class Plugin {
 	static public function refund($refund_no, $trade_no, $money, &$message){
 		global $order,$channel,$DB;
 		if(!preg_match('/^(.[0-9]+)$/',$trade_no))return false;
+		\lib\Channel::assertOwner($order['uid'],$order['channel'],$order['subchannel']);
 		$channel = $order['subchannel'] > 0 ? \lib\Channel::getSub($order['subchannel']) : \lib\Channel::get($order['channel'], $DB->findColumn('user', 'channelinfo', ['uid'=>$order['uid']]));
 		if(!$channel){
 			$message = '当前支付通道信息不存在';
@@ -244,6 +248,7 @@ class Plugin {
 	static public function close($trade_no, &$message){
 		global $order,$channel,$DB;
 		if(!preg_match('/^(.[0-9]+)$/',$trade_no))return false;
+		\lib\Channel::assertOwner($order['uid'],$order['channel'],$order['subchannel']);
 		$channel = $order['subchannel'] > 0 ? \lib\Channel::getSub($order['subchannel']) : \lib\Channel::get($order['channel'], $DB->findColumn('user', 'channelinfo', ['uid'=>$order['uid']]));
 		if(!$channel){
 			$message = '当前支付通道信息不存在';

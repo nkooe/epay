@@ -10,7 +10,7 @@ final class ApiError extends \RuntimeException
 
 final class Store
 {
-    public const SCHEMA_VERSION = '2064';
+    public const SCHEMA_VERSION = '2065';
     public static function assertSchemaVersion($version)
     {
         if ((string)$version !== self::SCHEMA_VERSION) throw new ApiError('数据库结构与当前程序不一致，请使用本版安装文件建立新站点。',503);

@@ -140,6 +140,7 @@ unset($rs);
 <input type="hidden" class="form-control" name="batch">
   <div class="form-group">
 	<label>搜索</label>
+    <input type="number" class="form-control" name="owner_uid" min="0" placeholder="所属商户ID，0为平台" style="max-width:180px">
     <input type="text" class="form-control" name="kw" placeholder="通道ID/名称">
   </div>
   <div class="form-group">
@@ -189,6 +190,11 @@ $(document).ready(function(){
 				title: '显示名称'
 			},
 			{
+				field: 'owner_uid',
+                title: '所属商户',
+                formatter: function(value){return Number(value)>0?'商户 #'+Number(value):'平台';}
+            },
+            {
 				field: 'mode',
 				title: '通道模式',
 				formatter: function(value, row, index) {

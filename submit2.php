@@ -55,7 +55,7 @@ if($firstGetChannel){
 		}
 	}
 }else{
-	try { \lib\Channel::merchantPolicy()->assertRoute($order['uid'], $order['type'], $order['channel'], $order['subchannel'], $order['money']); }
+	try { \lib\Channel::merchantPolicy()->assertRoute($order['uid'], $order['type'], $order['channel'], $order['subchannel'], $order['money'], !empty($order['channel_test'])); }
 	catch (\lib\AdminApp\ApiError $e) { sysmsg(htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8')); }
 	$submitData = \lib\Channel::info($order['channel']);
 	$submitData['typename'] = $DB->getColumn("SELECT name FROM pre_type WHERE id='{$typeid}' LIMIT 1");

@@ -13,6 +13,7 @@ switch($conf['user_style']){
 	case 7: $style=['bg-primary','bg-primary','bg-white']; break;
 	default: $style=['bg-black','bg-white','bg-black']; break;
 }
+$merchantChannelVisible=(string)($conf['merchant_channel_open']??'0')==='1';
 $groupconfig = getGroupConfig($userrow['gid']);
 $conf = array_merge($conf, $groupconfig);
 ?>
@@ -29,7 +30,7 @@ $conf = array_merge($conf, $groupconfig);
   <link rel="stylesheet" href="./assets/css/font.css" type="text/css" />
   <link rel="stylesheet" href="./assets/css/app.css" type="text/css" />
   <link rel="stylesheet" href="../assets/css/bootstrap-table.css?v=1"/>
-  <link rel="stylesheet" href="./assets/css/merchant-wechat.css?v=4" />
+  <link rel="stylesheet" href="./assets/css/merchant-wechat.css?v=5" />
 </head>
 <body class="merchant-portal">
 <div class="app app-header-fixed  ">
@@ -87,6 +88,7 @@ $conf = array_merge($conf, $groupconfig);
                       <span>API信息</span>
                     </a>
                   </li>
+
                   <li>
                     <a href="editinfo.php">
                       <span>修改资料</span>
@@ -113,7 +115,12 @@ $conf = array_merge($conf, $groupconfig);
 				  <?php }?>
                 </ul>
               </li>
-              <li class="line dk"></li>
+                          <?php if($merchantChannelVisible){ ?>
+            <li class="<?php echo basename($_SERVER['SCRIPT_NAME'])==='channel.php'?'active':''; ?>">
+              <a href="./channel.php"><i class="fa fa-random icon text-success" aria-hidden="true"></i><span>通道管理</span></a>
+            </li>
+            <?php } ?>
+            <li class="line dk"></li>
               <li class="hidden-folded padder m-t m-b-sm text-muted text-xs">
                 <span>查询</span>
               </li>

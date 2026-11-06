@@ -8,14 +8,22 @@ class Channel {
 		return new \lib\Merchant\ChannelPolicy(\lib\AdminApp\Runtime::legacyStore($DB));
 	}
 
+    static public function assertOwner($uid,$id,$subchannel=0){
+        global $DB;
+        $row=$DB->getRow('SELECT owner_uid FROM pre_channel WHERE id=:id',[':id'=>(int)$id]);
+        if(!$row)throw new \lib\AdminApp\ApiError('支付通道不存在',404);
+        if((int)$row['owner_uid']>0&&((int)$row['owner_uid']!==(int)$uid||(int)$subchannel>0))throw new \lib\AdminApp\ApiError('支付通道不属于该商户',403);
+    }
+
 	static public function get($id, $channelinfo=null){
 		global $DB;
 		$value=$DB->getRow("SELECT * FROM pre_channel WHERE id='$id' LIMIT 1");
 		if(!$value) return null;
-		$channel = ['id'=>$value['id'], 'name'=>$value['name'], 'mode'=>$value['mode'], 'type'=>$value['type'], 'plugin'=>$value['plugin'], 'apptype'=>$value['apptype'], 'appwxmp'=>$value['appwxmp'], 'appwxa'=>$value['appwxa'], 'costrate'=>$value['costrate'], 'daytop'=>$value['daytop'], 'daymaxorder'=>$value['daymaxorder']];
+		$channel = ['owner_uid'=>(int)($value['owner_uid']??0), 'id'=>$value['id'], 'name'=>$value['name'], 'mode'=>$value['mode'], 'type'=>$value['type'], 'plugin'=>$value['plugin'], 'apptype'=>$value['apptype'], 'appwxmp'=>$value['appwxmp'], 'appwxa'=>$value['appwxa'], 'costrate'=>$value['costrate'], 'daytop'=>$value['daytop'], 'daymaxorder'=>$value['daymaxorder']];
 
 		$config = json_decode($value['config'], true);
-		if(!empty($channelinfo) && !empty($config)){
+        if(!empty($value['owner_uid'])&&is_array($config))\lib\Merchant\OwnedChannels::validateConfig($config);
+		if(empty($value['owner_uid']) && !empty($channelinfo) && !empty($config)){
 			$arr = json_decode($channelinfo, true);
 			foreach($config as $configkey => $configrow){
 				if($configrow && substr($configrow, 0, 1) == '['){
@@ -92,6 +100,7 @@ class Channel {
 		global $DB;
 		$value=$DB->getRow("SELECT id,plugin,type,rate,apptype,mode,paymin,paymax FROM pre_channel WHERE id='$id' LIMIT 1");
 		$money_rate = $value['rate'];
+		$groupinfo=null;
 		if($gid>0)$groupinfo=$DB->getColumn("SELECT info FROM pre_group WHERE gid='$gid' LIMIT 1");
 		if(!$groupinfo)$groupinfo=$DB->getColumn("SELECT info FROM pre_group WHERE gid=0 LIMIT 1");
 		if($groupinfo){
@@ -141,6 +150,7 @@ class Channel {
 		global $DB;
 		$selected = self::merchantPolicy()->select($uid, $gid, $typeid, $money, $sub_mch_id);
 		if($selected !== null) return $selected;
+		$groupinfo=null;
 		if($gid>0)$groupinfo=$DB->getColumn("SELECT info FROM pre_group WHERE gid='$gid' LIMIT 1");
 		if(!$groupinfo)$groupinfo=$DB->getColumn("SELECT info FROM pre_group WHERE gid=0 LIMIT 1");
 		if($groupinfo){
@@ -158,7 +168,7 @@ class Channel {
 				return false;
 			}
 			elseif($channel==-1){ //随机可用通道
-				$rows=$DB->getAll("SELECT id,plugin,status,rate,apptype,mode,paymin,paymax,timestart,timestop FROM pre_channel WHERE type='$typeid' AND status=1 AND daystatus=0 ORDER BY id ASC");
+				$rows=$DB->getAll("SELECT id,plugin,status,rate,apptype,mode,paymin,paymax,timestart,timestop FROM pre_channel WHERE owner_uid=0 AND type='$typeid' AND status=1 AND daystatus=0 ORDER BY id ASC");
 				if(count($rows)>0){
 					$newrows = [];
 					foreach($rows as $row){
@@ -181,7 +191,7 @@ class Channel {
 				}
 			}
 			elseif($channel==-4){ //顺序可用通道
-				$rows=$DB->getAll("SELECT id,plugin,status,rate,apptype,mode,paymin,paymax,timestart,timestop FROM pre_channel WHERE type='$typeid' AND status=1 AND daystatus=0 ORDER BY id ASC");
+				$rows=$DB->getAll("SELECT id,plugin,status,rate,apptype,mode,paymin,paymax,timestart,timestop FROM pre_channel WHERE owner_uid=0 AND type='$typeid' AND status=1 AND daystatus=0 ORDER BY id ASC");
 				if(count($rows)>0){
 					$newrows = [];
 					foreach($rows as $row){
@@ -208,7 +218,7 @@ class Channel {
 				}
 			}
 			elseif($channel==-5){ //首个可用通道
-				$rows=$DB->getAll("SELECT id,plugin,status,rate,apptype,mode,paymin,paymax,timestart,timestop FROM pre_channel WHERE type='$typeid' AND status=1 AND daystatus=0 ORDER BY id ASC");
+				$rows=$DB->getAll("SELECT id,plugin,status,rate,apptype,mode,paymin,paymax,timestart,timestop FROM pre_channel WHERE owner_uid=0 AND type='$typeid' AND status=1 AND daystatus=0 ORDER BY id ASC");
 				if(count($rows)>0){
 					$newrows = [];
 					foreach($rows as $row){
@@ -277,13 +287,14 @@ class Channel {
 					}
 				}
 				//获取轮询组对应通道
-				$row=$DB->getRow("SELECT plugin,status,rate,apptype,mode,paymin,paymax,timestart,timestop FROM pre_channel WHERE id='$channel' LIMIT 1");
+				$row=$DB->getRow("SELECT plugin,status,rate,apptype,mode,paymin,paymax,timestart,timestop FROM pre_channel WHERE owner_uid=0 AND id='$channel' LIMIT 1");
+				if(!$row)return false;
 				if(empty($money_rate))$money_rate = $row['rate'];
 				return ['typeid'=>$typeid, 'typename'=>$typename, 'plugin'=>$row['plugin'], 'channel'=>$channel, 'subchannel'=>0, 'rate'=>$money_rate, 'apptype'=>$row['apptype'], 'mode'=>$row['mode'], 'paymin'=>$row['paymin'], 'paymax'=>$row['paymax'],'timestart'=>$row['timestart'],'timestop'=>$row['timestop']];
 			}
 		}else{
 			//未设置用户组
-			$row=$DB->getRow("SELECT id,plugin,status,rate,apptype,mode,paymin,paymax,timestart,timestop FROM pre_channel WHERE type='$typeid' AND status=1 AND daystatus=0 ORDER BY rand() LIMIT 1");
+			$row=$DB->getRow("SELECT id,plugin,status,rate,apptype,mode,paymin,paymax,timestart,timestop FROM pre_channel WHERE owner_uid=0 AND type='$typeid' AND status=1 AND daystatus=0 ORDER BY rand() LIMIT 1");
 			if($row){
 				return ['typeid'=>$typeid, 'typename'=>$typename, 'plugin'=>$row['plugin'], 'channel'=>$row['id'], 'subchannel'=>0, 'rate'=>$row['rate'], 'apptype'=>$row['apptype'], 'mode'=>$row['mode'], 'paymin'=>$row['paymin'], 'paymax'=>$row['paymax'],'timestart'=>$row['timestart'],'timestop'=>$row['timestop']];
 			}
@@ -300,12 +311,14 @@ class Channel {
 			$sqls = " AND (device=0 OR device=1)";
 		}
 		$rows = $DB->getAll("SELECT * FROM pre_type WHERE status=1{$sqls} ORDER BY id ASC");
+		$allTypes=$rows;
 		$customTypes = self::merchantPolicy()->types($uid, $gid, $rows);
 		if($customTypes !== null) return $customTypes;
 		$paytype = [];
 		foreach($rows as $row){
 			$paytype[$row['id']] = $row;
 		}
+		$groupinfo=null;
 		if($gid>0)$groupinfo=$DB->getColumn("SELECT info FROM pre_group WHERE gid='$gid' LIMIT 1");
 		if(!$groupinfo)$groupinfo=$DB->getColumn("SELECT info FROM pre_group WHERE gid=0 LIMIT 1");
 		if($groupinfo){
@@ -315,7 +328,7 @@ class Channel {
 				if($row['channel']==0){
 					unset($paytype[$id]);
 				}elseif($row['channel']==-1 || $row['channel']==-4 || $row['channel']==-5){
-					$channel=$DB->getRow("SELECT rate,status FROM pre_channel WHERE type='$id' AND status=1 LIMIT 1");
+					$channel=$DB->getRow("SELECT rate,status FROM pre_channel WHERE owner_uid=0 AND type='$id' AND status=1 LIMIT 1");
 					if(!$channel){
 						unset($paytype[$id]);
 					}elseif(empty($row['rate'])){
@@ -343,8 +356,8 @@ class Channel {
 					if($row['type']=='roll'){
 						$status=$DB->getColumn("SELECT status FROM pre_roll WHERE id='{$row['channel']}' LIMIT 1");
 					}else{
-						$status=$DB->getColumn("SELECT status FROM pre_channel WHERE id='{$row['channel']}' LIMIT 1");
-						if(empty($row['rate'])) $row['rate'] = $DB->getColumn("SELECT rate FROM pre_channel WHERE id='{$row['channel']}' LIMIT 1");
+						$status=$DB->getColumn("SELECT status FROM pre_channel WHERE owner_uid=0 AND id='{$row['channel']}' LIMIT 1");
+						if(empty($row['rate'])) $row['rate'] = $DB->getColumn("SELECT rate FROM pre_channel WHERE owner_uid=0 AND id='{$row['channel']}' LIMIT 1");
 					}
 					if(!$status || $status==0)unset($paytype[$id]);
 					else $paytype[$id]['rate']=$row['rate'];
@@ -352,13 +365,19 @@ class Channel {
 			}
 		}else{
 			foreach($paytype as $id=>$row){
-				$status=$DB->getColumn("SELECT status FROM pre_channel WHERE type='$id' AND status=1 limit 1");
+				$status=$DB->getColumn("SELECT status FROM pre_channel WHERE owner_uid=0 AND type='$id' AND status=1 limit 1");
 				if(!$status || $status==0)unset($paytype[$id]);
 				else{
-					$paytype[$id]['rate']=$DB->getColumn("SELECT rate FROM pre_channel WHERE type='$id' AND status=1 limit 1");
+					$paytype[$id]['rate']=$DB->getColumn("SELECT rate FROM pre_channel WHERE owner_uid=0 AND type='$id' AND status=1 limit 1");
 				}
 			}
 		}
+		$owned=new \lib\Merchant\OwnedChannels(\lib\AdminApp\Runtime::legacyStore($DB));
+        foreach($allTypes as $type){
+            if($owned->source($uid,$type['id'])!=='owned')continue;
+            try{$selected=$owned->select($uid,$gid,$type['id']);$type['rate']=$selected['rate'];$paytype[$type['id']]=$type;}
+            catch(\lib\AdminApp\ApiError $e){unset($paytype[$type['id']]);}
+        }
 		return $paytype;
 	}
 
@@ -375,7 +394,7 @@ class Channel {
 				$channelids[] = $inforow['name'];
 			}
 			$channelids = implode(',',$channelids);
-			$rows=$DB->getAll("SELECT id,paymin,paymax,timestart,timestop FROM pre_channel WHERE id IN ($channelids) AND status=1 AND daystatus=0");
+			$rows=$DB->getAll("SELECT id,paymin,paymax,timestart,timestop FROM pre_channel WHERE owner_uid=0 AND id IN ($channelids) AND status=1 AND daystatus=0");
 			$newids = [];
 			foreach($rows as $channelrow){
 				if($money>0 && !empty($channelrow['paymin']) && $channelrow['paymin']>0 && $money<$channelrow['paymin'])continue;

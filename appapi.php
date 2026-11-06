@@ -19,6 +19,7 @@ require __DIR__.'/includes/lib/AdminApp/Settings.php';
 require __DIR__.'/includes/lib/AdminApp/Runtime.php';
 require __DIR__.'/includes/lib/Notification/HttpTransport.php';
 require __DIR__.'/includes/lib/Notification/Delivery.php';
+require __DIR__.'/includes/lib/Merchant/OwnedChannels.php';
 require __DIR__.'/includes/lib/Merchant/ChannelPolicy.php';
 require __DIR__.'/includes/lib/AdminApp/Credentials.php';
 require __DIR__.'/includes/lib/AdminApp/Operations.php';

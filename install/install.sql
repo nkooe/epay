@@ -4,7 +4,7 @@ create table `pre_config` (
 PRIMARY KEY  (`k`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-INSERT INTO `pre_config` VALUES ('version', '2064');
+INSERT INTO `pre_config` VALUES ('version', '2065');
 INSERT INTO `pre_config` VALUES ('admin_user', 'admin');
 INSERT INTO `pre_config` VALUES ('admin_pwd', '123456');
 INSERT INTO `pre_config` VALUES ('admin_paypwd', '123456');
@@ -114,6 +114,7 @@ CREATE TABLE `pre_plugin` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `pre_channel` (
+  `owner_uid` int unsigned NOT NULL DEFAULT 0,
   `id` int(11) unsigned NOT NULL auto_increment,
   `mode` tinyint(1) DEFAULT 0,
   `type` int(11) unsigned NOT NULL,
@@ -134,7 +135,8 @@ CREATE TABLE `pre_channel` (
   `timestart` int(11) DEFAULT NULL,
   `timestop` int(11) DEFAULT NULL,
  PRIMARY KEY (`id`),
- KEY `type` (`type`)
+ KEY `type` (`type`),
+ KEY `owner_type_status` (`owner_uid`,`type`,`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `pre_roll` (
@@ -163,6 +165,7 @@ CREATE TABLE `pre_weixin` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `pre_order` (
+  `channel_test` tinyint NOT NULL DEFAULT 0,
   `trade_no` char(19) NOT NULL,
   `out_trade_no` varchar(150) NOT NULL,
   `api_trade_no` varchar(150) DEFAULT NULL,
@@ -820,3 +823,12 @@ CREATE TABLE `pre_app_notification` (
  `amount` decimal(12,2) NOT NULL DEFAULT 0, `created` bigint NOT NULL,
  KEY `created_id` (`created`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `pre_merchant_channel_source` (
+  `uid` int unsigned NOT NULL,
+  `type` int unsigned NOT NULL,
+  `source` varchar(8) NOT NULL DEFAULT 'platform',
+  PRIMARY KEY (`uid`,`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `pre_config` VALUES ('merchant_channel_open', '0');

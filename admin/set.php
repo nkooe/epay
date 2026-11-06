@@ -96,6 +96,10 @@ if($mod=='site'){
 	</div><br/>
 	</div>
 	<div class="form-group">
+	  <label class="col-sm-2 control-label">允许商户配置通道</label>
+	  <div class="col-sm-10"><select class="form-control" name="merchant_channel_open" default="<?php echo $conf['merchant_channel_open'] ?? '0'?>"><option value="0">关闭</option><option value="1">开启</option></select><span class="help-block">开启后商户中心显示通道管理。关闭后禁止商户管理，已有收款配置保留。</span></div>
+	</div><br/>
+	<div class="form-group">
 	  <label class="col-sm-2 control-label">用户编辑自定义接口信息</label>
 	  <div class="col-sm-10"><select class="form-control" name="user_settings_edit" default="<?php echo $conf['user_settings_edit']?>"><option value="0">关闭</option><option value="1">开启</option></select></div>
 	</div><br/>

@@ -36,7 +36,7 @@ final class Api
         $expected=['v1/site'=>'GET','v1/auth/captcha'=>'GET','v1/auth/login'=>'POST','v1/auth/totp'=>'POST','v1/auth/refresh'=>'POST'];
         if (isset($expected[$route])) {
             if ($method!==$expected[$route]) throw new ApiError('请求方法不允许',405);
-            if ($route==='v1/site') return ['name'=>$this->conf['sitename'] ?? '易支付','api_version'=>1,'release_version'=>'1.2.36','captcha'=>($this->conf['app_captcha_open'] ?? '1')!=='0','timezone'=>'Asia/Shanghai'];
+            if ($route==='v1/site') return ['name'=>$this->conf['sitename'] ?? '易支付','api_version'=>1,'release_version'=>'3.10.1','captcha'=>($this->conf['app_captcha_open'] ?? '1')!=='0','timezone'=>'Asia/Shanghai'];
             if ($route==='v1/auth/captcha') return $this->auth->captcha();
             if ($route==='v1/auth/login') return $this->auth->login($data);
             if ($route==='v1/auth/totp') return $this->auth->totp($data);
@@ -186,7 +186,7 @@ final class Api
     {
         $q=$this->text($data,'q',128);$params=[];$where='';
         if($q!==''){$where=' WHERE (A.name LIKE ? OR A.plugin LIKE ? OR B.showname LIKE ? OR CAST(A.id AS CHAR)=?)';$params=['%'.$q.'%','%'.$q.'%','%'.$q.'%',$q];}
-        $rows=$this->db->all('SELECT A.id,A.name,A.type,A.plugin,A.mode,A.rate,A.costrate,A.status,A.daytop,A.daystatus,A.paymin,A.paymax,B.showname type_name FROM pre_channel A LEFT JOIN pre_type B ON B.id=A.type'.$where.' ORDER BY A.id DESC',$params);
+        $rows=$this->db->all('SELECT A.id,A.owner_uid,A.name,A.type,A.plugin,A.mode,A.rate,A.costrate,A.status,A.daytop,A.daystatus,A.paymin,A.paymax,B.showname type_name FROM pre_channel A LEFT JOIN pre_type B ON B.id=A.type'.$where.' ORDER BY A.id DESC',$params);
         foreach($rows as &$row)if(in_array($row['plugin'],['jktongypc','jktongyx'],true)){
             $row['monitoring']=true;
             try{$state=$this->pluginNative()->monitor(['id'=>(string)$row['id']]);$row['monitor']=array_intersect_key($state,array_flip(['online','channel_enabled','heartbeat_enabled','merchant_id','last_seen','reason']));}

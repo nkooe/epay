@@ -191,7 +191,7 @@ class Pay
                 }
             }
         }else{
-            try { \lib\Channel::merchantPolicy()->assertRoute($oldorder['uid'], $oldorder['type'], $oldorder['channel'], $oldorder['subchannel'], $money); }
+            try { \lib\Channel::merchantPolicy()->assertRoute($oldorder['uid'], $oldorder['type'], $oldorder['channel'], $oldorder['subchannel'], $money, !empty($oldorder['channel_test'])); }
             catch (\lib\AdminApp\ApiError $e) { sysmsg(htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8')); }
             $submitData = \lib\Channel::info($oldorder['channel']);
             $submitData['typename'] = $type;
@@ -459,7 +459,7 @@ class Pay
                 }
             }
         }else{
-            try { \lib\Channel::merchantPolicy()->assertRoute($oldorder['uid'], $oldorder['type'], $oldorder['channel'], $oldorder['subchannel'], $money); }
+            try { \lib\Channel::merchantPolicy()->assertRoute($oldorder['uid'], $oldorder['type'], $oldorder['channel'], $oldorder['subchannel'], $money, !empty($oldorder['channel_test'])); }
             catch (\lib\AdminApp\ApiError $e) { echojsonmsg(htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8')); }
             $submitData = \lib\Channel::info($oldorder['channel']);
             $submitData['typename'] = $type;

@@ -31,7 +31,7 @@ final class ChannelPolicy
     {
         $user = $this->db->row('SELECT uid,username FROM pre_user WHERE uid=?', [(int)$uid]);
         if (!$user) throw new ApiError('商户不存在', 404);
-        $channels = $this->db->all('SELECT id,name,type,status,daystatus,paymin,paymax FROM pre_channel ORDER BY type,id');
+        $channels = $this->db->all('SELECT id,name,type,status,daystatus,paymin,paymax FROM pre_channel WHERE owner_uid=0 OR owner_uid=? ORDER BY type,id',[(int)$uid]);
         $choices = [];
         foreach ($channels as $channel) {
             $choices[] = $this->choice($channel, 0, $channel['name']);
@@ -123,8 +123,9 @@ final class ChannelPolicy
     {
         $paytype = $this->db->row('SELECT id,name,status FROM pre_type WHERE id=?', [$type]);
         if (!$paytype || (int)$paytype['status'] !== 1) throw new ApiError('该支付方式已停用或不存在');
-        $channel = $this->db->row('SELECT id,type,plugin,status,daystatus,rate,apptype,mode,paymin,paymax,timestart,timestop FROM pre_channel WHERE id=?', [$rule['channel_id']]);
+        $channel = $this->db->row('SELECT id,owner_uid,type,plugin,status,daystatus,rate,apptype,mode,paymin,paymax,timestart,timestop FROM pre_channel WHERE id=?', [$rule['channel_id']]);
         if (!$channel) throw new ApiError('商户指定通道已删除，请联系管理员');
+        if((int)$channel['owner_uid']>0&&((int)$channel['owner_uid']!==(int)$uid||(int)$rule['subchannel_id']>0))throw new ApiError('支付通道不属于该商户',403);
         if ((int)$channel['type'] !== (int)$type) throw new ApiError('商户指定通道与支付方式不匹配');
         if ((int)$channel['status'] !== 1 || (int)$channel['daystatus'] !== 0) throw new ApiError('商户指定通道已停用或达到当日限额');
         if ((int)$rule['subchannel_id'] > 0) {
@@ -150,7 +151,11 @@ final class ChannelPolicy
     public function select($uid, $gid, $type, $money=0, $applyId=0)
     {
         $policy = $this->load($uid);
-        if ($policy['mode'] === 'group') return null;
+        if ($policy['mode'] === 'group') {
+            $owned=new OwnedChannels($this->db);
+            if($owned->source($uid,$type)==='owned'){if($applyId>0)throw new ApiError('自有通道不支持指定子商户');return $owned->select($uid,$gid,$type,$money);}
+            return null;
+        }
         foreach ($policy['rules'] as $rule) {
             if ((int)$rule['type_id'] !== (int)$type) continue;
             $row = $this->channel($uid, $type, $rule, $money);
@@ -167,8 +172,20 @@ final class ChannelPolicy
         throw new ApiError('该商户未启用此支付方式，请联系管理员');
     }
 
-    public function assertRoute($uid, $type, $channel, $subchannel, $money)
+    public function assertRoute($uid, $type, $channel, $subchannel, $money, $test=false)
     {
+        $binding=$this->db->row('SELECT owner_uid FROM pre_channel WHERE id=?',[(int)$channel]);
+        if(!$binding)throw new ApiError('支付通道不存在',404);
+        if((int)$binding['owner_uid']>0&&((int)$binding['owner_uid']!==(int)$uid||(int)$subchannel>0))throw new ApiError('支付通道不属于该商户',403);
+        if($test || !empty($GLOBALS['merchantChannelAdminTest']))return;
+        $owned=new OwnedChannels($this->db);
+        if($this->load($uid)['mode']==='group'&&$owned->source($uid,$type)==='owned'){
+            $gid=(int)$this->db->value('SELECT gid FROM pre_user WHERE uid=?',[(int)$uid]);
+            $owned->select($uid,$gid,$type,$money);
+            $r=$this->db->row('SELECT * FROM pre_channel WHERE id=? AND owner_uid=? AND type=? AND status=1 AND daystatus=0',[(int)$channel,(int)$uid,(int)$type]);
+            if(!$r||!OwnedChannels::available($r,$money))throw new ApiError('订单自有通道已停用或不符合当前条件');
+            return;
+        }
         $selected = $this->select($uid, 0, $type, $money);
         if ($selected !== null && ($selected['channel'] !== (int)$channel || $selected['subchannel'] !== (int)$subchannel)) throw new ApiError('订单通道与当前商户策略不一致，请重新下单');
     }

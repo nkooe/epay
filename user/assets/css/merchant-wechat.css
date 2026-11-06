@@ -62,10 +62,13 @@ body.merchant-portal, body.merchant-auth {
 .merchant-portal .app-aside::-webkit-scrollbar-track { background: transparent; }
 .merchant-portal .aside-wrap, .merchant-portal .navi-wrap { width: auto; height: auto; position: static; overflow: visible; }
 .merchant-portal .navi { padding: 10px 9px 18px; }
-.merchant-portal .navi ul.nav > li > a { display: block; padding: 10px 12px; margin: 3px 0; min-height: 42px; border-radius: 7px; color: #536159; font-size: 13px; font-weight: 400; transition: background .15s; }
+.merchant-portal .navi ul.nav > li > a { display: flex; align-items: center; gap: 8px; padding: 10px 12px; margin: 3px 0; min-height: 42px; border-radius: 7px; color: #536159; font-size: 13px; font-weight: 400; transition: background .15s; }
 .merchant-portal .navi ul.nav > li > a:hover, .merchant-portal .navi ul.nav > li > a:focus { background: #f4f7f5; color: var(--merchant-green-dark); }
 .merchant-portal .navi ul.nav > li.active > a, .merchant-portal .navi ul.nav a[aria-current="page"] { color: var(--merchant-green-dark); background: var(--merchant-tint); font-weight: 600; }
-.merchant-portal .navi ul.nav > li > a > i { float: none; display: inline-block; width: 20px; margin: 0 8px 0 0; line-height: 20px; color: #829088 !important; font-size: 15px; vertical-align: -1px; }
+.merchant-portal .navi ul.nav > li > a > i { position: static; float: none; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 20px; width: 20px; height: 20px; margin: 0; line-height: 1; color: #829088 !important; font-size: 15px; vertical-align: middle; }
+.merchant-portal .navi ul.nav > li > a > span:not(.pull-right) { line-height: 20px; }
+.merchant-portal .navi ul.nav > li > a > .pull-right { order: 1; margin-left: auto; line-height: 20px; }
+.merchant-portal .navi ul.nav > li > a > .label.pull-right { order: 1; margin-left: auto; }
 .merchant-portal .navi ul.nav > li.active > a > i { color: var(--merchant-green) !important; }
 .merchant-portal .navi .nav-sub { margin: 0; padding: 0; height: auto; display: none; background: transparent; opacity: 1; transition: none; }
 .merchant-portal .navi li.active > .nav-sub { display: block; }

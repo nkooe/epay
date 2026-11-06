@@ -3,6 +3,18 @@ namespace lib\AdminApp;
 
 final class ChannelTest
 {
+    public static function returnUrl($base, $trade)
+    {
+        return rtrim($base,'/').'/user/test.php?ok=1&trade_no='.$trade.'&channel_token='.bin2hex(random_bytes(32));
+    }
+
+    public static function validReturn(array $order, $token)
+    {
+        if ((int)($order['channel_test']??0)!==2 || !is_string($token) || !preg_match('/^[a-f0-9]{64}$/D',$token)) return false;
+        parse_str((string)parse_url($order['return_url']??'',PHP_URL_QUERY),$query);
+        return is_string($query['channel_token']??null) && hash_equals($query['channel_token'],$token);
+    }
+
     public static function create(Store $db, array $conf, array $data, $ip)
     {
         $id=$data['id'] ?? ''; $amount=$data['money'] ?? '';
@@ -14,7 +26,7 @@ final class ChannelTest
         if(empty($channel['config']))throw new ApiError('请先配置通道密钥');
         $type=$db->row('SELECT id FROM pre_type WHERE id=?',[$channel['type']]);
         if(!$type)throw new ApiError('支付方式不存在');
-        $uid=(int)($conf['test_pay_uid'] ?? 0);
+        $uid=(int)($channel['owner_uid'] ?: ($conf['test_pay_uid'] ?? 0));
         if(!$uid||!$db->row('SELECT uid FROM pre_user WHERE uid=?',[$uid]))throw new ApiError('请先在系统设置中配置有效的测试支付收款商户 ID');
         foreach([['pay_minmoney','pay_maxmoney',$conf],['paymin','paymax',$channel]] as $limits) {
             list($min,$max,$source)=$limits;
@@ -28,9 +40,9 @@ final class ChannelTest
             $base='https://'.$host.rtrim(str_replace('\\','/',dirname($_SERVER['SCRIPT_NAME'] ?? '/appapi.php')),'/');
         }
         $trade=date('YmdHis').random_int(10000,99999);
-        $return=$base.'/user/test.php?ok=1&trade_no='.$trade;
+        $return=self::returnUrl($base,$trade);
 
-        $db->insert('order',['trade_no'=>$trade,'out_trade_no'=>$trade,'uid'=>$uid,'tid'=>3,'addtime'=>date('Y-m-d H:i:s'),'name'=>'支付测试','money'=>$amount,'type'=>$channel['type'],'channel'=>(int)$id,'subchannel'=>0,'realmoney'=>$amount,'getmoney'=>$amount,'notify_url'=>$return,'return_url'=>$return,'domain'=>parse_url($base,PHP_URL_HOST),'ip'=>$ip,'status'=>0]);
+        $db->insert('order',['trade_no'=>$trade,'out_trade_no'=>$trade,'uid'=>$uid,'tid'=>3,'channel_test'=>2,'addtime'=>date('Y-m-d H:i:s'),'name'=>'支付测试','money'=>$amount,'type'=>$channel['type'],'channel'=>(int)$id,'subchannel'=>0,'realmoney'=>$amount,'getmoney'=>$amount,'notify_url'=>$return,'return_url'=>$return,'domain'=>parse_url($base,PHP_URL_HOST),'ip'=>$ip,'status'=>0]);
         $db->audit('通道测试支付',$ip,['trade_no'=>$trade,'channel'=>(int)$id,'money'=>$amount]);
 
         return ['trade_no'=>$trade,'money'=>$amount,'url'=>'submit2.php?typeid='.$channel['type'].'&trade_no='.$trade];
