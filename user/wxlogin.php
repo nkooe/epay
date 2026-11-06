@@ -36,7 +36,7 @@ if(isset($_GET['act']) && $_GET['act']=='login'){
 			if($islogin2==1){
 				exit('{"code":-1,"msg":"当前微信已绑定商户ID:'.$uid.'，请勿重复绑定！"}');
 			}
-			$session=md5($uid.$key.$password_hash);
+			$session=webMerchantSessionStamp($userrow);
 			$expiretime=time()+2592000;
 			$token=authcode("{$uid}\t{$session}\t{$expiretime}", 'ENCODE', SYS_KEY);
 			setAuthCookie("user_token", $token, time() + 2592000);
@@ -82,7 +82,15 @@ $wxinfo = \lib\Channel::getWeixin($conf['login_wx']);
 if(!$wxinfo)sysmsg("当前微信公众号不存在");
 
 try{
-	$openId = wechat_oauth($wxinfo);
+	$oauth = new \lib\wechat\WechatOauth($wxinfo['appid'], $wxinfo['appsecret']);
+	if(isset($_GET['code'])){
+		\lib\Merchant\NativeLoginState::consume('wechat', $_GET['state']??null);
+		if(!is_string($_GET['code']) || $_GET['code']==='')throw new DomainException('登录授权码无效');
+		$openId = $oauth->GetOpenidFromMp($_GET['code']);
+	}else{
+		if(!empty($conf['wx_open_url']))$oauth->setOpenUrl($conf['wx_open_url']);
+		$oauth->login(\lib\Merchant\NativeLoginState::issue('wechat'));
+	}
 }catch(Exception $e){
 	sysmsg($e->getMessage());
 }
@@ -93,7 +101,7 @@ $_SESSION['openid'] = $openId;
 		$uid=$userrow['uid'];
 		$key=$userrow['key'];
 		$DB->insert('log', ['uid'=>$uid, 'type'=>'微信快捷登录', 'date'=>'NOW()', 'ip'=>$clientip, 'city'=>$city]);
-		$session=md5($uid.$key.$password_hash);
+		$session=webMerchantSessionStamp($userrow);
 		$expiretime=time()+604800;
 		$token=authcode("{$uid}\t{$session}\t{$expiretime}", 'ENCODE', SYS_KEY);
 		setAuthCookie("user_token", $token, time() + 604800);

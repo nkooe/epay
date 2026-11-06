@@ -179,7 +179,10 @@ final class ChannelPolicy
         if((int)$binding['owner_uid']>0&&((int)$binding['owner_uid']!==(int)$uid||(int)$subchannel>0))throw new ApiError('支付通道不属于该商户',403);
         if($test || !empty($GLOBALS['merchantChannelAdminTest']))return;
         $owned=new OwnedChannels($this->db);
-        if($this->load($uid)['mode']==='group'&&$owned->source($uid,$type)==='owned'){
+        $group=$this->load($uid)['mode']==='group';
+        $source=$group?$owned->source($uid,$type):null;
+        if($group&&(int)$binding['owner_uid']>0&&$source!=='owned')throw new ApiError('订单通道与当前收款来源不一致，请重新下单');
+        if($group&&$source==='owned'){
             $gid=(int)$this->db->value('SELECT gid FROM pre_user WHERE uid=?',[(int)$uid]);
             $owned->select($uid,$gid,$type,$money);
             $r=$this->db->row('SELECT * FROM pre_channel WHERE id=? AND owner_uid=? AND type=? AND status=1 AND daystatus=0',[(int)$channel,(int)$uid,(int)$type]);

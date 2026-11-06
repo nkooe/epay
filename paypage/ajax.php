@@ -43,6 +43,8 @@ if($userrow['pay_minmoney']>0 && $money<$userrow['pay_minmoney'])showerrorjson('
 
 $groupconfig = getGroupConfig($userrow['gid']);
 $conf = array_merge($conf, $groupconfig);
+try { \lib\Merchant\PaymentAccess::assertAllowed(['uid'=>$uid]); }
+catch (\lib\AdminApp\ApiError $e) { showerrorjson($e->getMessage()); }
 
 if($conf['pay_maxmoney']>0 && $money>$conf['pay_maxmoney'])showerrorjson('最大支付金额是'.$conf['pay_maxmoney'].'元');
 if($conf['pay_minmoney']>0 && $money<$conf['pay_minmoney'])showerrorjson('最小支付金额是'.$conf['pay_minmoney'].'元');
@@ -92,7 +94,7 @@ if(!empty($paytype) && isset($_SESSION['paypage_typeid']) && isset($_SESSION['pa
 		if(!empty($conf['pay_payaddstart'])&&$conf['pay_payaddstart']!=0&&!empty($conf['pay_payaddmin'])&&$conf['pay_payaddmin']!=0&&!empty($conf['pay_payaddmax'])&&$conf['pay_payaddmax']!=0&&$realmoney>=$conf['pay_payaddstart']){
 			$randmoney = randomFloat(round($conf['pay_payaddmin'],2),round($conf['pay_payaddmax'],2));
 			$realmoney = round($realmoney + $randmoney, 2);
-			if($submitData['mode']==1) $getmoney = round($getmoney + $randmoney, 2);
+			if($_SESSION['paypage_mode']==1) $getmoney = round($getmoney + $randmoney, 2);
 		}
 
 		$DB->update('order', ['type'=>$typeid, 'channel'=>$channelid, 'subchannel'=>$subchannelid, 'realmoney'=>$realmoney, 'getmoney'=>$getmoney], ['trade_no'=>$trade_no]);

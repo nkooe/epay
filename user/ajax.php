@@ -53,6 +53,13 @@ case 'login':
 	if(empty($user) || empty($pass))exit('{"code":-1,"msg":"请确保各项不能为空"}');
 
 
+    try {
+        $loginGuard = new \lib\AdminApp\Auth(\lib\AdminApp\Runtime::legacyStore($DB), $conf, $clientip);
+        $loginGuard->rate('merchant-login-ip:'.$clientip, 30);
+        $loginGuard->rate('merchant-login-account:'.hash('sha256', strtolower($user)), 30);
+    } catch (\lib\AdminApp\ApiError $e) {
+        exit(json_encode(['code'=>429, 'msg'=>$e->getMessage()]));
+    }
 	if($conf['captcha_open_login']==1){
 		if(!isset($_SESSION['gtserver']))exit('{"code":-1,"msg":"验证加载失败"}');
 		if(!verify_captcha())exit('{"code":-1,"msg":"验证失败，请重新验证"}');
@@ -78,7 +85,7 @@ case 'login':
 			exit('{"code":-1,"msg":"该商户未开启密钥登录，请使用账号密码登录！"}');
 		}
 	}
-	if($userrow && ($type==0 && $pass==$userrow['key'] || $type==1 && $pass==$userrow['pwd'])) {
+	if($userrow && !empty($userrow['status']) && ($type==0 && hash_equals((string)$userrow['key'], $pass) || $type==1 && hash_equals((string)$userrow['pwd'], $pass))) {
 		$uid = $userrow['uid'];
 		if($alipay_uid=$_SESSION['Oauth_alipay_uid']){
 			$DB->update('user', ['alipay_uid'=>$alipay_uid], ['uid'=>$uid]);
@@ -100,7 +107,7 @@ case 'login':
 				$_SESSION['wxnotice_login_uid'] = $uid;
 			}
 		}
-		$session=md5($uid.$userrow['key'].$password_hash);
+		$session=webMerchantSessionStamp($userrow);
 		$expiretime=time()+604800;
 		$token=authcode("{$uid}\t{$session}\t{$expiretime}", 'ENCODE', SYS_KEY);
 		ob_clean();
@@ -143,7 +150,7 @@ case 'wxalogin':
 		$uid=$userrow['uid'];
 		$key=$userrow['key'];
 		$DB->insert('log', ['uid'=>$uid, 'type'=>'微信快捷登录', 'date'=>'NOW()', 'ip'=>$clientip]);
-		$session=md5($uid.$key.$password_hash);
+		$session=webMerchantSessionStamp($userrow);
 		$expiretime=time()+2592000;
 		$token=authcode("{$uid}\t{$session}\t{$expiretime}", 'ENCODE', SYS_KEY);
 		setAuthCookie("user_token", $token, time() + 2592000);

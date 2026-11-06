@@ -14,7 +14,12 @@ if($order['status']>0){
 	sysmsg('该订单('.$order['out_trade_no'].')已完成支付，请勿重复发起支付');
 }
 $firstGetChannel = true;
-if($order['type'] > 0 && $order['channel'] > 0 && $order['realmoney'] > 0 && $order['getmoney'] > 0 && !isset($_GET['retry'])){
+$fixedChannelTest = !empty($order['channel_test']);
+if($fixedChannelTest && !($order['type'] > 0 && $order['channel'] > 0 && $order['realmoney'] > 0 && $order['getmoney'] >= 0)){
+	sysmsg('测试订单通道或金额无效，请重新发起测试');
+}
+// A test always measures the explicitly selected channel, including App entry and retry.
+if($fixedChannelTest || ($order['type'] > 0 && $order['channel'] > 0 && $order['realmoney'] > 0 && $order['getmoney'] > 0 && !isset($_GET['retry']))){
 	$firstGetChannel = false;
 	if($typeid != $order['type']){
 		sysmsg('该订单已选择支付方式，如需更换其他支付方式请返回网站重新下单');
@@ -26,6 +31,8 @@ if($order['type'] > 0 && $order['channel'] > 0 && $order['realmoney'] > 0 && $or
 $userrow = $DB->getRow("SELECT `uid`,`gid`,`money`,`mode`,`channelinfo`,`ordername` FROM `pre_user` WHERE `uid`='{$order['uid']}' LIMIT 1");
 $groupconfig = getGroupConfig($userrow['gid']);
 $conf = array_merge($conf, $groupconfig);
+try { \lib\Merchant\PaymentAccess::assertAllowed($order); }
+catch (\lib\AdminApp\ApiError $e) { sysmsg(htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8')); }
 
 if($firstGetChannel){
 	try { $submitData = \lib\Channel::submit2($typeid, $userrow['uid'], $userrow['gid'], $order['money']); }

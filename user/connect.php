@@ -15,7 +15,7 @@ if(isset($_GET['act']) && $_GET['act']=='qrlogin' && $conf['login_qq']==2){
 				exit('{"code":-1,"msg":"当前QQ已绑定商户ID:'.$uid.'，请勿重复绑定！"}');
 			}
 			$DB->insert('log', ['uid'=>$uid, 'type'=>'QQ快捷登录', 'date'=>'NOW()', 'ip'=>$clientip, 'city'=>$city]);
-			$session=md5($uid.$key.$password_hash);
+			$session=webMerchantSessionStamp($userrow);
 			$expiretime=time()+2592000;
 			$token=authcode("{$uid}\t{$session}\t{$expiretime}", 'ENCODE', SYS_KEY);
 			setAuthCookie("user_token", $token, time() + 2592000);
@@ -82,7 +82,7 @@ if($_GET['code'] && ($conf['login_qq']==1 || $conf['login_qq']==3 || $conf['logi
 			exit("<script language='javascript'>alert('当前{$typename}已绑定商户ID:{$uid}，请勿重复绑定！');window.location.href='./editinfo.php';</script>");
 		}
 		$DB->insert('log', ['uid'=>$uid, 'type'=>$typename.'快捷登录', 'date'=>'NOW()', 'ip'=>$clientip, 'city'=>$city]);
-		$session=md5($uid.$key.$password_hash);
+		$session=webMerchantSessionStamp($userrow);
 		$expiretime=time()+2592000;
 		$token=authcode("{$uid}\t{$session}\t{$expiretime}", 'ENCODE', SYS_KEY);
 		setAuthCookie("user_token", $token, time() + 2592000);

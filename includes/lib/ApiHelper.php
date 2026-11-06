@@ -52,7 +52,7 @@ class ApiHelper
 
         $pid=intval($queryArr['pid']);
         if(empty($pid))throw new Exception('商户ID不能为空');
-        $userrow=$DB->getRow("SELECT `uid`,`gid`,`key`,`money`,`channelinfo`,`keytype`,`publickey`,`status`,`pay`,`settle`,`refund`,`transfer` FROM `pre_user` WHERE `uid`='{$pid}' LIMIT 1");
+        $userrow=$DB->getRow("SELECT `uid`,`gid`,`key`,`money`,`channelinfo`,`keytype`,`publickey`,`status`,`pay`,`settle`,`refund`,`transfer`,`settle_id`,`account`,`username`,`remain_money` FROM `pre_user` WHERE `uid`='{$pid}' LIMIT 1");
         if(!$userrow)throw new Exception('商户不存在！');
         if($userrow['status']==0)throw new Exception('商户已被封禁');
 

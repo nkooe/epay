@@ -358,6 +358,14 @@ class Payment {
         $order = array_replace($order, $current);
         if($settle > 0) $order['settle'] = $settle;
 
+        if(in_array((int)$order['status'],[0,4],true)&&!empty($GLOBALS['channel']['owner_uid'])){
+            // Match merchant editor lock order. Acquire before the first snapshot read,
+            // so callbacks for one owner see previously committed daily collections.
+            $store->row('SELECT uid FROM pre_user WHERE uid=?'.$store->lockClause(),[(int)$order['uid']]);
+            $limits=$store->row('SELECT * FROM pre_channel WHERE id=? AND owner_uid=?'.$store->lockClause(),[(int)$order['channel'],(int)$order['uid']]);
+            if(!$limits)throw new \RuntimeException('订单自有通道已删除或归属不一致');
+            $order['_owned_channel_limits']=$limits;
+        }
         if((int)$order['status']===0){
             $reset=$DB->getColumn("SELECT COUNT(*) FROM pre_app_operation WHERE id=:id AND state='done'",[':id'=>'status-only:'.$order['trade_no']]);
             if($reset){

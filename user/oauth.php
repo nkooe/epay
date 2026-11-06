@@ -23,7 +23,7 @@ if(isset($_GET['act']) && $_GET['act']=='login'){
 			if($islogin2==1){
 				exit('{"code":-1,"msg":"当前支付宝已绑定商户ID:'.$uid.'，请勿重复绑定！"}');
 			}
-			$session=md5($uid.$key.$password_hash);
+			$session=webMerchantSessionStamp($userrow);
 			$expiretime=time()+2592000;
 			$token=authcode("{$uid}\t{$session}\t{$expiretime}", 'ENCODE', SYS_KEY);
 			setAuthCookie("user_token", $token, time() + 2592000);
@@ -44,6 +44,10 @@ if(isset($_GET['act']) && $_GET['act']=='login'){
 }
 
 if(isset($_GET['auth_code'])){
+	try{
+		$login_redirect_state = \lib\Merchant\NativeLoginState::consume('alipay', $_GET['state']??null);
+		if(!is_string($_GET['auth_code']) || $_GET['auth_code']==='')throw new DomainException('登录授权码无效');
+	}catch(Exception $e){sysmsg($e->getMessage());}
 
 	$channel = \lib\Channel::get($conf['login_alipay']);
 	if(!$channel)sysmsg('当前支付通道信息不存在');
@@ -64,8 +68,8 @@ if(isset($_GET['auth_code'])){
 		$user_id = $result['open_id'];
 		$user_type = 'openid';
 	}
-	if(isset($_GET['state'])){
-		$redirect_uri = authcode(str_replace(' ', '+', $_GET['state']), 'DECODE', SYS_KEY);
+	if($login_redirect_state!==null){
+		$redirect_uri = authcode(str_replace(' ', '+', $login_redirect_state), 'DECODE', SYS_KEY);
 		if($redirect_uri && substr($redirect_uri, 0, 1) == '/'){
 			exit("<script language='javascript'>window.location.replace('{$redirect_uri}?userid={$user_id}&usertype={$user_type}&appid={$channel['appid']}');</script>");
 		}
@@ -81,7 +85,7 @@ if(isset($_GET['auth_code'])){
 			exit("<script language='javascript'>alert('当前支付宝已绑定商户ID:{$uid}，请勿重复绑定！');window.location.href='./editinfo.php';</script>");
 		}
 		$DB->insert('log', ['uid'=>$uid, 'type'=>'支付宝快捷登录', 'date'=>'NOW()', 'ip'=>$clientip, 'city'=>$city]);
-		$session=md5($uid.$key.$password_hash);
+		$session=webMerchantSessionStamp($userrow);
 		$expiretime=time()+2592000;
 		$token=authcode("{$uid}\t{$session}\t{$expiretime}", 'ENCODE', SYS_KEY);
 		setAuthCookie("user_token", $token, time() + 2592000);
@@ -108,7 +112,7 @@ if(isset($_GET['auth_code'])){
 	$alipay_config = require(PLUGIN_ROOT.$channel['plugin'].'/inc/config.php');
 	$oauth = new \Alipay\AlipayOauthService($alipay_config);
 	$redirect_uri = $siteurl.'user/oauth.php';
-	$oauth->oauth($redirect_uri, isset($_GET['state'])?trim($_GET['state']):null);
+	$oauth->oauth($redirect_uri, \lib\Merchant\NativeLoginState::issue('alipay', isset($_GET['state'])&&is_string($_GET['state'])?trim($_GET['state']):null));
 }else{
 
 $code_url = $siteurl.'user/oauth.php?sid='.session_id();

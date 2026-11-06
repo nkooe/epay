@@ -13,12 +13,14 @@ if(isset($_COOKIE["admin_token"]))
 if(isset($_COOKIE["user_token"]))
 {
 	$token=authcode(daddslashes($_COOKIE['user_token']), 'DECODE', SYS_KEY);
-	list($uid, $sid, $expiretime) = explode("\t", $token);
-	$uid = intval($uid);
-	$userrow=$DB->getRow("SELECT * FROM pre_user WHERE uid=:uid limit 1", [':uid'=>$uid]);
-	$session=md5($userrow['uid'].$userrow['key'].$password_hash);
-	if($userrow && $session==$sid && $expiretime>time()) {
-		$islogin2=1;
+	$parts = explode("\t", $token);
+	if(count($parts)===3 && ctype_digit($parts[0]) && ctype_digit($parts[2]) && $parts[2]>time()) {
+		list($uid, $sid, $expiretime) = $parts;
+		$uid = intval($uid);
+		$userrow=$DB->getRow("SELECT * FROM pre_user WHERE uid=:uid limit 1", [':uid'=>$uid]);
+		if($userrow && !empty($userrow['status']) && hash_equals(webMerchantSessionStamp($userrow),$sid)) {
+			$islogin2=1;
+		}
 	}
 }
 ?>

@@ -44,17 +44,20 @@ class Plugin {
 			if(!in_array($func,['submit','mapi','qrcode','notify','return','alipay','wxpay','qqpay','bank','jdpay','douyinpay','pcstatus','pcalipay','xstatus','alipayjs','wxjspay','wxminipay','wxwappay','ok','jspay','wap','h5','apppay','scanpay','applet','transfernotify','complainnotify','mchrisknotify','checkpay','getpayurl'],true))throw new Exception('支付路由不存在');
 
 			$order = $DB->getRow("SELECT A.*,B.name typename,B.showname typeshowname FROM pre_order A left join pre_type B on A.type=B.id WHERE trade_no=:trade_no limit 1", [':trade_no'=>$trade_no]);
-			$userrow = $DB->find('user', 'gid,ordername,channelinfo', ['uid'=>$order['uid']]);
-			$groupconfig = getGroupConfig($userrow['gid']);
-			$conf = array_merge($conf, $groupconfig);
+			$userrow = $order ? $DB->find('user', 'gid,ordername,channelinfo', ['uid'=>$order['uid']]) : null;
+			if($userrow){
+				$groupconfig = getGroupConfig($userrow['gid']);
+				$conf = array_merge($conf, $groupconfig);
+			}
             if (!$order) {
-				$channel = \lib\Channel::get($trade_no, $userrow['channelinfo']);
+				$channel = \lib\Channel::get($trade_no, $userrow['channelinfo']??null);
 				if(!$channel) throw new Exception('该订单号不存在，请返回来源地重新发起请求！');
 				if(!empty($channel['owner_uid']))throw new Exception('私有通道必须通过所属商户订单访问');
 				$trade_no = null;
             }else{
 
-				if(in_array($func, ['submit','mapi','jsapi','qrcode','checkpay','getpayurl','alipay','alipayjs','wxpay','bank','jspay','wap','h5','wxminipay','apppay','applet'], true)) {
+				if(!in_array($func, ['notify','return','pcstatus','xstatus','ok','transfernotify','complainnotify','mchrisknotify'], true)) {
+					\lib\Merchant\PaymentAccess::assertAllowed($order);
 					\lib\Channel::merchantPolicy()->assertRoute($order['uid'], $order['type'], $order['channel'], $order['subchannel'], $order['money'], !empty($order['channel_test']));
 				}
 				\lib\Channel::assertOwner($order['uid'],$order['channel'],$order['subchannel']);
@@ -139,6 +142,7 @@ class Plugin {
 
 	static public function loadForSubmit($plugin, $trade_no, $ismapi=false){
 		global $DB,$conf,$order,$channel,$ordername,$userrow;
+		\lib\Merchant\PaymentAccess::assertAllowed($order);
 		\lib\Channel::merchantPolicy()->assertRoute($order['uid'], $order['type'], $order['channel'], $order['subchannel'], $order['money'], !empty($order['channel_test']));
 		if(preg_match('/^(.[a-zA-Z0-9]+)$/',$plugin) && preg_match('/^(.[0-9]+)$/',$trade_no)){
 			$func = 'submit';

@@ -21,7 +21,7 @@ class Oauth{
 	public function login($type){
 
 		//-------生成唯一随机串防CSRF攻击
-		$state = md5(uniqid(rand(), TRUE));
+		$state = bin2hex(random_bytes(32));
 		$_SESSION['Oauth_state'] = $state;
 
 		//-------构造请求参数列表
@@ -41,6 +41,12 @@ class Oauth{
 
 	//登录成功返回网站
 	public function callback(){
+		$state=$_GET['state']??null;$expected=$_SESSION['Oauth_state']??null;
+		if(!is_string($state)||!is_string($expected)||$expected===''||!hash_equals($expected,$state)){
+			return ['code'=>-1,'msg'=>'登录状态校验失败，请重新发起登录'];
+		}
+		unset($_SESSION['Oauth_state']);
+
 		//-------请求参数列表
 		$keysArr = array(
 			"act" => "callback",

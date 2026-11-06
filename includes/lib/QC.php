@@ -28,7 +28,7 @@ class QC{
     }
 
     public function qq_login($is_geturl = false){
-        $state = md5(uniqid(rand(), TRUE));
+        $state = bin2hex(random_bytes(32));
         $_SESSION['Oauth_state'] = $state;
 
         //-------构造请求参数列表
@@ -48,9 +48,11 @@ class QC{
     }
 
     public function qq_callback(){
-        if($_GET['state'] != $_SESSION['Oauth_state']){
-            sysmsg("<h2>The state does not match. You may be a victim of CSRF.</h2>");
+        $state=$_GET['state']??null;$expected=$_SESSION['Oauth_state']??null;
+        if(!is_string($state)||!is_string($expected)||$expected===''||!hash_equals($expected,$state)){
+            sysmsg('登录状态校验失败，请重新发起登录');
         }
+        unset($_SESSION['Oauth_state']);
         //-------请求参数列表
         $keysArr = array(
             "grant_type" => "authorization_code",

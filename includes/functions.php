@@ -101,6 +101,9 @@ function setAuthCookie($name,$value,$expires,$path=null){
 function webAdminSessionStamp(array $config){
     return hash_hmac('sha256',json_encode([$config['admin_user']??'',$config['admin_pwd']??'',$config['totp_open']??'0',$config['totp_secret']??'']),SYS_KEY);
 }
+function webMerchantSessionStamp(array $user){
+    return hash_hmac('sha256',json_encode([(string)($user['uid']??''),(string)($user['key']??''),(string)($user['pwd']??'')]),SYS_KEY);
+}
 function get_ip_city($ip)
 {
     $url = 'https://www.bt.cn/api/panel/get_ip_info?ip=' . $ip;
@@ -641,20 +644,7 @@ function processOrderAccounting(&$srow){
 		}
 	}else if($srow['tid']==4){ //购买用户组
 		$param = json_decode($srow['param'], true);
-		changeUserGroup($param['uid'], $param['gid'], $param['endtime']);
-
-		$upid = $DB->findColumn('user', 'upid', ['uid'=>$param['uid']]);
-		if($upid > 0){
-			$upgid = $DB->findColumn('user', 'gid', ['uid'=>$upid]);
-			$groupconfig = getGroupConfig($upgid);
-			$conf_n = array_merge($conf, $groupconfig);
-			if($conf_n['invite_open'] == 1 && $conf_n['invite_groupbuy_rate'] > 0){
-				$invite_money = round($srow['money'] * $conf_n['invite_groupbuy_rate'] / 100, 2);
-				if($invite_money > 0){
-					changeUserMoney($upid, $invite_money, true, '邀请购买会员');
-				}
-			}
-		}
+		(new \lib\Merchant\Membership(\lib\AdminApp\Runtime::legacyStore($DB), $conf))->fulfill($param, $srow['money']);
 	}else if($srow['tid']==5){ //充值保证金
 		$param = json_decode($srow['param'], true);
 		(new \lib\Merchant\Deposit(\lib\AdminApp\Runtime::legacyStore($DB)))->credit($param['uid'],$srow['money']);
@@ -702,7 +692,13 @@ function processOrderAccounting(&$srow){
 			}
 		}
 	}
-	if($channel['daytop']>0){
+	if(!empty($channel['owner_uid'])){
+		$limits=$srow['_owned_channel_limits']??$DB->getRow('SELECT * FROM pre_channel WHERE id=:id AND owner_uid=:uid',[':id'=>(int)$srow['channel'],':uid'=>(int)$srow['uid']]);
+		if(!$limits)throw new RuntimeException('订单自有通道已删除或归属不一致');
+		if(($limits['daytop']>0||$limits['daymaxorder']>0)&&(new \lib\Merchant\OwnedChannels(\lib\AdminApp\Runtime::legacyStore($DB)))->dailyStatus($limits,$limits,true)){
+			$DB->exec('UPDATE pre_channel SET daystatus=1 WHERE id=:id',[':id'=>(int)$limits['id']]);
+		}
+	}elseif($channel['daytop']>0){
 		$cachekey = 'daytop'.$channel['id'].date("Ymd");
 		$nowmoney = $CACHE->read($cachekey);
 		if(!$nowmoney)$nowmoney=0;
@@ -712,7 +708,7 @@ function processOrderAccounting(&$srow){
 			$DB->exec("UPDATE pre_channel SET daystatus=1 WHERE id='{$channel['id']}'");
 		}
 	}
-	if($channel['daymaxorder'] > 0){
+	if(empty($channel['owner_uid'])&&$channel['daymaxorder'] > 0){
 		$orders = $DB->getColumn("SELECT COUNT(*) FROM pre_order WHERE channel='{$channel['id']}' AND status>0 AND date=CURDATE()");
 		if($orders >= $channel['daymaxorder']){
 			$DB->exec("UPDATE pre_channel SET daystatus=1 WHERE id='{$channel['id']}'");

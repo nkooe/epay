@@ -105,7 +105,7 @@ class Transfer
             $order = $DB->find('transfer', 'biz_no', ['biz_no'=>$biz_no, 'uid'=>$pid]);
         }elseif(!empty($queryArr['out_biz_no'])){
             $out_biz_no = trim($queryArr['out_biz_no']);
-            $order = $DB->find('transfer', 'biz_no', ['biz_no'=>$out_biz_no, 'uid'=>$pid]);
+            $order = $DB->find('transfer', 'biz_no', ['out_biz_no'=>$out_biz_no, 'uid'=>$pid]);
         }else{
             throw new Exception('转账交易号不能为空');
         }
@@ -125,15 +125,7 @@ class Transfer
         if(!$conf['user_transfer']) throw new Exception('管理员未开启代付功能');
         if($userrow['transfer'] == 0) throw new Exception('商户未开启代付API接口');
 
-        if($conf['settle_type']==1){
-            $today=date("Y-m-d").' 00:00:00';
-            $order_today=$DB->getColumn("SELECT SUM(realmoney) from pre_order where uid={$pid} and tid<>2 and status=1 and endtime>='$today'");
-            if(!$order_today) $order_today = 0;
-            $enable_money=round($userrow['money']-$order_today,2);
-            if($enable_money<0)$enable_money=0;
-        }else{
-            $enable_money=$userrow['money'];
-        }
+        $enable_money = \lib\Merchant\FinancialPolicy::available(\lib\AdminApp\Runtime::legacyStore($DB), $conf, $userrow, true);
         if(!$conf['transfer_rate'])$conf['transfer_rate'] = $conf['settle_rate'];
 
         $result = ['code'=>0, 'available_money'=>strval($enable_money), 'transfer_rate'=>$conf['transfer_rate']];

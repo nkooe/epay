@@ -868,22 +868,13 @@ case 'groupbuy':
 		$endtime = null;
 	}
 	if($typeid==0){
-		if($money>$userrow['money'])exit('{"code":-1,"msg":"余额不足，请选择其他方式支付"}');
-		changeUserMoney($uid, $money, false, '购买会员');
-		changeUserGroup($uid, $gid, $endtime);
-
-		if($userrow['upid'] > 0){
-			$upgid = $DB->findColumn('user', 'gid', ['uid'=>$userrow['upid']]);
-			$groupconfig = getGroupConfig($upgid);
-			$conf_n = array_merge($conf, $groupconfig);
-			if($conf_n['invite_open'] == 1 && $conf_n['invite_groupbuy_rate'] > 0){
-				$invite_money = round($money * $conf_n['invite_groupbuy_rate'] / 100, 2);
-				if($invite_money > 0){
-					changeUserMoney($userrow['upid'], $invite_money, true, '邀请购买会员');
-				}
-			}
+		try {
+			(new \lib\Merchant\Membership(\lib\AdminApp\Runtime::legacyStore($DB), $conf))->purchase($uid, $gid, $num);
+		} catch (\DomainException $e) {
+			exit(json_encode(['code'=>-1, 'msg'=>$e->getMessage()]));
+		} catch (\Throwable $e) {
+			exit(json_encode(['code'=>-1, 'msg'=>'购买失败，请稍后重试']));
 		}
-
 		unset($_SESSION['csrf_token']);
 		$result = ['code'=>1, 'msg'=>'购买会员成功！'];
 		exit(json_encode($result));
@@ -892,7 +883,7 @@ case 'groupbuy':
 		$trade_no=date("YmdHis").rand(11111,99999);
 		$return_url=$siteurl.'user/groupbuy.php?ok=1&trade_no='.$trade_no;
 		$domain=getdomain($return_url);
-		$param = json_encode(['uid'=>$uid, 'gid'=>$gid, 'endtime'=>$endtime]);
+		$param = json_encode(['uid'=>$uid, 'gid'=>$gid, 'endtime'=>$endtime, 'months'=>(int)$row['expire']*$num]);
 		if(!$DB->exec("INSERT INTO `pre_order` (`trade_no`,`out_trade_no`,`uid`,`tid`,`addtime`,`name`,`money`,`notify_url`,`return_url`,`domain`,`ip`,`status`,`param`) VALUES (:trade_no, :out_trade_no, :uid, 4, NOW(), :name, :money, :notify_url, :return_url, :domain, :clientip, 0, :param)", [':trade_no'=>$trade_no, ':out_trade_no'=>$trade_no, ':uid'=>$conf['reg_pay_uid'], ':name'=>$name, ':money'=>$money, ':notify_url'=>$return_url, ':return_url'=>$return_url, ':domain'=>$domain, ':clientip'=>$clientip, ':param'=>$param]))exit('{"code":-1,"msg":"创建订单失败，请返回重试！"}');
 		unset($_SESSION['csrf_token']);
 		$result = ['code'=>0, 'msg'=>'succ', 'url'=>'../submit2.php?typeid='.$typeid.'&trade_no='.$trade_no];

@@ -72,9 +72,9 @@ final class OwnedChannels
         return array_intersect_key($row,$fields)+['revision'=>self::revision($row)];
     }
     /** Shared by merchant, admin Web and App editors for merchant-owned channels. */
-    public function dailyStatus(array $old,array $next)
+    public function dailyStatus(array $old,array $next,$refresh=false)
     {
-        if(round((float)$next['daytop'],2)===round((float)$old['daytop'],2)&&(int)$next['daymaxorder']===(int)$old['daymaxorder'])return (int)$old['daystatus'];
+        if(!$refresh&&round((float)$next['daytop'],2)===round((float)$old['daytop'],2)&&(int)$next['daymaxorder']===(int)$old['daymaxorder'])return (int)$old['daystatus'];
         $today=$this->db->row('SELECT COUNT(*) orders,COALESCE(SUM(realmoney),0) money FROM pre_order WHERE channel=? AND status>0 AND date=?',[(int)$old['id'],date('Y-m-d')]);
         return (int)(((float)$next['daytop']>0&&(float)$today['money']>=(float)$next['daytop'])||((int)$next['daymaxorder']>0&&(int)$today['orders']>=(int)$next['daymaxorder']));
     }

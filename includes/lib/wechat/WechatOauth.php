@@ -24,7 +24,7 @@ class WechatOauth
     /**
      * 跳转到微信公众平台登录
      */
-    public function login()
+    public function login($state = 'STATE')
     {
         $redirect_uri = (is_https() ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
         $param = [
@@ -32,7 +32,7 @@ class WechatOauth
             "redirect_uri" => $redirect_uri,
             "response_type" => "code",
             "scope" => "snsapi_base",
-            "state" => "STATE"
+            "state" => $state
         ];
         $url = $this->openurl . '/connect/oauth2/authorize?' . http_build_query($param) . "#wechat_redirect";
         Header("Location: $url");
