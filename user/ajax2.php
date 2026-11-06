@@ -769,9 +769,12 @@ case 'order': //订单详情
 	exit(json_encode($result));
 break;
 case 'subOrders':
-	$trade_no=trim($_GET['trade_no']);
+	$trade_no=is_string($_GET['trade_no'] ?? null)?trim($_GET['trade_no']):'';
+	$row=$DB->getRow("select trade_no,settle from pre_order where trade_no=:trade_no and uid=:uid limit 1", [':trade_no'=>$trade_no, ':uid'=>$uid]);
+	if(!$row)
+		exit('{"code":-1,"msg":"当前订单不存在！"}');
 	$list = \lib\Payment::getSubOrders($trade_no);
-	exit(json_encode(['code'=>0, 'data'=>$list, 'settle'=>$DB->findColumn('order', 'settle', ['trade_no'=>$trade_no])]));
+	exit(json_encode(['code'=>0, 'data'=>$list, 'settle'=>$row['settle']]));
 break;
 case 'notifyHistory':
 	$row=$DB->find('order','trade_no,notify,notifytime',['trade_no'=>trim((string)($_GET['trade_no'] ?? '')),'uid'=>$uid]);
@@ -809,8 +812,8 @@ case 'printOrder':
 	}
 break;
 case 'settle_result':
-	$id=intval($_GET['id']);
-	$row=$DB->getRow("select result from pre_settle where id='$id' limit 1");
+	$id=is_string($_GET['id'] ?? null)?intval($_GET['id']):0;
+	$row=$DB->getRow("select result from pre_settle where id=:id and uid=:uid limit 1", [':id'=>$id, ':uid'=>$uid]);
 	if(!$row)
 		exit('{"code":-1,"msg":"当前结算记录不存在！"}');
 	$result = ['code'=>0,'msg'=>$row['result']?$row['result']:'未知'];
@@ -1249,7 +1252,8 @@ case 'transfer_statistics':
 break;
 
 case 'transfer_result':
-	$biz_no=trim($_GET['biz_no']);
+	$biz_no=is_string($_GET['biz_no'] ?? null)?trim($_GET['biz_no']):'';
+	if($biz_no==='')exit('{"code":-1,"msg":"当前付款记录不存在！"}');
 	$row=$DB->find('transfer', 'result', ['biz_no'=>$biz_no, 'uid'=>$uid]);
 	if(!$row)
 		exit('{"code":-1,"msg":"当前付款记录不存在！"}');
