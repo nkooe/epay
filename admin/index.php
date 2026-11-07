@@ -62,7 +62,7 @@ if($conf['admin_pwd']==='123456'){
       <div role="tabpanel" class="tab-pane" id="stats-profit"><div class="table-responsive"><table class="table table-hover"><caption class="sr-only">每日各支付方式手续费利润，已扣除通道成本，单位元</caption><thead><tr id="profit_paytype_head"><th scope="col">日期</th></tr></thead><tbody id="profit_paytype_list"></tbody></table></div></div>
     </div>
   </section>
-  <p class="dashboard-footnote">按支付日期统计已支付与冻结订单的实付金额 · 北京时间</p>
+  <p class="dashboard-footnote">作者：Coco · 版本号：<?php echo htmlspecialchars(\lib\Release::VERSION, ENT_QUOTES, 'UTF-8'); ?></p>
 </main>
 <script src="../assets/js/chart.js"></script>
 <script src="../assets/js/admin-dashboard.js?v=1.0.1"></script>

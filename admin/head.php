@@ -24,6 +24,7 @@ if($admin_cdnpublic==1){
   <link href="../assets/css/bootstrap-table.css?v=1" rel="stylesheet"/>
   <link href="<?php echo $cdnpublic?>font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"/>
   <link href="../assets/css/admin-wechat.css?v=1.0.12" rel="stylesheet"/>
+  <?php if(!empty($admin_settings)){ ?><link href="../assets/css/admin-settings.css?v=1.0.1" rel="stylesheet"/><?php } ?>
   <script src="<?php echo $cdnpublic?>modernizr/2.8.3/modernizr.min.js"></script>
   <script src="<?php echo $cdnpublic?>jquery/3.4.1/jquery.min.js"></script>
   <script src="<?php echo $cdnpublic?>twitter-bootstrap/3.4.1/js/bootstrap.min.js"></script>
@@ -33,7 +34,7 @@ if($admin_cdnpublic==1){
   <![endif]-->
   <script src="../assets/js/admin-financial.js?v=1.2.36"></script>
 </head>
-<body class="admin-portal<?php echo $islogin==1?'':' admin-signed-out'; ?>">
+<body class="admin-portal<?php echo $islogin==1?'':' admin-signed-out'; ?><?php echo !empty($admin_settings)?' admin-settings-page':''; ?>">
 <?php if($islogin==1){?>
   <nav class="navbar navbar-fixed-top navbar-default">
     <div class="container">

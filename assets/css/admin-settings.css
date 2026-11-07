@@ -1,0 +1,102 @@
+.admin-settings-page .admin-page-heading {
+  max-width: 1280px;
+  padding-right: 20px;
+  padding-left: 20px;
+}
+
+.admin-settings-page .settings-shell {
+  width: auto;
+  max-width: 1280px;
+  padding: 0 20px 32px;
+}
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.settings-navigation {
+  position: sticky;
+  top: 70px;
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  border: 1px solid var(--admin-line);
+  border-radius: 6px;
+  background: #fff;
+  scrollbar-width: thin;
+}
+
+.settings-navigation-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--admin-line);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.settings-navigation-heading > .fa { color: var(--admin-green); }
+.settings-menu { padding: 8px; }
+.admin-portal .settings-menu > a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  color: #555;
+  line-height: 22px;
+}
+.settings-menu > a > .fa:first-child { width: 18px; text-align: center; color: #8a968e; }
+.settings-menu-arrow { margin-left: auto; color: #a5afa9; }
+.admin-portal .settings-menu > a:hover { background: #f5f9f6; color: var(--admin-green-dark); }
+.admin-portal .settings-menu > a.active { background: var(--admin-green-soft); color: var(--admin-green-dark); font-weight: 600; }
+.settings-menu > a.active > .fa { color: var(--admin-green); }
+.admin-portal .settings-menu > a:focus-visible,
+.settings-menu-toggle:focus-visible { outline: 2px solid var(--admin-green); outline-offset: -2px; }
+.settings-menu-toggle { display: none; }
+
+.settings-content { min-width: 0; }
+.settings-content > .panel:last-of-type { margin-bottom: 0; }
+.admin-portal .settings-content .panel-body { padding: 24px; }
+.settings-content .form-horizontal { margin-bottom: 0; }
+.settings-content .help-block,
+.settings-content .form-group font { overflow-wrap: anywhere; }
+.admin-portal .settings-content input[type="submit"].form-control { width: auto; min-width: 140px; }
+
+@media (max-width: 767px) {
+  .admin-settings-page .admin-page-heading { padding-right: 12px; padding-left: 12px; }
+  .admin-settings-page .settings-shell { padding: 0 12px 24px; }
+  .settings-layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .settings-navigation { position: static; max-height: none; overflow: hidden; }
+  .settings-navigation-heading { display: none; }
+  .settings-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 50px;
+    padding: 12px 16px;
+    border: 0;
+    background: #fff;
+    color: var(--admin-green-dark);
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+  }
+  .settings-menu-toggle > span:first-child { font-weight: 600; }
+  .settings-menu-toggle > span:last-child { color: var(--admin-muted); font-size: 12px; }
+  .settings-menu-toggle .fa { margin-right: 6px; }
+  .settings-menu-toggle > span:last-child > .fa { margin-right: 0; margin-left: 6px; }
+  .settings-navigation.is-collapsible:not(.is-open) .settings-menu { display: none; }
+  .settings-menu { border-top: 1px solid var(--admin-line); max-height: 50vh; overflow-y: auto; }
+  .admin-portal .settings-menu > a { min-height: 44px; }
+  .settings-navigation.is-open .settings-menu-toggle .fa-angle-down { transform: rotate(180deg); }
+  .admin-portal .settings-content .panel-body { padding: 16px; }
+  .admin-portal .settings-content .form-control { min-height: 44px; font-size: 16px; }
+  .admin-portal .settings-content input[type="submit"].form-control { width: 100%; }
+}

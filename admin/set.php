@@ -5,18 +5,29 @@
 include("../includes/common.php");
 if (($islogin ?? 0)==1 && ($_GET['mod'] ?? '')==='cron') { header('Location: ./tasks.php'); exit; }
 $title='系统设置';
+$admin_settings=true;
 include './head.php';
 if($islogin==1){}else exit("<script language='javascript'>window.location.href='./login.php';</script>");
 ?>
-  <div class="container" style="padding-top:70px;">
-    <div class="col-xs-12 col-sm-10 col-lg-8 center-block" style="float: none;">
 <?php
-$mod=isset($_GET['mod'])?$_GET['mod']:null;
+$mod=is_string($_GET['mod'] ?? null)?$_GET['mod']:'site';
 $mods=['site'=>'网站信息','pay'=>'支付相关','risk'=>'风控检测','settle'=>'结算规则','transfer'=>'转账付款','oauth'=>'快捷登录','notice'=>'消息提醒','certificate'=>'实名认证','template'=>'首页模板','gonggao'=>'公告与排版','mail'=>'邮箱与短信','upimg'=>'LOGO设置','iptype'=>'IP地址','proxy'=>'中转代理','account'=>'修改密码'];
+$activeMod=['account_n'=>'account','paypwd_n'=>'account','mailtest'=>'mail'][$mod]??$mod;
+if(!isset($mods[$activeMod]))$mod=$activeMod='site';
+$modIcons=['site'=>'globe','pay'=>'credit-card','risk'=>'shield','settle'=>'balance-scale','transfer'=>'exchange','oauth'=>'sign-in','notice'=>'bell-o','certificate'=>'id-card-o','template'=>'desktop','gonggao'=>'bullhorn','mail'=>'envelope-o','upimg'=>'picture-o','iptype'=>'map-marker','proxy'=>'random','account'=>'lock'];
 ?>
-<ul class="nav nav-pills">
-	<?php foreach($mods as $key=>$name){echo '<li class="'.($key==$mod?'active':null).'"><a href="set.php?mod='.$key.'">'.$name.'</a></li>';} ?>
-</ul>
+<main class="container settings-shell">
+  <div class="settings-layout">
+    <aside class="settings-navigation" aria-label="系统设置分类">
+      <div class="settings-navigation-heading"><i class="fa fa-sliders" aria-hidden="true"></i><span>系统设置</span></div>
+      <button type="button" class="settings-menu-toggle" aria-expanded="false" aria-controls="settings-menu"><span><i class="fa fa-sliders" aria-hidden="true"></i> <?php echo $mods[$activeMod]; ?></span><span>切换分类 <i class="fa fa-angle-down" aria-hidden="true"></i></span></button>
+      <nav id="settings-menu" class="settings-menu" aria-label="设置分类">
+        <?php foreach($mods as $key=>$name){ ?>
+        <a href="set.php?mod=<?php echo $key; ?>"<?php echo $key===$activeMod?' class="active" aria-current="page"':''; ?>><i class="fa fa-<?php echo $modIcons[$key]; ?>" aria-hidden="true"></i><span><?php echo $name; ?></span><i class="fa fa-angle-right settings-menu-arrow" aria-hidden="true"></i></a>
+        <?php } ?>
+      </nav>
+    </aside>
+    <div class="settings-content" id="settings-content">
 <?php
 $conf=$CACHE->pre_fetch();
 if($mod=='site'){
@@ -1914,8 +1925,17 @@ echo '</div></div>';
 ?>
     </div>
   </div>
+</main>
 <script src="<?php echo $cdnpublic?>layer/3.1.1/layer.js"></script>
 <script>
+var settingsNavigation = document.querySelector('.settings-navigation');
+var settingsMenuToggle = document.querySelector('.settings-menu-toggle');
+settingsNavigation.classList.add('is-collapsible');
+settingsMenuToggle.addEventListener('click', function () {
+	var expanded = this.getAttribute('aria-expanded') !== 'true';
+	this.setAttribute('aria-expanded', String(expanded));
+	settingsNavigation.classList.toggle('is-open', expanded);
+});
 var items = $("select[default]");
 for (i = 0; i < items.length; i++) {
 	$(items[i]).val($(items[i]).attr("default")||0);

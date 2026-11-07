@@ -36,7 +36,7 @@ final class Api
         $expected=['v1/site'=>'GET','v1/auth/captcha'=>'GET','v1/auth/login'=>'POST','v1/auth/totp'=>'POST','v1/auth/refresh'=>'POST'];
         if (isset($expected[$route])) {
             if ($method!==$expected[$route]) throw new ApiError('请求方法不允许',405);
-            if ($route==='v1/site') return ['name'=>$this->conf['sitename'] ?? '易支付','api_version'=>1,'release_version'=>'3.10.2','captcha'=>($this->conf['app_captcha_open'] ?? '1')!=='0','timezone'=>'Asia/Shanghai'];
+            if ($route==='v1/site') return ['name'=>$this->conf['sitename'] ?? '易支付','api_version'=>1,'release_version'=>\lib\Release::VERSION,'captcha'=>($this->conf['app_captcha_open'] ?? '1')!=='0','timezone'=>'Asia/Shanghai'];
             if ($route==='v1/auth/captcha') return $this->auth->captcha();
             if ($route==='v1/auth/login') return $this->auth->login($data);
             if ($route==='v1/auth/totp') return $this->auth->totp($data);
