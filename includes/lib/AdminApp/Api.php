@@ -1,6 +1,8 @@
 <?php
 namespace lib\AdminApp;
 
+require_once dirname(__DIR__).'/Release.php';
+
 final class Api
 {
     private $db;
