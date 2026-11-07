@@ -832,3 +832,4 @@ CREATE TABLE `pre_merchant_channel_source` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `pre_config` VALUES ('merchant_channel_open', '0');
+INSERT INTO `pre_config` VALUES ('merchant_platform_channel_open', '1');

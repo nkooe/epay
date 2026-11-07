@@ -15,9 +15,23 @@ final class OwnedChannels
     {
         return (string)$this->db->value("SELECT v FROM pre_config WHERE k='merchant_channel_open'")==='1';
     }
+    const UNAVAILABLE = '平台尚未开启此功能，请稍后重试。';
+    public function platformEnabled()
+    {
+        $value=$this->db->value("SELECT v FROM pre_config WHERE k='merchant_platform_channel_open'");
+        return $value===false || $value===null || (string)$value==='1';
+    }
+    public function forcedSource()
+    {
+        return !$this->enabled()?'platform':(!$this->platformEnabled()?'owned':null);
+    }
     public function authorize($uid)
     {
-        if (!$this->enabled()) throw new ApiError('平台未开启商户通道管理',403);
+        if (!$this->enabled()) throw new ApiError(self::UNAVAILABLE,403);
+        return $this->authorizeRead($uid);
+    }
+    public function authorizeRead($uid)
+    {
         $user=$this->db->row('SELECT * FROM pre_user WHERE uid=?',[(int)$uid]);
         if (!$user || (int)$user['status']!==1) throw new ApiError('商户不存在或已停用',403);
         return $user;
@@ -49,15 +63,25 @@ final class OwnedChannels
     }
     public function metadata($uid)
     {
-        $this->authorize($uid);
+        $this->authorizeRead($uid);
         $types=$this->db->all('SELECT id,name,showname FROM pre_type WHERE status=1 ORDER BY id');
         $plugins=$this->db->all('SELECT name,showname,types FROM pre_plugin ORDER BY name');
-        $sources=$this->db->all('SELECT type,source FROM pre_merchant_channel_source WHERE uid=?',[(int)$uid]);
-        return ['types'=>$types,'plugins'=>$plugins,'sources'=>$sources,'routing_locked'=>(new ChannelPolicy($this->db))->load($uid)['mode']==='custom'];
+        $policy=(new ChannelPolicy($this->db))->load($uid);
+        $sources=[];
+        foreach($types as $type){
+            $source=$this->source($uid,$type['id']);
+            if($this->forcedSource()===null && $policy['mode']==='custom'){
+                foreach($policy['rules'] as $rule)if((int)$rule['type_id']===(int)$type['id'])$source=(int)$this->db->value('SELECT owner_uid FROM pre_channel WHERE id=?',[$rule['channel_id']])>0?'owned':'platform';
+            }
+            $sources[]=['type'=>$type['id'],'source'=>$source];
+        }
+        return ['types'=>$types,'plugins'=>$plugins,'sources'=>$sources,'management_enabled'=>$this->enabled(),
+            'platform_enabled'=>$this->platformEnabled(),'forced_source'=>$this->forcedSource(),
+            'routing_locked'=>$this->forcedSource()!==null || $policy['mode']==='custom'];
     }
     public function listing($uid)
     {
-        $this->authorize($uid);
+        $this->authorizeRead($uid);
         $today=date('Y-m-d'); $yesterday=date('Y-m-d',strtotime('-1 day'));
         $rows=$this->db->all('SELECT C.id,C.name,C.mode,C.type,C.plugin,C.status,C.daystatus,C.daytop,C.daymaxorder,C.paymin,C.paymax,C.timestart,C.timestop,T.showname typename,P.showname pluginname FROM pre_channel C LEFT JOIN pre_type T ON T.id=C.type LEFT JOIN pre_plugin P ON P.name=C.plugin WHERE C.owner_uid=? ORDER BY C.id DESC',[(int)$uid]);
         $sums=$this->db->all('SELECT channel,date,SUM(realmoney) money FROM pre_order WHERE uid=? AND date IN (?,?) AND status>0 GROUP BY channel,date',[(int)$uid,$today,$yesterday]);
@@ -175,12 +199,13 @@ final class OwnedChannels
     }
     public function source($uid,$type)
     {
+        $forced=$this->forcedSource();if($forced!==null)return $forced;
         return (string)$this->db->value('SELECT source FROM pre_merchant_channel_source WHERE uid=? AND type=?',[(int)$uid,(int)$type])==='owned'?'owned':'platform';
     }
     public function saveSource($uid,$type,$source,$ip)
     {
         $this->authorize($uid);$type=self::id($type);
-        if((new ChannelPolicy($this->db))->load($uid)['mode']==='custom')throw new ApiError('管理员已设置独立通道策略，请联系管理员调整',403);
+        if($this->forcedSource()!==null || (new ChannelPolicy($this->db))->load($uid)['mode']==='custom')throw new ApiError(self::UNAVAILABLE,403);
         if(!in_array($source,['platform','owned'],true)||!$this->db->row('SELECT id FROM pre_type WHERE id=? AND status=1',[$type]))throw new ApiError('收款来源或支付方式无效');
         $this->db->pdo->beginTransaction();try{
             $this->db->row('SELECT uid FROM pre_user WHERE uid=?'.$this->db->lockClause(),[(int)$uid]);

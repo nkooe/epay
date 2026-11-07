@@ -108,8 +108,12 @@ if($mod=='site'){
 	</div>
 	<div class="form-group">
 	  <label class="col-sm-2 control-label">允许商户配置通道</label>
-	  <div class="col-sm-10"><select class="form-control" name="merchant_channel_open" default="<?php echo $conf['merchant_channel_open'] ?? '0'?>"><option value="0">关闭</option><option value="1">开启</option></select><span class="help-block">开启后商户中心显示通道管理。关闭后禁止商户管理，已有收款配置保留。</span></div>
-	</div><br/>
+	  <div class="col-sm-10"><select class="form-control" name="merchant_channel_open" default="<?php echo $conf['merchant_channel_open'] ?? '0'?>"><option value="0">关闭</option><option value="1">开启</option></select><span class="help-block">关闭时仅使用平台通道，商户通道管理与收款来源可见但不可操作；已有配置保留。</span></div>
+	</div>
+	<div class="form-group">
+      <label class="col-sm-2 control-label">允许商户使用平台通道</label>
+      <div class="col-sm-10"><select class="form-control" name="merchant_platform_channel_open" default="<?php echo $conf['merchant_platform_channel_open'] ?? '1'?>"><option value="0">关闭</option><option value="1">开启</option></select><span class="help-block">须先开启允许商户配置通道。开启可选择自有或平台通道；关闭仅允许自有通道，无可用通道时报错，不回退平台。</span></div>
+    </div><br/>
 	<div class="form-group">
 	  <label class="col-sm-2 control-label">用户编辑自定义接口信息</label>
 	  <div class="col-sm-10"><select class="form-control" name="user_settings_edit" default="<?php echo $conf['user_settings_edit']?>"><option value="0">关闭</option><option value="1">开启</option></select></div>
@@ -147,10 +151,6 @@ if($mod=='site'){
 	<div class="form-group">
 	  <label class="col-sm-2 control-label">密钥登录</label>
 	  <div class="col-sm-10"><select class="form-control" name="close_keylogin" default="<?php echo $conf['close_keylogin']?>"><option value="1">关闭</option><option value="0">开启</option></select></div>
-	</div><br/>
-	<div class="form-group">
-	  <label class="col-sm-2 control-label">用户中心风格</label>
-	  <div class="col-sm-10"><select class="form-control" name="user_style" default="<?php echo $conf['user_style']?>"><option value="0">黑色（1）</option><option value="1">黑色（2）</option><option value="2">棕色（1）</option><option value="3">棕色（2）</option><option value="4">蓝色（1）</option><option value="5">蓝色（2）</option><option value="6">紫色（1）</option><option value="7">紫色（2）</option></select></div>
 	</div><br/>
 	<div class="form-group">
 	  <label class="col-sm-2 control-label">公共静态资源CDN</label>
@@ -1940,6 +1940,10 @@ var items = $("select[default]");
 for (i = 0; i < items.length; i++) {
 	$(items[i]).val($(items[i]).attr("default")||0);
 }
+function merchantChannelDependency(){
+    $('[name="merchant_platform_channel_open"]').prop('disabled',$('[name="merchant_channel_open"]').val()!=='1').attr('title',$('[name="merchant_channel_open"]').val()!=='1'?'平台尚未开启此功能，请稍后重试。':'');
+}
+$('[name="merchant_channel_open"]').on('change',merchantChannelDependency);merchantChannelDependency();
 function checkURL(obj)
 {
 	var url = $(obj).val();

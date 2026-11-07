@@ -74,6 +74,13 @@ case 'getcount':
 break;
 
 case 'set':
+    // 商户中心使用统一界面，忽略旧客户端提交的废弃风格字段。
+    unset($_POST['user_style']);
+    foreach(['merchant_channel_open','merchant_platform_channel_open'] as $key)if(isset($_POST[$key]) && (!is_string($_POST[$key]) || !in_array($_POST[$key],['0','1'],true)))exit(json_encode(['code'=>-1,'msg'=>'开关选项无效'],JSON_UNESCAPED_UNICODE));
+    if(isset($_POST['merchant_platform_channel_open']) && (string)($_POST['merchant_channel_open']??$conf['merchant_channel_open']??'0')!=='1'){
+        if($_POST['merchant_platform_channel_open']!==(string)($conf['merchant_platform_channel_open']??'1'))exit(json_encode(['code'=>-1,'msg'=>\lib\Merchant\OwnedChannels::UNAVAILABLE],JSON_UNESCAPED_UNICODE));
+        unset($_POST['merchant_platform_channel_open']);
+    }
 	if(isset($_POST['localurl'])){
 		if(!empty($_POST['localurl']) && (substr($_POST['localurl'],0,4)!='http' || substr($_POST['localurl'],-1)!='/'))exit('{"code":-1,"msg":"回调专用网址格式错误"}');
 	}

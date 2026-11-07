@@ -2,7 +2,7 @@
 include '../includes/common.php';
 if(($islogin2??0)!==1){header('Location: ./login.php');exit;}
 $service=new \lib\Merchant\OwnedChannels(\lib\AdminApp\Runtime::legacyStore($DB));
-try{$service->authorize($uid);}catch(\lib\AdminApp\ApiError $e){http_response_code($e->status);sysmsg($e->getMessage());}
+try{$service->authorizeRead($uid);}catch(\lib\AdminApp\ApiError $e){http_response_code($e->status);sysmsg($e->getMessage());}
 header('Cache-Control: no-store');
 if(empty($_SESSION['merchant_channel_csrf']))$_SESSION['merchant_channel_csrf']=bin2hex(random_bytes(32));
 $title='通道管理';include './head.php';
@@ -29,5 +29,5 @@ $title='通道管理';include './head.php';
 <div class="modal fade" id="channelTestModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="channelTestTitle"><div class="modal-dialog modal-sm" role="document"><form class="modal-content" id="channelTestForm"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="关闭"><span aria-hidden="true">×</span></button><h2 class="modal-title" id="channelTestTitle">测试支付</h2></div><div class="modal-body"><div id="channelTestError" class="alert alert-danger" role="alert" hidden></div><p id="channelTestName" class="text-muted"></p><div class="form-group"><label for="channelTestOrder">订单名称</label><input id="channelTestOrder" name="name" value="支付测试" maxlength="64" required class="form-control"></div><div class="form-group"><label for="channelTestMoney">订单金额（元）</label><input id="channelTestMoney" name="money" value="1.00" type="number" min="0.01" step="0.01" required class="form-control"></div><p class="help-block">测试会发起实际支付，订单归当前商户。</p></div><div class="modal-footer"><button type="button" class="btn btn-default" data-dismiss="modal">关闭</button><button type="submit" class="btn btn-success">发起测试</button></div></form></div></div>
 <script>window.merchantChannelCsrf=<?=json_encode($_SESSION['merchant_channel_csrf'])?>;</script>
 <script src="<?php echo $cdnpublic?>jquery.qrcode/1.0/jquery.qrcode.min.js" defer></script>
-<script src="./assets/js/merchant-channels.js?v=5" defer></script>
+<script src="./assets/js/merchant-channels.js?v=6" defer></script>
 <?php include './foot.php'; ?>

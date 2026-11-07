@@ -3,6 +3,8 @@
   const $id = id => document.getElementById(id);
   let metadata = {types: [], plugins: [], sources: []}, rows = [], page = 1, keySchema = null, pluginSchema = null, testId = null, keyRequest = 0, editorRequest = 0, keyOperation = null, qrTimer = null;
   const pageSize = 15;
+  const unavailable = '平台尚未开启此功能，请稍后重试。';
+  function managementControl(button) { if (metadata.management_enabled === false) { button.disabled = true; button.title = unavailable; } }
   const node = (tag, text, cls) => { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; };
   const option = (value, text) => { const e = node('option', text); e.value = value; return e; };
   const error = (id, message) => { const e = $id(id); e.textContent = message || ''; e.hidden = !message; };
@@ -65,14 +67,14 @@
       typeLabel.append(document.createTextNode(row.typename || row.type)); typeCell.append(typeLabel); tr.append(typeCell);
       tr.append(node('td', row.plugin), node('td', '¥' + row.today, 'channel-amount'), node('td', '¥' + row.yesterday, 'channel-amount'));
       const state = node('td'); const toggle = node('button', Number(row.status) === 1 ? '已开启' : '已关闭', 'btn channel-status ' + (Number(row.status) === 1 ? 'btn-primary' : 'btn-warning'));
-      toggle.type = 'button'; toggle.setAttribute('aria-label', row.name + '：' + toggle.textContent + '，点击切换');
+      toggle.type = 'button'; managementControl(toggle); toggle.setAttribute('aria-label', row.name + '：' + toggle.textContent + '，点击切换');
       toggle.addEventListener('click', () => busy(toggle, async () => {
         try { const d = await api('detail', {id: row.id}, true); await api('status', {id: row.id, revision: d.revision, status: Number(d.status) === 1 ? 0 : 1}); await refresh(); notice('通道状态已更新'); } catch (e) { notice(e.message, true); }
       })); state.append(toggle); if (Number(row.daystatus) === 1) state.append(node('small', '已达单日限制', 'channel-status-note')); tr.append(state);
       const actions = node('td'), group = node('div', null, 'channel-actions');
       for (const [label, action] of [['配置密钥', 'keys'], ['编辑', 'edit'], ['删除', 'delete'], ['订单', 'orders'], ['测试', 'test']]) {
         if (action === 'orders') { const a = node('a', label, 'btn btn-xs btn-default'); a.href = 'order.php?channel=' + encodeURIComponent(row.id); group.append(a); continue; }
-        const b = node('button', label, 'btn btn-xs ' + ({keys: 'btn-primary', edit: 'btn-info', delete: 'btn-danger channel-delete'}[action] || 'btn-default')); b.type = 'button';
+        const b = node('button', label, 'btn btn-xs ' + ({keys: 'btn-primary', edit: 'btn-info', delete: 'btn-danger channel-delete'}[action] || 'btn-default')); b.type = 'button'; managementControl(b);
         b.addEventListener('click', () => busy(b, async () => {
           try {
             if (action === 'keys') await openKeys(row);
@@ -232,11 +234,11 @@
     for (const type of metadata.types) {
       const wrapper = node('div', null, 'channel-source'), label = node('label', type.showname), select = node('select', null, 'form-control'); label.htmlFor = select.id = 'channel-source-' + type.id;
       select.append(option('platform', '跟随平台'), option('owned', '自有通道')); select.value = metadata.sources.find(s => String(s.type) === String(type.id))?.source || 'platform';
-      select.disabled = !!metadata.routing_locked;
-      let previous = select.value; select.addEventListener('change', async () => { select.disabled = true; try { await api('source', {type: String(type.id), source: select.value}); previous = select.value; notice(type.showname + '收款来源已保存'); } catch (e) { select.value = previous; notice(e.message, true); } finally { select.disabled = !!metadata.routing_locked; } }); wrapper.append(label, select); box.append(wrapper);
+      select.disabled = !!metadata.routing_locked; if (select.disabled) select.title = unavailable;
+      let previous = select.value; select.addEventListener('change', async () => { select.disabled = true; try { await api('source', {type: String(type.id), source: select.value}); previous = select.value; notice(type.showname + '收款来源已保存'); } catch (e) { select.value = previous; notice(e.message, true); } finally { select.disabled = !!metadata.routing_locked; if (select.disabled) select.title = unavailable; } }); wrapper.append(label, select); box.append(wrapper);
     }
     if (!metadata.types.length) box.append(node('p', '平台暂未开放支付方式。', 'text-muted'));
-    if (metadata.routing_locked) box.append(node('p', '管理员已设置独立通道策略，实际收款按该策略执行；调整来源请联系管理员。', 'text-muted'));
+    if (metadata.routing_locked) box.append(node('p', unavailable, 'text-muted'));
   }
   $id('channelAdd').addEventListener('click', () => openEditor().catch(e => notice(e.message, true)));
   $id('channelType').addEventListener('change', () => populatePlugins());
@@ -271,7 +273,7 @@
   }); });
   window.jQuery('#channelModal,#channelKeysModal,#channelTestModal').on('shown.bs.modal', function () { this.querySelector('input:not([type=hidden]),select,textarea,button[type=submit]')?.focus(); });
   (async () => {
-    try { metadata = await api('metadata', {}, true); renderSources(); metadata.types.forEach(t => $id('channelTypeFilter').append(option(t.id, t.showname))); metadata.plugins.forEach(p => $id('channelPluginFilter').append(option(p.name, p.showname || p.name))); await refresh(); }
+    try { metadata = await api('metadata', {}, true); managementControl($id('channelAdd')); if (metadata.management_enabled === false) notice(unavailable, true); renderSources(); metadata.types.forEach(t => $id('channelTypeFilter').append(option(t.id, t.showname))); metadata.plugins.forEach(p => $id('channelPluginFilter').append(option(p.name, p.showname || p.name))); await refresh(); }
     catch (e) { notice(e.message, true); $id('channelRows').replaceChildren(); const tr = node('tr'), td = node('td', '加载失败，请点击刷新重试。', 'channel-empty'); td.colSpan = 9; tr.append(td); $id('channelRows').append(tr); }
   })();
 })();

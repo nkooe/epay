@@ -3,17 +3,7 @@
 if($userrow['status']==0){
 	sysmsg('你的商户由于违反相关法律法规与《<a href="/?mod=agreement">'.$conf['sitename'].'用户协议</a>》，已被禁用！');
 }
-switch($conf['user_style']){
-	case 1: $style=['bg-black','bg-black','bg-white']; break;
-	case 2: $style=['bg-dark','bg-white','bg-dark']; break;
-	case 3: $style=['bg-dark','bg-dark','bg-light']; break;
-	case 4: $style=['bg-info','bg-info','bg-black']; break;
-	case 5: $style=['bg-info','bg-info','bg-white']; break;
-	case 6: $style=['bg-primary','bg-primary','bg-dark']; break;
-	case 7: $style=['bg-primary','bg-primary','bg-white']; break;
-	default: $style=['bg-black','bg-white','bg-black']; break;
-}
-$merchantChannelVisible=(string)($conf['merchant_channel_open']??'0')==='1';
+$merchantChannelVisible=true;
 $groupconfig = getGroupConfig($userrow['gid']);
 $conf = array_merge($conf, $groupconfig);
 ?>

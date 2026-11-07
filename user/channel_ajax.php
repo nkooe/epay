@@ -6,7 +6,7 @@ header('X-Content-Type-Options: nosniff');
 try {
     if(($islogin2??0)!==1)throw new \lib\AdminApp\ApiError('请先登录商户中心',401);
     $service=new \lib\Merchant\OwnedChannels(\lib\AdminApp\Runtime::legacyStore($DB));
-    $service->authorize($uid);
+    $service->authorizeRead($uid);
     $method=$_SERVER['REQUEST_METHOD']??'GET';
     $action=$_GET['act']??'';
     if(!is_string($action))throw new \lib\AdminApp\ApiError('操作无效');

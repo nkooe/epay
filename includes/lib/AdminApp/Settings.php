@@ -75,6 +75,10 @@ final class Settings
             if(preg_match('/^(?:pre_maxmoney|pay_maxmoney|pay_minmoney|pay_daymax|settle_money|settle_rate|settle_fee_min|settle_fee_max|transfer_rate)$/D',$key)&&$value!==''&&(!preg_match('/^\d{1,8}(?:\.\d{1,4})?$/D',$value)||(strpos($key,'rate')!==false&&bccomp($value,'100',4)>0)))throw new ApiError($f['label'].'金额或比例无效');
             $updates[$key]=$value;
         }
+        if(isset($updates['merchant_platform_channel_open']) && (string)($updates['merchant_channel_open']??$this->conf['merchant_channel_open']??'0')!=='1'){
+            if($updates['merchant_platform_channel_open']!==(string)($this->conf['merchant_platform_channel_open']??'1'))throw new ApiError(\lib\Merchant\OwnedChannels::UNAVAILABLE,403);
+            unset($updates['merchant_platform_channel_open']);
+        }
         $next=$updates+$this->conf;if(($next['wework_payopen'] ?? '0')==='1'&&($next['wxappkf_payopen'] ?? '0')==='1')throw new ApiError('微信客服支付与小程序客服支付只能开启一种');
         $this->db->pdo->beginTransaction();try{foreach($updates as $k=>$v)$this->db->setting($k,$v);$this->db->audit('系统配置',$this->ip,['group'=>$group,'fields'=>array_keys($updates)]);$this->db->pdo->commit();}catch(\Throwable $e){if($this->db->pdo->inTransaction())$this->db->pdo->rollBack();throw $e;}
         return ['saved'=>true];

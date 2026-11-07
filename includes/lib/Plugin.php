@@ -58,7 +58,7 @@ class Plugin {
 
 				if(!in_array($func, ['notify','return','pcstatus','xstatus','ok','transfernotify','complainnotify','mchrisknotify'], true)) {
 					\lib\Merchant\PaymentAccess::assertAllowed($order);
-					\lib\Channel::merchantPolicy()->assertRoute($order['uid'], $order['type'], $order['channel'], $order['subchannel'], $order['money'], !empty($order['channel_test']));
+					\lib\Channel::merchantPolicy()->assertRoute($order['uid'], $order['type'], $order['channel'], $order['subchannel'], $order['money'], (int)($order['channel_test']??0));
 				}
 				\lib\Channel::assertOwner($order['uid'],$order['channel'],$order['subchannel']);
 		$channel = $order['subchannel'] > 0 ? \lib\Channel::getSub($order['subchannel']) : \lib\Channel::get($order['channel'], $userrow['channelinfo']);
@@ -143,7 +143,7 @@ class Plugin {
 	static public function loadForSubmit($plugin, $trade_no, $ismapi=false){
 		global $DB,$conf,$order,$channel,$ordername,$userrow;
 		\lib\Merchant\PaymentAccess::assertAllowed($order);
-		\lib\Channel::merchantPolicy()->assertRoute($order['uid'], $order['type'], $order['channel'], $order['subchannel'], $order['money'], !empty($order['channel_test']));
+		\lib\Channel::merchantPolicy()->assertRoute($order['uid'], $order['type'], $order['channel'], $order['subchannel'], $order['money'], (int)($order['channel_test']??0));
 		if(preg_match('/^(.[a-zA-Z0-9]+)$/',$plugin) && preg_match('/^(.[0-9]+)$/',$trade_no)){
 			$func = 'submit';
 			if($ismapi) $func = 'mapi';
