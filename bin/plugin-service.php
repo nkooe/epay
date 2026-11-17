@@ -22,8 +22,9 @@ try{
     if(in_array($spec['scope'],['plugin','target'],true)){
         foreach($item['targets'] as $target){$value=$target['subchannel_id']?\lib\Channel::getSub($target['subchannel_id']):\lib\Channel::get($target['channel_id']);if(!$value)throw new \lib\Task\ServiceFault('通道配置无法加载');$channels[]=$value;}
     }else foreach($item['channels'] as $channel){$value=\lib\Channel::get($channel['id']);if(!$value)throw new \lib\Task\ServiceFault('通道配置无法加载');$channels[]=$value;}
-    if(!$channels)throw new \lib\Task\ServiceFault('没有可监控的启用通道');
-    $class=\lib\AdminApp\Runtime::prepare($channels[0],$spec['run']);
+    $builtin=$row['plugin']===\lib\Task\MallService::PLUGIN;
+    if(!$channels&&!$builtin)throw new \lib\Task\ServiceFault('没有可监控的启用通道');
+    $class=$builtin?\lib\Task\MallService::class:\lib\AdminApp\Runtime::prepare($channels[0],$spec['run']);
     foreach(['on_start','run','on_stop'] as $method){
         if(!method_exists($class,$spec[$method]))throw new \lib\Task\ServiceFault('插件生命周期入口不存在');
         $reflection=new ReflectionMethod($class,$spec[$method]);
@@ -31,8 +32,8 @@ try{
         foreach($reflection->getParameters() as $parameter)if($parameter->isPassedByReference())throw new \lib\Task\ServiceFault('插件入口不能使用引用参数');
     }
     if(!defined('IN_PLUGIN'))define('IN_PLUGIN',true);
-    if(!defined('PAY_ROOT'))define('PAY_ROOT',\lib\Task\Manifest::directory($root.'/plugins',$row['plugin']).'/');
-    $GLOBALS['channel']=$channels[0];$stopMethod=$spec['on_stop'];$started=true;
+    if(!$builtin&&!defined('PAY_ROOT'))define('PAY_ROOT',\lib\Task\Manifest::directory($root.'/plugins',$row['plugin']).'/');
+    if(!$builtin)$GLOBALS['channel']=$channels[0];$stopMethod=$spec['on_stop'];$started=true;
     $class::{$spec['on_start']}($channels,$context);
     $class::{$spec['run']}($channels,$context);
     if(!$context->isRound()&&!$context->stopRequested())throw new RuntimeException('插件持续运行入口意外返回');

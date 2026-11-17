@@ -1,6 +1,8 @@
 <?php
 namespace lib\AdminApp;
 
+require_once dirname(__DIR__).'/BridgeSettings.php';
+require_once dirname(__DIR__).'/MallSync.php';
 
 final class Operations
 {
@@ -116,6 +118,7 @@ final class Operations
     }
     private function markClosed($trade)
     {
+        \lib\MallSync::record($this->db,$trade,'closed');
         if(!$this->closed($trade))$this->db->insert('app_operation',['id'=>'closed:'.$trade,'request_id'=>$this->request,'reference'=>$trade,'state'=>'done','created'=>time(),'detail'=>'{"action":"close"}']);
     }
     private function channel($id,$type=null)
@@ -172,6 +175,7 @@ final class Operations
             if(!empty($o['endtime'])||bccomp((string)($o['refundmoney'] ?: '0'),'0',2)>0||$this->db->row('SELECT id FROM pre_app_operation WHERE id=?',['status-only:'.$v['trade_no']]))throw new ApiError('订单已有支付或退款历史，不能删除');
             foreach(['record','refundorder','psorder','suborder'] as $table)
                 if($this->db->value('SELECT COUNT(*) FROM pre_'.$table.' WHERE trade_no=?',[$v['trade_no']]))throw new ApiError('订单存在资金或关联记录，不能删除');
+            if(\lib\BridgeSettings::installed($this->db)&&$this->db->row('SELECT trade_no FROM pre_mall_checkout WHERE trade_no=?',[$v['trade_no']]))throw new ApiError('商城关联订单不能删除，请关闭订单并保留关联');
             if($this->db->query('DELETE FROM pre_order WHERE trade_no=? AND status=0',[$v['trade_no']])->rowCount()!==1)throw new ApiError('订单已变化，请刷新后重试',409);
             $this->db->audit('删除订单',$this->ip,['trade_no'=>$v['trade_no'],'uid'=>$o['uid'],'money'=>$o['money']]);
             return ['message'=>'订单已删除','deleted'=>true];
@@ -244,6 +248,7 @@ $this->markClosed($v['trade_no']);$this->db->audit('关闭订单',$this->ip,['tr
             $this->ledger($uid,$debit,false,'订单退款',$v['trade_no']);
             if($direct&&($this->conf['refund_fee_type'] ?? '0')!=='1'&&bccomp($next,$paid,2)===0){$fee=$this->db->row("SELECT money FROM pre_record WHERE trade_no=? AND type IN ('订单服务费','在线收款服务费') ORDER BY id LIMIT 1",[$v['trade_no']]);if($fee)$this->ledger($uid,(string)$fee['money'],true,'服务费退款',$v['trade_no']);}
             $this->db->update('order',['status'=>2,'refundmoney'=>$next],'trade_no',$v['trade_no']);
+            \lib\MallSync::record($this->db,$v['trade_no'],'refunded',['refundmoney'=>$next]);
             $this->db->insert('refundorder',['refund_no'=>$ref,'out_refund_no'=>$outRef,'trade_no'=>$v['trade_no'],'uid'=>$o['uid'],'money'=>$v['money'],'reducemoney'=>$debit,'status'=>1,'addtime'=>date('Y-m-d H:i:s'),'endtime'=>date('Y-m-d H:i:s')]);
             $this->db->audit('订单退款',$this->ip,['trade_no'=>$v['trade_no'],'refund_no'=>$ref,'money'=>$v['money'],'mode'=>$v['mode']]);return ['message'=>$v['mode']==='api'?'退款成功':'手工退款已登记（未调用渠道）','refund_no'=>$ref,'out_refund_no'=>$outRef,'trade_no'=>$v['trade_no'],'out_trade_no'=>$o['out_trade_no'],'uid'=>$uid,'money'=>$v['money'],'reducemoney'=>$debit];
         });};

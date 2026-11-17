@@ -396,6 +396,7 @@ class Payment {
                 $DB->update('order', $data, ['trade_no'=>$order['trade_no']]);
 
                 processOrderAccounting($order);
+                \lib\MallSync::record($store, $order['trade_no'], 'paid', $store->row('SELECT * FROM pre_order WHERE trade_no=?', [$order['trade_no']]));
                 $confirmed = true;
             }
         }elseif(empty($order['api_trade_no']) && !empty($api_trade_no)){

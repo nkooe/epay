@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="referrer" content="no-referrer">
+    <meta name="theme-color" content="#f5f6f3">
+    <title>确认付款 · shop</title>
+    <link rel="icon" href="brand.png" type="image/png">
+    <link rel="stylesheet" href="checkout.css?v=secure-20261116">
+    <script src="vendor/qrcode.min.js?v=1.0.0" defer></script>
+    <script src="checkout.js?v=checkout-concurrency-20261116" defer></script>
+</head>
+<body>
+<main class="page checkout-page">
+    <div class="topbar"><div class="brand"><img src="brand.png" alt="" width="38" height="38"><span class="brand-word">shop</span><span class="brand-divider" aria-hidden="true"></span><span class="brand-caption">收银台</span></div><span class="top-note"><svg class="icon " aria-hidden="true"><use href="icons.svg#lock"></use></svg>自助付款</span></div>
+    <header class="page-heading">
+        <div><h1 id="checkout-title">确认付款</h1><p class="timer-badge"><svg class="icon " aria-hidden="true"><use href="icons.svg#clock"></use></svg><span id="countdown" role="timer">正在准备订单…</span></p></div>
+        <ol class="step-list" aria-label="付款进度"><li class="active"><span class="step-number">1</span>确认订单</li><li class="step-line" aria-hidden="true"></li><li><span class="step-number">2</span>完成付款</li></ol>
+    </header>
+    <div id="error" class="error" role="alert" hidden></div>
+    <button type="button" id="retry" class="button secondary retry-button" hidden>重新读取订单</button>
+    <section class="card loading" id="loading" aria-label="正在加载订单" aria-busy="true">
+        <div class="skeleton amount-skeleton"></div><div class="skeleton block-skeleton"></div><div class="skeleton line-skeleton"></div><div class="skeleton line-skeleton" style="width:70%"></div><p class="muted">正在准备商品与付款信息</p>
+    </section>
+    <div id="content" hidden>
+        <section class="card native-payment" id="native-payment" aria-labelledby="native-title" tabindex="-1" hidden>
+            <div class="scan-guide"><img src="wxpay.svg" alt="" width="22" height="22"><h2 id="native-title">微信扫码付款</h2></div>
+            <p class="amount" id="native-amount"></p>
+            <div class="native-code-frame"><div id="native-code" aria-label="微信付款二维码"></div></div>
+            <p id="native-status" class="native-status" role="status">等待付款，正在自动查询结果…</p>
+            <p class="muted" id="native-instructions">使用微信扫一扫付款<br>同机可尝试长按二维码识别</p>
+            <button type="button" class="text-button" id="native-check-status">我已付款，查询结果</button>
+        </section>
+        <div class="payment-notice" id="payment-notice" role="status" hidden><strong>请在支付页面完成付款</strong><p>付款后返回本页，将自动更新支付结果。请勿重复付款。</p><button type="button" id="check-status" class="text-button">我已付款，查询结果</button></div>
+        <div class="checkout-grid">
+            <section class="card purchase-card" id="purchase-card" aria-label="商品与金额">
+                <div class="amount-hero"><p class="amount-label"><svg class="icon " aria-hidden="true"><use href="icons.svg#bag"></use></svg>本单实付</p><p class="amount" id="price"></p><span class="saving-pill">本单已优惠 <span id="saving"></span></span></div>
+                <hr class="receipt-divider">
+                <div class="product"><img id="image" alt="商品主图" width="86" height="86" fetchpriority="high" decoding="async"><div class="product-copy"><h2 id="name"></h2><p class="muted" id="sku"></p><span class="tag">数量 1 件 · 包邮</span></div></div>
+                <dl class="price-breakdown"><div class="row"><dt>商品原价</dt><dd class="old" id="original"></dd></div><div class="row"><dt>本单优惠</dt><dd class="price" id="discount"></dd></div></dl>
+            </section>
+            <div class="checkout-side">
+                <section class="card panel" id="method-panel"><div class="section-heading"><h2>支付方式</h2><small>选择付款方式</small></div><div id="methods" role="radiogroup" aria-label="支付方式"></div><p class="muted method-tip" id="method-tip" hidden></p></section>
+                <details class="card order-details checkout-details" id="checkout-details"><summary><span id="details-title">订单详情</span><svg class="icon" aria-hidden="true"><use href="icons.svg#arrow"></use></svg></summary><div class="receipt-details" id="receipt-details"><dl><div class="row"><dt>支付订单号</dt><dd class="mono" id="trade"></dd></div><div class="row" id="mall-row" hidden><dt>商城订单号</dt><dd class="mono" id="mall-order"></dd></div><div class="row"><dt>发起时间</dt><dd id="created"></dd></div></dl></div></details>
+            </div>
+        </div>
+        <p class="page-note"><svg class="icon " aria-hidden="true"><use href="icons.svg#lock"></use></svg>请核对商品和金额，付款后自动更新订单</p>
+        <footer class="payment-bar"><div class="payment-bar-inner"><div><p class="pay-total-label">实付款</p><p class="pay-total" id="pay-total"></p></div><div class="payment-action"><button class="button" id="pay" type="button" disabled><span id="pay-label">正在准备</span><svg class="icon button-icon" aria-hidden="true"><use href="icons.svg#arrow"></use></svg></button></div></div></footer>
+    </div>
+    <noscript><p class="error">请启用浏览器 JavaScript 后重新打开收银台。</p></noscript>
+</main>
+</body>
+</html>

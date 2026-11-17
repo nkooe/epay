@@ -136,13 +136,13 @@ class Channel {
 	}
 
 	// 支付提交处理2（输入支付方式ID）
-	static public function submit2($typeid, $uid=0, $gid=0, $money=0){
+	static public function submit2($typeid, $uid=0, $gid=0, $money=0, $sub_mch_id=0){
 		global $DB;
 		$paytype=$DB->getRow("SELECT id,name,status FROM pre_type WHERE id='$typeid' LIMIT 1");
 		if(!$paytype || $paytype['status']==0)sysmsg('支付方式(type)不存在');
 		$typename = $paytype['name'];
 
-		return self::getSubmitInfo($typeid, $typename, $uid, $gid, $money);
+		return self::getSubmitInfo($typeid, $typename, $uid, $gid, $money, $sub_mch_id);
 	}
 
 	//获取通道、插件、费率信息

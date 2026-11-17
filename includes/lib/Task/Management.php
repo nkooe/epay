@@ -57,7 +57,7 @@ final class Management
         } elseif ($method === 'GET' && $act === 'plugin_service_detail') {
             $row=$pluginServices->get($input['id']??null);
             $listing=array_column($pluginServices->listing(),null,'id');$row=$listing[$row['id']]??$row;
-            $row['automatic']=true;
+            $row['automatic']=$row['plugin']!==MallService::PLUGIN;
             $row['poll_interval_seconds']=Automatic::POLL_SECONDS;
             $data=['service'=>array_diff_key($row,['token'=>true]),'unit'=>null,'text'=>'尚未启动'];
             $data['operation']=$store->row('SELECT id,action,state,message FROM pre_service_operation WHERE service_id=? ORDER BY created_at DESC,id DESC LIMIT 1',[$row['id']]);

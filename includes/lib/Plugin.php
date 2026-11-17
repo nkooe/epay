@@ -57,6 +57,8 @@ class Plugin {
             }else{
 
 				if(!in_array($func, ['notify','return','pcstatus','xstatus','ok','transfernotify','complainnotify','mchrisknotify'], true)) {
+					MallCheckout::beforePayment($order);
+					MallCheckout::assertPayment($order);
 					\lib\Merchant\PaymentAccess::assertAllowed($order);
 					\lib\Channel::merchantPolicy()->assertRoute($order['uid'], $order['type'], $order['channel'], $order['subchannel'], $order['money'], (int)($order['channel_test']??0));
 				}
@@ -140,10 +142,12 @@ class Plugin {
 		return true;
 	}
 
-	static public function loadForSubmit($plugin, $trade_no, $ismapi=false){
+	static public function loadForSubmit($plugin, $trade_no, $ismapi=false, $nativeCheckout=false){
 		global $DB,$conf,$order,$channel,$ordername,$userrow;
 		\lib\Merchant\PaymentAccess::assertAllowed($order);
 		\lib\Channel::merchantPolicy()->assertRoute($order['uid'], $order['type'], $order['channel'], $order['subchannel'], $order['money'], (int)($order['channel_test']??0));
+		MallCheckout::beforePayment($order);
+		MallCheckout::assertPayment($order);
 		if(preg_match('/^(.[a-zA-Z0-9]+)$/',$plugin) && preg_match('/^(.[0-9]+)$/',$trade_no)){
 			$func = 'submit';
 			if($ismapi) $func = 'mapi';
@@ -156,6 +160,12 @@ class Plugin {
 			if(!empty($userrow['ordername']))$conf['ordername']=$userrow['ordername'];
 			$ordername = !empty($conf['ordername'])?ordername_replace($conf['ordername'],$order['name'],$order['uid'],$trade_no,$order['out_trade_no']):$order['name'];
 
+            if ($ismapi && $nativeCheckout && MallPayment::usesNative($channel, $order)) {
+                return MallPayment::native($trade_no, static function()use($plugin,$trade_no){ return self::loadClass($plugin,'qrcode',$trade_no); });
+            }
+            if ($ismapi && $nativeCheckout && ($identity=MallCashier::directIdentity($channel,$order))) {
+                global $method; $method='jsapi'; $order['sub_openid']=$identity['openid']; $order['sub_appid']=$identity['app_id'];
+            }
 			return self::loadClass($plugin, $func, $trade_no);
 		}else{
 			throw new Exception('URL参数不符合规范');

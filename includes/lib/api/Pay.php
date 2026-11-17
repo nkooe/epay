@@ -136,6 +136,13 @@ class Pay
 
         if(strlen($name)>127)$name=mb_strcut($name, 0, 127, 'utf-8');
 
+        \lib\MallCheckout::prepare([
+            'uid'=>$pid,'tid'=>0,'out_trade_no'=>$out_trade_no,'name'=>$name,'money'=>$money,
+            'notify_url'=>$notify_url,'return_url'=>$return_url,'param'=>$param,'domain'=>$domain,'ip'=>$clientip,
+            'version'=>defined('API_INIT')?1:0,'cert_info'=>$cert_info,
+            'requested_type'=>$type?:null,'channel_id'=>$channel_id,
+        ], false);
+
         $firstGetChannel = true;
         $oldorder = $DB->getRow("SELECT * FROM `pre_order` WHERE `uid`=:uid AND `out_trade_no`=:out_trade_no", [':uid'=>$pid, ':out_trade_no'=>$out_trade_no]);
         if($oldorder && time() - strtotime($oldorder['addtime']) < 864000){
@@ -404,6 +411,13 @@ class Pay
         }
 
         if(strlen($name)>127)$name=mb_strcut($name, 0, 127, 'utf-8');
+
+        \lib\MallCheckout::prepare([
+            'uid'=>$pid,'tid'=>0,'out_trade_no'=>$out_trade_no,'name'=>$name,'money'=>$money,
+            'notify_url'=>$notify_url,'return_url'=>$return_url,'param'=>$param,'domain'=>$domain,'ip'=>$clientip,
+            'version'=>defined('API_INIT')?1:0,'cert_info'=>$cert_info,
+            'requested_type'=>$type?:null,'channel_id'=>$channel_id,'payment_method'=>$method,'is_applet'=>$is_applet,
+        ], true);
 
         $firstGetChannel = true;
         $oldorder = $DB->getRow("SELECT * FROM `pre_order` WHERE `uid`=:uid AND `out_trade_no`=:out_trade_no", [':uid'=>$pid, ':out_trade_no'=>$out_trade_no]);

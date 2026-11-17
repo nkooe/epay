@@ -833,3 +833,51 @@ CREATE TABLE `pre_merchant_channel_source` (
 
 INSERT INTO `pre_config` VALUES ('merchant_channel_open', '0');
 INSERT INTO `pre_config` VALUES ('merchant_platform_channel_open', '1');
+
+CREATE TABLE `pre_mall_checkout` (
+    `trade_no` varchar(64) NOT NULL PRIMARY KEY,
+    `token` char(64) NOT NULL,
+    `amount_cents` bigint unsigned NOT NULL,
+    `created_at` int unsigned NOT NULL,
+    `expires_at` int unsigned NOT NULL,
+    `merchant_id` int unsigned DEFAULT NULL,
+    `out_trade_no` varchar(64) DEFAULT NULL,
+    `request_json` mediumtext DEFAULT NULL,
+    `mall_order_id` varchar(64) NOT NULL DEFAULT '',
+    `type_id` int unsigned NOT NULL DEFAULT 0,
+    `ready` tinyint unsigned NOT NULL DEFAULT 0,
+    `started_at` int unsigned NOT NULL DEFAULT 0,
+    `canceled` tinyint unsigned NOT NULL DEFAULT 0,
+    `synced_state` varchar(128) NOT NULL DEFAULT '',
+    `synced` tinyint unsigned NOT NULL DEFAULT 0,
+    `sync_attempts` int unsigned NOT NULL DEFAULT 0,
+    `next_sync_at` int unsigned NOT NULL DEFAULT 0,
+    `last_error` varchar(255) NOT NULL DEFAULT '',
+    `product_json` mediumtext DEFAULT NULL,
+    `paid_confirmed` tinyint unsigned NOT NULL DEFAULT 0,
+    `paid_at` int unsigned NOT NULL DEFAULT 0,
+    `upstream_trade_no` varchar(128) NOT NULL DEFAULT '',
+    `refund_cents` bigint unsigned NOT NULL DEFAULT 0,
+    `state_json` mediumtext DEFAULT NULL,
+    `state_revision` int unsigned NOT NULL DEFAULT 0,
+    `synced_revision` int unsigned NOT NULL DEFAULT 0,
+    UNIQUE KEY uq_mall_token (token),
+    UNIQUE KEY uq_mall_request (merchant_id, out_trade_no),
+    KEY idx_mall_sync (synced, next_sync_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `pre_mall_nonce` (
+    `nonce_hash` char(64) NOT NULL PRIMARY KEY,
+    `expires_at` int unsigned NOT NULL,
+    KEY idx_mall_nonce_expiry (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `pre_mall_settings` (
+    `id` tinyint unsigned NOT NULL PRIMARY KEY,
+    `payload` longtext NOT NULL,
+    `revision` int unsigned NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `pre_mall_settings` (id,payload,revision) VALUES (1,'{"enabled":false,"app_id":"epay-mall","secret":"","gateway_url":"","mall_url":"","merchant_ids":[],"ttl":900}',1);
+
+INSERT INTO `pre_config` (k,v) VALUES ('mall_bridge_schema','1');

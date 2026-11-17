@@ -66,6 +66,7 @@ class Order
         if(!\lib\Plugin::close($trade_no, $message)){
             return ['code'=>-1, 'msg'=>$message];
         }
+        \lib\MallSync::closed(\lib\AdminApp\Runtime::legacyStore($DB),$trade_no);
         return ['code'=>0];
     }
 }

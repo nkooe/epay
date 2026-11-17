@@ -156,16 +156,18 @@
     const groups = new Map();
     pluginServices.forEach(row => { if (!groups.has(row.plugin)) groups.set(row.plugin,[]); groups.get(row.plugin).push(row); });
     groups.forEach((items, plugin) => {
-      const group = node('details','task-service-group'); group.open = expandedGroups.has('s:'+plugin);
+      const group = node('details','task-service-group'); group.open = plugin==='_mall_bridge' || expandedGroups.has('s:'+plugin);
       group.addEventListener('toggle', () => { if(group.open)expandedGroups.add('s:'+plugin);else expandedGroups.delete('s:'+plugin); });
-      group.append(node('summary','',plugin+' · '+items.length+' 项服务'));
+      group.append(node('summary','',(plugin==='_mall_bridge'?'商城桥接':plugin)+' · '+items.length+' 项服务'));
       items.forEach(row => {
         const entry = node('article','task-resident-row'); const info = node('div');
-        info.append(node('strong','',row.name),node('span','task-secondary',(row.channels || []).map(c => '#'+c.id+' '+c.name).join('、') || '#'+row.channel_id));
+        info.append(node('strong','',row.name),node('span','task-secondary',(row.channels || []).map(c => '#'+c.id+' '+c.name).join('、') || (row.plugin==='_mall_bridge'?'系统内置同步子进程':'#'+row.channel_id)));
         if (row.automatic) info.append(node('span','task-secondary','随通道启停自动接管 · 默认每 3 秒处理'));
+        if(row.mall_sync) info.append(node('span','task-secondary','待同步 '+row.mall_sync.pending+' · 失败待重试 '+row.mall_sync.failed));
+        if(row.plugin==='_mall_bridge' && row.heartbeat_at) info.append(node('span','task-secondary','心跳 '+row.heartbeat_at));
         const state = node('div','task-resident-state');
         state.append(node('span','task-status task-status-'+(row.healthy ? 'success' : row.observed === 'attention' ? 'failed':'idle'),
-          serviceNames[row.observed] || '状态未知'));
+          row.configuration_required ? '等待配置商城连接' : (serviceNames[row.observed] || '状态未知')));
         state.append(node('span','task-secondary',Number(row.desired) ? '期望：启用' : '期望：停用'));
         if (row.changed) state.append(node('span','task-secondary task-lock','配置或插件版本有变化'));
         if (row.operation && ['pending','starting'].includes(row.operation.state)) state.append(node('span','task-secondary',row.operation.state === 'pending' ? '操作已排队' : '准备处理'));
@@ -173,12 +175,15 @@
         if (row.last_error) state.append(node('span','task-secondary task-error-excerpt',row.last_error));
         const buttons = node('div','task-row-actions');
         const pending = row.operation && ['pending','starting'].includes(row.operation.state);
-        const unavailable = pending || !workerState || !workerState.healthy;
+        const unavailable = pending || !workerState || !workerState.healthy || row.configuration_required;
+        if (row.plugin==='_mall_bridge') {
+          const configure=node('a','btn btn-default','配置商城桥接');configure.href='set.php?mod=mall';buttons.append(configure);
+        }
         if (!row.automatic) buttons.append(actionButton(Number(row.desired) ? 'stop':'play',(Number(row.desired) ? '停止':'启动')+row.name,
           () => pluginAction(row,Number(row.desired) ? 'stop':'start'),unavailable || (!Number(row.desired) && (row.changed || row.observed === 'attention'))));
         const more = node('details','task-resident-more'); more.append(node('summary','','更多'));
         const menu = node('div','task-resident-menu');
-        [['重新读取配置','refresh']].forEach(([label,action]) => {
+        (row.plugin==='_mall_bridge'?[['重新读取配置','refresh'],['重启同步进程','restart']]:[['重新读取配置','refresh']]).forEach(([label,action]) => {
           const button = node('button','',label);button.type='button';button.disabled=unavailable;
           button.addEventListener('click',() => { more.open=false;pluginAction(row,action); });menu.append(button);
         });
@@ -320,7 +325,8 @@
       (view === 'all' || (view === 'plugin' ? action === 'plugin' : action !== 'plugin'))) : [];
     byId('task-overview').textContent = rows.length+' 项任务 · 自动 '+rows.filter(row => Number(row.enabled) === 1).length+
       ' · 异常 '+rows.filter(row => row.last_status === 'failed' || row.overdue_lock).length;
-    if (!filtered.length && !setupActions.length) {
+    const mallService = view==='all' && mode==='all' ? pluginServices.find(row=>row.plugin==='_mall_bridge') : null;
+    if (!filtered.length && !setupActions.length && !mallService) {
       const tr = node('tr');
       const cell = node('td', 'task-empty', '没有符合条件的任务');
       cell.colSpan = 5;
@@ -389,7 +395,8 @@
       if (unavailable) name.append(node('span', 'task-secondary', unavailable));
       const plan = node('td', '', action === 'plugin' ? '默认每 3 秒' : '默认每天 03:00');
       plan.append(node('span', 'task-secondary', '由进程自动管理'));
-      const state = node('td'); state.append(node('span', 'task-status task-status-idle', action === 'plugin' ? (pluginServices.length ? '已识别 '+pluginServices.length+' 项插件服务' : '等待启用通道；外部上报插件保持原收款方式') : '等待投诉接口'));
+      const plugins=pluginServices.filter(row=>row.plugin!=='_mall_bridge');
+      const state = node('td'); state.append(node('span', 'task-status task-status-idle', action === 'plugin' ? (plugins.length ? '已识别 '+plugins.length+' 项插件服务' : '等待启用通道；外部上报插件保持原收款方式') : '等待投诉接口'));
       const actions = node('td'); const buttons = node('div', 'task-row-actions');
       if (action === 'plugin') buttons.append(actionButton('list', '查看插件服务', () => document.querySelector('[data-task-view="services"]').click(), false));
       else {
@@ -398,6 +405,16 @@
       }
       actions.append(buttons); tr.append(name, plan, node('td', '', '—'), state, actions); body.append(tr);
     });
+    if (mallService) {
+      const tr=node('tr','task-setup-row');tr.dataset.action='mall-sync';
+      const name=node('td');name.append(node('span','task-name','商城状态同步'),node('span','task-secondary','将收款、退款和关单状态同步到商城'));
+      const plan=node('td','','持续运行 · 失败自动重试');plan.append(node('span','task-secondary','由主进程管理的同步子进程'));
+      const recent=node('td');recent.append(node('span','task-status task-status-'+(mallService.observed==='running'?'success':'idle'),mallService.configuration_required?'等待配置商城连接':(serviceNames[mallService.observed]||'尚未启动')));
+      if(mallService.mall_sync)recent.append(node('span','task-secondary','待同步 '+mallService.mall_sync.pending+' · 失败待重试 '+mallService.mall_sync.failed));
+      const actions=node('td');const buttons=node('div','task-row-actions');
+      const configure=node('a','btn btn-default','配置商城桥接');configure.href='set.php?mod=mall';buttons.append(configure,actionButton('list','查看商城同步进程',()=>document.querySelector('[data-task-view="services"]').click(),false));
+      actions.append(buttons);tr.append(name,plan,node('td','','—'),recent,actions);body.append(tr);
+    }
   }
 
   async function loadList(clearError = false) {

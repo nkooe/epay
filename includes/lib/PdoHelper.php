@@ -390,6 +390,11 @@ class PdoHelper
 		return $this->db->beginTransaction();
 	}
 
+	public function inTransaction()
+	{
+		return $this->db->inTransaction();
+	}
+
 	//提交事务
 	public function commit()
 	{

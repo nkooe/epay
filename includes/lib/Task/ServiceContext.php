@@ -34,6 +34,7 @@ final class ServiceContext
     }
     public function businessError(){return $this->businessError;}
     public function recordFailure($message){$this->businessError=mb_substr(Controller::redact($message),0,1000);$this->write('last_error=?',[$this->businessError]);}
+    public function clearFailure(){$this->businessError=null;$this->write('last_error=NULL',[]);}
     public function isRound(){return $this->spec['scope']==='target';}
     public function requestStop(){if(!$this->stop){$this->stop=true;pcntl_alarm($this->spec['stop_seconds']);}}
 

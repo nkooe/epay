@@ -11,10 +11,10 @@ if($islogin==1){}else exit("<script language='javascript'>window.location.href='
 ?>
 <?php
 $mod=is_string($_GET['mod'] ?? null)?$_GET['mod']:'site';
-$mods=['site'=>'网站信息','pay'=>'支付相关','risk'=>'风控检测','settle'=>'结算规则','transfer'=>'转账付款','oauth'=>'快捷登录','notice'=>'消息提醒','certificate'=>'实名认证','template'=>'首页模板','gonggao'=>'公告与排版','mail'=>'邮箱与短信','upimg'=>'LOGO设置','iptype'=>'IP地址','proxy'=>'中转代理','account'=>'修改密码'];
+$mods=['site'=>'网站信息','pay'=>'支付相关','mall'=>'商城桥接','risk'=>'风控检测','settle'=>'结算规则','transfer'=>'转账付款','oauth'=>'快捷登录','notice'=>'消息提醒','certificate'=>'实名认证','template'=>'首页模板','gonggao'=>'公告与排版','mail'=>'邮箱与短信','upimg'=>'LOGO设置','iptype'=>'IP地址','proxy'=>'中转代理','account'=>'修改密码'];
 $activeMod=['account_n'=>'account','paypwd_n'=>'account','mailtest'=>'mail'][$mod]??$mod;
 if(!isset($mods[$activeMod]))$mod=$activeMod='site';
-$modIcons=['site'=>'globe','pay'=>'credit-card','risk'=>'shield','settle'=>'balance-scale','transfer'=>'exchange','oauth'=>'sign-in','notice'=>'bell-o','certificate'=>'id-card-o','template'=>'desktop','gonggao'=>'bullhorn','mail'=>'envelope-o','upimg'=>'picture-o','iptype'=>'map-marker','proxy'=>'random','account'=>'lock'];
+$modIcons=['site'=>'globe','pay'=>'credit-card','mall'=>'shopping-bag','risk'=>'shield','settle'=>'balance-scale','transfer'=>'exchange','oauth'=>'sign-in','notice'=>'bell-o','certificate'=>'id-card-o','template'=>'desktop','gonggao'=>'bullhorn','mail'=>'envelope-o','upimg'=>'picture-o','iptype'=>'map-marker','proxy'=>'random','account'=>'lock'];
 ?>
 <main class="container settings-shell">
   <div class="settings-layout">
@@ -30,7 +30,8 @@ $modIcons=['site'=>'globe','pay'=>'credit-card','risk'=>'shield','settle'=>'bala
     <div class="settings-content" id="settings-content">
 <?php
 $conf=$CACHE->pre_fetch();
-if($mod=='site'){
+if($mod==='mall'){ include __DIR__.'/mall-settings-view.php'; }
+elseif($mod=='site'){
 ?>
 <div class="panel panel-primary">
 <div class="panel-heading"><h3 class="panel-title">网站信息配置</h3></div>

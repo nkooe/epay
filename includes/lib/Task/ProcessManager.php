@@ -14,7 +14,12 @@ final class ProcessManager
         if($this->stopping)throw new \RuntimeException('主进程正在停止，拒绝启动新任务');
         $counts=['worker'=>0,'job'=>0,'plugin'=>0];foreach($this->children as $child)$counts[$child['kind']]++;
         $limit=$kind==='worker'?1:($kind==='job'?$this->c['concurrency']:$this->c['service_limit']);
-        if($counts[$kind]>=$limit)throw new \RuntimeException('任务进程并发已达上限');
+        $used=$counts[$kind];
+        if($kind==='plugin'){
+            $mall=0;foreach($this->children as $child)if($child['kind']==='plugin'&&MallService::isInstance($child['id']))$mall++;
+            if(MallService::isInstance($id)){$used=$mall;$limit=1;}else $used-=$mall;
+        }
+        if($used>=$limit)throw new \RuntimeException('任务进程并发已达上限');
         $fds=[0=>['file','/dev/null','r'],1=>['pipe','w'],2=>['pipe','w'],4=>['pipe','r']];$pipes=[];
         $process=proc_open([$this->c['php'],$this->c['root'].'/bin/task-process.php','--child',$kind,$id],$fds,$pipes,$this->c['root'],null,['bypass_shell'=>true]);
         if(!is_resource($process))throw new \RuntimeException('创建受管任务进程失败');

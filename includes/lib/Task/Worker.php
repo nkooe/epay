@@ -9,7 +9,7 @@ final class Worker
     private $lock;private $lastSync=0;private $lastBeat=0;
     private $controller;private $executions;private $services;private $progress;private $reapBacklog=false;private $reapCursor='';private $activeCount=0;
     private $syncCursor=0;private $syncedPlugins=[];private $retiredTaskCursor=0;private $retiredPluginCursor='';
-    private $dispatchCursors=[];
+    private $dispatchCursors=[];private $lastMallSync=0;
     public function __construct(Store $db,array $config,Controller $controller=null)
     {
         $this->db=$db;$this->config=$config;$this->token=bin2hex(random_bytes(16));
@@ -48,6 +48,7 @@ final class Worker
 
 
                     $accepting=$this->stopping||$this->controller->accepting();
+                    if(!$this->stopping&&time()-$this->lastMallSync>=10){MallService::ensure($this->db);$this->lastMallSync=time();}
                     $this->services->tick($this->stopping||!$accepting);
                     if(!$this->stopping&&$accepting){
                         $probeBusy=Health::tick($this->db,$this->controller,$this->token,!$this->reapBacklog&&count($this->children)<$this->config['concurrency']);
@@ -95,7 +96,7 @@ final class Worker
             $retired=$this->db->row("SELECT DISTINCT t.channel_id FROM pre_task t WHERE t.channel_id>? AND t.action IN ('plugin','complain') AND NOT EXISTS (SELECT 1 FROM pre_channel c WHERE c.id=t.channel_id) ORDER BY t.channel_id LIMIT 1",[$this->retiredTaskCursor]);
             if($retired){$automatic->retireChannel($retired['channel_id']);$this->retiredTaskCursor=(int)$retired['channel_id'];return;}
             $retired=$this->db->row('SELECT DISTINCT s.plugin FROM pre_plugin_service s WHERE s.plugin>? AND NOT EXISTS (SELECT 1 FROM pre_channel c WHERE c.plugin=s.plugin) ORDER BY s.plugin LIMIT 1',[$this->retiredPluginCursor]);
-            if($retired){$automatic->services($retired['plugin']);$this->retiredPluginCursor=$retired['plugin'];return;}
+            if($retired){if($retired['plugin']!==MallService::PLUGIN)$automatic->services($retired['plugin']);$this->retiredPluginCursor=$retired['plugin'];return;}
             $this->db->query("INSERT INTO pre_config(k,v) VALUES ('task_channel_scan',?) ON DUPLICATE KEY UPDATE v=VALUES(v)",[$this->token]);
             $this->syncCursor=0;$this->syncedPlugins=[];$this->retiredTaskCursor=0;$this->retiredPluginCursor='';$this->lastSync=time();return;
         }

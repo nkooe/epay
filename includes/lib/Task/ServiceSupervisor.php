@@ -57,10 +57,12 @@ final class ServiceSupervisor
         $deadline=hrtime(true)+4000000000;
         $completed=$this->ctl->pluginResults();$this->collect($completed['results'],$deadline);
         $reserved="(token IS NOT NULL OR observed IN ('starting','waiting','running','draining'))";
-        $active=$this->db->all('SELECT * FROM pre_plugin_service WHERE '.$reserved.' ORDER BY id LIMIT 33');
-        if(count($active)>32)throw new \RuntimeException('活动通道任务超过并发上限');
+        $active=$this->db->all('SELECT * FROM pre_plugin_service WHERE '.$reserved.' ORDER BY id LIMIT 34');
+        if(count($active)>33)throw new \RuntimeException('活动通道任务超过并发上限');
         $pending=$this->db->all("SELECT * FROM pre_plugin_service s WHERE NOT ".$reserved." AND (desired=1 OR EXISTS (SELECT 1 FROM pre_service_operation o WHERE o.service_id=s.id AND o.state IN ('pending','starting'))) ORDER BY COALESCE(heartbeat_at,started_at,'1970-01-01'),id LIMIT 16");
-        $liveCount=max((int)$completed['active_count'],count($active));$this->registry->beginTurn();
+        $liveCount=max((int)$completed['active_count'],count($active));
+        $mallCount=count(array_filter($active,static function($r){return $r['id']===MallService::id();}));
+        $pluginCount=max(0,$liveCount-$mallCount);$this->registry->beginTurn();
         try{
             foreach(array_merge($active,$pending) as $row){
                 if(hrtime(true)>=$deadline)break;
@@ -107,8 +109,9 @@ final class ServiceSupervisor
                         continue;
                     }
                     if(!$changed&&(!$op||$op['state']!=='pending')&&strtotime($row['heartbeat_at']??'1970-01-01')>time()-Automatic::POLL_SECONDS)continue;
-                    if($liveCount>=$this->limit)continue;
-                    if($this->launch($row,$item)){$liveCount++;if($op)$this->operation($op,'starting','本轮处理已派发');}
+                    $mall=$row['id']===MallService::id();
+                    if($mall?$mallCount>=1:$pluginCount>=$this->limit)continue;
+                    if($this->launch($row,$item)){$liveCount++;if($mall)$mallCount++;else $pluginCount++;if($op)$this->operation($op,'starting','本轮处理已派发');}
                 }catch(\PDOException $e){throw $e;}
                 catch(\Throwable $e){$this->failure($row,$e,$live);if($op)$this->operation($op,'failed',$e->getMessage());}
             }

@@ -14,8 +14,8 @@ final class ServiceRegistry
     {
         if($this->cacheTurn&&$plugin!==null&&isset($this->turnCatalog[$plugin]))return $this->turnCatalog[$plugin];
         $groups=[];$errors=[];$manifests=[];$digests=[];$children=[];
-        $channels=$plugin===null?$this->db->all('SELECT id,name,plugin,status,config FROM pre_channel ORDER BY id'):
-            $this->db->all('SELECT id,name,plugin,status,config FROM pre_channel WHERE plugin=? ORDER BY id',[$plugin]);
+        $channels=$plugin===MallService::PLUGIN?[]:($plugin===null?$this->db->all('SELECT id,name,plugin,status,config FROM pre_channel ORDER BY id'):
+            $this->db->all('SELECT id,name,plugin,status,config FROM pre_channel WHERE plugin=? ORDER BY id',[$plugin]));
         $childRows=null;$byChannel=[];$byPlugin=[];$pluginsByChannel=array_column($channels,'plugin','id');
         foreach($channels as $channel){
             try{
@@ -61,6 +61,10 @@ final class ServiceRegistry
             }catch(\PDOException $e){throw $e;}
             catch(\Throwable $e){$errors[]=['channel_id'=>$channel['id'],'error'=>Controller::redact($e->getMessage())];}
         }
+        if($plugin===null||$plugin===MallService::PLUGIN){
+            $mall=MallService::item($this->db);
+            if($mall)$groups[$mall['id']]=$mall;
+        }
         foreach($groups as &$group){
             if($group['spec']['scope']==='plugin'){
                 $group['subchannels']=$children[$group['plugin']];
@@ -94,6 +98,7 @@ final class ServiceRegistry
     }
     public function currentConfigurationDigest($plugin,$resource=null)
     {
+        if($plugin===MallService::PLUGIN)return MallService::configurationDigest($this->db);
         if($resource!==null&&preg_match('/^target:([0-9]+):([0-9]+)$/D',$resource,$match)){
             return self::configurationDigest(
                 $this->db->all('SELECT id,name,plugin,status,config FROM pre_channel WHERE plugin=? AND id=? ORDER BY id',[$plugin,$match[1]]),
@@ -148,9 +153,14 @@ final class ServiceRegistry
             $row['channel_enabled']=$item ? $item['channel_enabled'] : false;
             $row['poll_interval_seconds']=Automatic::POLL_SECONDS;
             $row['operation']=$this->db->row('SELECT id,action,state,message FROM pre_service_operation WHERE service_id=? ORDER BY created_at DESC,id DESC LIMIT 1',[$row['id']]);
+            if($row['plugin']===MallService::PLUGIN){
+                $row['automatic']=false;
+                $row['configuration_required']=!$row['channel_enabled'];
+                $row['mall_sync']=\lib\MallSync::summary($this->db);
+            }
             unset($row['token']);
         }
-        unset($row);return array_values(array_filter($rows,static function($r){return $r['channel_enabled']||in_array($r['observed'],['running','starting','draining','waiting'],true)||(int)$r['desired']===1;}));
+        unset($row);return array_values(array_filter($rows,static function($r){return $r['plugin']===MallService::PLUGIN||$r['channel_enabled']||in_array($r['observed'],['running','starting','draining','waiting'],true)||(int)$r['desired']===1;}));
     }
     public function submit(array $input)
     {
